@@ -1,0 +1,110 @@
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.sidebar-link.active {
+    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.sidebar-link:not(.active):hover {
+    background: #f3f4f6;
+    color: #1f2937;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-menu {
+    animation: slideDown 0.2s ease-out;
+}
+
+.modal-active {
+    overflow: hidden;
+}
+
+.modal-overlay {
+    transition: opacity 0.15s ease;
+}
+
+.modal-container {
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.hidden-modal {
+    pointer-events: none;
+    opacity: 0;
+}
+
+.hidden-modal .modal-container {
+    transform: scale(0.95);
+}
+
+/* Custom Scrollbar */
+#sidebar nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+#sidebar nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Width */
+#sidebar nav::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+#sidebar nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Thumb - hidden by default */
+#sidebar nav::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+/* Show on sidebar hover */
+#sidebar nav:hover::-webkit-scrollbar-thumb {
+    background: rgba(120, 120, 120, 0.25);
+}
+
+/* Stronger on hover */
+#sidebar nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(120, 120, 120, 0.45);
+}
+
+/* Firefox */
+#sidebar nav {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
+    scroll-behavior: smooth;
+}
+
+/* Sidebar collapsed state */
+.sidebar-collapsed {
+    width: 0px !important;
+    overflow: hidden;
+}
+
+.content-expanded {
+    margin-left: 0 !important;
+}

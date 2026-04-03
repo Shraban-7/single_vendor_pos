@@ -1,0 +1,7 @@
+1. Design admin panel
+2. Add Stock Logs table
+3. check product table indexes
+4. Authentication
+5. Products dynamic
+6. Cart functional (with/without login)
+7. Checkout functional
