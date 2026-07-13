@@ -14,37 +14,21 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        // ================= WEB USERS =================
-        $webQuery = User::where('role', UserRole::CUSTOMER->value);
+        $customerQuery = Customer::query();
 
-        if ($request->filled('web_search')) {
-            $search = $request->web_search;
+        if ($request->filled('search')) {
+            $search = $request->search;
 
-            $webQuery->where(function ($q) use ($search) {
+            $customerQuery->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%")
                     ->orWhere('phone', 'like', "%$search%");
             });
         }
 
-        $webUsers = $webQuery->latest()->paginate(10)->appends($request->all());
+        $customers = $customerQuery->latest()->paginate(10)->appends($request->all());
 
 
-        // ================= POS USERS =================
-        $posQuery = Customer::query();
-
-        if ($request->filled('pos_search')) {
-            $search = $request->pos_search;
-
-            $posQuery->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%$search%")
-                    ->orWhere('phone', 'like', "%$search%");
-            });
-        }
-
-        $posUsers = $posQuery->latest()->paginate(10)->appends($request->all());
-
-
-        return view('admin.customers.index', compact('webUsers', 'posUsers'));
+        return view('admin.customers.index', compact('customers'));
     }
 
     public function update(Request $request, $id)
