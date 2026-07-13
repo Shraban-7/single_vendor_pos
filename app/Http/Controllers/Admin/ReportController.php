@@ -357,7 +357,6 @@ class ReportController extends Controller
         }
 
         $currentMetrics = $this->calculateMetrics($currentStart, $currentEnd);
-
         $lastMetrics = $this->calculateMetrics($lastStart, $lastEnd);
 
         $calculateChange = function ($current, $last) {
@@ -391,14 +390,9 @@ class ReportController extends Controller
             ),
         ];
 
-        $inventoryValue = Product::with(['variants'])
-            ->get()
+        // Cleaned: Directly computing overall stock value using base product fields
+        $inventoryValue = Product::get()
             ->sum(function ($product) {
-                if ($product->variants->isNotEmpty()) {
-                    return $product->variants->sum(function ($variant) use ($product) {
-                        return $product->cost_price * $variant->currentStock;
-                    });
-                }
                 return $product->cost_price * $product->currentStock;
             });
 
@@ -413,25 +407,17 @@ class ReportController extends Controller
         $lowTurnoverCount = Product::whereNotIn('id', $soldProductIds)
             ->count();
 
-        $inventoryByCategory = Product::with(['category', 'variants'])
+        // Cleaned: Stripped tracking loops that split calculation metrics out to variants
+        $inventoryByCategory = Product::with(['category'])
             ->get()
             ->groupBy('category_id')
             ->map(function ($items, $categoryId) {
 
                 $stockValue = $items->sum(function ($product) {
-                    if ($product->variants->isNotEmpty()) {
-                        return $product->variants->sum(function ($variant) use ($product) {
-                            return $product->cost_price * $variant->currentStock;
-                        });
-                    }
                     return $product->cost_price * $product->currentStock;
                 });
 
-                $totalSkuCount = $items->sum(function ($product) {
-                    return $product->variants->isNotEmpty()
-                        ? $product->variants->count()
-                        : 1;
-                });
+                $totalSkuCount = $items->count();
 
                 return [
                     'categoryId' => $categoryId,
@@ -445,7 +431,6 @@ class ReportController extends Controller
         $totalStockValue = $inventoryByCategory->sum('stockValue');
 
         $trendData = $this->getTrendData($filter, $dateFrom, $dateTo);
-
         $expenseTrend = $this->getExpenseTrend($filter, $dateFrom, $dateTo);
 
         $incomeSources = [
@@ -720,7 +705,7 @@ class ReportController extends Controller
             return $p;
         });
 
-        $regionData = Order::with('district')->where('is_pos',0)->whereNotNull('shipping_district')
+        $regionData = Order::with('district')->where('is_pos', 0)->whereNotNull('shipping_district')
             ->get();
 
         $ordersByDistrict = $regionData

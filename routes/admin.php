@@ -8,7 +8,6 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ExpenseController;
-use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PosController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReportController;
@@ -38,15 +37,17 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
         Route::post('/stock/add', [ProductController::class, 'addStock'])->name('stock.add');
         Route::post('/stock/remove', [ProductController::class, 'removeStock'])->name('stock.remove');
 
-        //barcode
 
-        Route::get('print-barcode', [ProductController::class, 'printBarcode'])->name('printBarcode');
-        Route::get('print-labels', [ProductController::class, 'printBarcodeLabels'])->name('printBarcodeLabels');
 
         Route::get('/update-category', [ProductController::class, 'updateCategory'])->name('updateCategory');
         Route::post('/update-category/{product_id}', [ProductController::class, 'setCategory'])->name('setCategory');
     });
 
+    //barcode
+    Route::prefix('barcodes')->as('barcodes.')->group(function () {
+        Route::get('/', [ProductController::class, 'printBarcode'])->name('index');
+        Route::get('/labels', [ProductController::class, 'printBarcodeLabels'])->name('label');
+    });
     Route::prefix('sale-returns')->as('saleReturns.')->group(function () {
         Route::get('/', [SaleReturnController::class, 'index'])->name('index');
         Route::get('/{return}', [SaleReturnController::class, 'show'])->name('show');
@@ -181,7 +182,7 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
     //     return redirect()->route('admin.dashboard');
     // })->name('banners.index');
 
-    Route::prefix('activity-logs')->as('activity-logs.')->group(function () {
+    Route::prefix('activity-logs')->as('activityLogs.')->group(function () {
         Route::get('/', [ActivityLogController::class, 'index'])->name('index');
     });
 
