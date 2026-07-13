@@ -163,9 +163,6 @@
                         {{-- Actions strip --}}
                         <td class="px-4 py-2.5 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-0.5">
-                                <a href="#" class="p-1 transition rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100" title="View Detail">
-                                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                                </a>
                                 <a href="{{ route('admin.products.manage-stock', $product) }}" class="p-1 transition rounded text-slate-400 hover:text-violet-600 hover:bg-slate-100" title="Inventory Matrix">
                                     <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
                                 </a>

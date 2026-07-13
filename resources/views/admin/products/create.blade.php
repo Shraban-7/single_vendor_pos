@@ -2,288 +2,274 @@
 @section('title', 'Add Product')
 @section('content')
 
-<div class="mb-3">
-    <div class="flex items-center justify-between">
-        <h1 class="text-lg md:text-2xl font-bold text-slate-900 mb-0">Add New Product</h1>
-        <a href="{{ route('admin.products.index') }}" class="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">
-            <i data-lucide="arrow-left"  class="w-4 h-4 fill-current mr-2"></i>Back to Products
+{{-- Page Header --}}
+<div class="flex flex-col gap-2 mb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <h1 class="text-xl font-bold tracking-tight text-slate-900">Add New Product</h1>
+        <p class="text-xs text-slate-500">Publish a new variants package item directly into the active product catalog matrix.</p>
+    </div>
+    <div>
+        <a href="{{ route('admin.products.index') }}" class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:text-slate-900 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>Back to Products</span>
         </a>
     </div>
 </div>
 
-<form id="productForm" action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+<form id="productForm" action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
     @csrf
 
-    <div class="grid lg:grid-cols-3 gap-6">
-        {{-- Main Content --}}
-        <div class="lg:col-span-2 space-y-6">
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900 mb-6">Basic Information</h2>
-                <div class="mb-5">
-                    <x-input name="name" label="Product Name" required placeholder="e.g., Men's Slim Fit Cotton Shirt" />
+    <div class="grid lg:grid-cols-3 gap-4">
+        {{-- Main Content Workspace Column --}}
+        <div class="lg:col-span-2 space-y-4 text-xs">
+            {{-- Basic Information Card --}}
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">Basic Information</h2>
+
+                <div>
+                    <x-input name="name" label="Product Name *" required placeholder="e.g., Men's Slim Fit Cotton Shirt" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
                 </div>
 
-                <div class="mb-5">
-                    <x-input name="sku" label="SKU (Stock Keeping Unit)" placeholder="e.g., SHIRT-BLU-M-001" />
-                    <p class="mt-1 text-xs text-slate-500">Leave empty to auto-generate</p>
+                <div>
+                    <x-input name="sku" label="SKU (Stock Keeping Unit)" placeholder="e.g., SHIRT-BLU-M-001" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
+                    <p class="mt-1 text-[10px] text-slate-400">Leave empty to auto-generate a unique catalog track tag code</p>
                 </div>
 
-                <div class="mb-5">
-                    <x-textarea name="short_description" label="Short Description" rows="3" placeholder="Brief description for product listing" />
+                <div>
+                    <x-textarea name="short_description" label="Short Description" rows="2" placeholder="Brief metadata copy summary for general search listings pages" class="text-xs bg-slate-50/50 focus:bg-white" />
                 </div>
                 <div>
-                    <x-textarea name="description" label="Full Description" rows="6" placeholder="Detailed product description, features, and specifications" />
+                    <x-textarea name="description" label="Full Detail Description" rows="4" placeholder="Detailed core descriptions, specifications, context and overview data points" class="text-xs bg-slate-50/50 focus:bg-white" />
                 </div>
             </div>
 
-            {{-- Pricing --}}
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900 mb-6">Pricing</h2>
+            {{-- Pricing Parameters Card --}}
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">Pricing Matrix Parameters</h2>
 
-                <div class="grid md:grid-cols-3 gap-5">
+                <div class="grid md:grid-cols-3 gap-3">
                     <div>
-                        <x-input name="price" label="Regular Price (৳)" placeholder="0.00" required />
+                        <x-input name="price" label="Regular Price (৳) *" placeholder="0.00" required class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
                     </div>
                     <div>
-                        <x-input name="compare_price" label="Compare Price (৳)" placeholder="0.00" />
-                        <p class="mt-1 text-xs text-slate-500">Original price before discount</p>
+                        <x-input name="compare_price" label="Compare Price (৳)" placeholder="0.00" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
+                        <p class="mt-1 text-[10px] text-slate-400">MSRP retail strike price before discount</p>
                     </div>
                     <div>
-                        <x-input name="cost_price" label="Cost Price (৳)" placeholder="0.00" />
-                        <p class="mt-1 text-xs text-slate-500">For profit calculation</p>
+                        <x-input name="cost_price" label="Cost Price (৳)" placeholder="0.00" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
+                        <p class="mt-1 text-[10px] text-slate-400">Base inventory cost for net profit yield audits</p>
                     </div>
                 </div>
             </div>
 
-            {{-- Product Details --}}
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900 mb-6">Product Details</h2>
+            {{-- Product Technical Specifications --}}
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">Product Metadata Specifications</h2>
 
-                <div class="grid md:grid-cols-2 gap-5">
+                <div class="grid md:grid-cols-2 gap-3">
                     <div>
-                        <x-input name="brand" label="Brand" placeholder="e.g., Nike, Adidas" />
+                        <x-input name="material" label="Material Composition" placeholder="e.g., 100% Cotton" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
                     </div>
                     <div>
-                        <x-input name="material" label="Material" placeholder="e.g., 100% Cotton" />
+                        <x-input name="weight" label="Weight Metrics (grams)" type="number" step="0.01" placeholder="0.00" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
                     </div>
-                    {{-- Fit Type --}}
+                    {{-- Fit Type Selector --}}
                     <div>
-                        <label for="fit_type" class="block text-sm font-medium text-slate-700 mb-2">Fit Type</label>
+                        <label for="fit_type" class="block font-semibold text-slate-600 mb-1">Fit Target Cut Profile</label>
                         <select name="fit_type" id="fit_type"
-                            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('fit_type') border-rose-500 @enderror">
-                            <option value="">Select Fit Type</option>
+                            class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition @error('fit_type') border-rose-500 @enderror">
+                            <option value="">Select Cut Variant</option>
                             @foreach($fitTypes as $fitType)
-                            <option value="{{ $fitType->value }}" {{ old('fit_type') == $fitType->value ? 'selected' : '' }}>
-                                {{ $fitType->label() }}
-                            </option>
+                                <option value="{{ $fitType->value }}" {{ old('fit_type') == $fitType->value ? 'selected' : '' }}>
+                                    {{ $fitType->label() }}
+                                </option>
                             @endforeach
                         </select>
-                        @error('fit_type')
-                        <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                        @enderror
+                        @error('fit_type') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
-                    {{-- Pattern --}}
+                    {{-- Pattern Selector --}}
                     <div>
-                        <label for="pattern" class="block text-sm font-medium text-slate-700 mb-2">Pattern</label>
+                        <label for="pattern" class="block font-semibold text-slate-600 mb-1">Pattern Structure Profile</label>
                         <select name="pattern" id="pattern"
-                            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('pattern') border-rose-500 @enderror">
-                            <option value="">Select Pattern</option>
+                            class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition @error('pattern') border-rose-500 @enderror">
+                            <option value="">Select Layout Design</option>
                             @foreach($patterns as $pattern)
-                            <option value="{{ $pattern->value }}" {{ old('pattern') == $pattern->value ? 'selected' : '' }}>
-                                {{ $pattern->label() }}
-                            </option>
+                                <option value="{{ $pattern->value }}" {{ old('pattern') == $pattern->value ? 'selected' : '' }}>
+                                    {{ $pattern->label() }}
+                                </option>
                             @endforeach
                         </select>
-                        @error('pattern')
-                        <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                        @enderror
+                        @error('pattern') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
 
-                    {{-- Occasion --}}
-                    <div>
-                        <label for="occasion" class="block text-sm font-medium text-slate-700 mb-2">Occasion</label>
+                    {{-- Occasion Selector --}}
+                    <div class="md:col-span-2">
+                        <label for="occasion" class="block font-semibold text-slate-600 mb-1">Seasonal Occasion Type</label>
                         <select name="occasion" id="occasion"
-                            class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('occasion') border-rose-500 @enderror">
-                            <option value="">Select Occasion</option>
+                            class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition @error('occasion') border-rose-500 @enderror">
+                            <option value="">Select Event Match</option>
                             @foreach($occasions as $occasion)
-                            <option value="{{ $occasion->value }}" {{ old('occasion') == $occasion->value ? 'selected' : '' }}>
-                                {{ $occasion->label() }}
-                            </option>
+                                <option value="{{ $occasion->value }}" {{ old('occasion') == $occasion->value ? 'selected' : '' }}>
+                                    {{ $occasion->label() }}
+                                </option>
                             @endforeach
                         </select>
-                        @error('occasion')
-                        <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <x-input name="weight" label="Weight (grams)" type="number" step="0.01" placeholder="0.00" />
+                        @error('occasion') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900 mb-6">Inventory</h2>
+            {{-- Stock Inventory Operations --}}
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">Inventory Operations Storage</h2>
 
-                <div class="grid md:grid-cols-2 gap-5">
+                <div class="grid md:grid-cols-2 gap-3">
                     <div>
-                        <x-input name="stock_in" label="Stock Quantity" type="number" required placeholder="0" />
+                        <x-input name="stock_in" label="Initial Stock Quantity *" type="number" required placeholder="0" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
                     </div>
                     <div>
-                        <x-input name="low_stock_threshold" label="Low Stock Alert" type="number" value="{{ old('low_stock_threshold', 5) }}" placeholder="5" />
-                        <p class="mt-1 text-xs text-slate-500">Alert when stock reaches this level</p>
+                        <x-input name="low_stock_threshold" label="Low Inventory Restock Alert Level" type="number" value="{{ old('low_stock_threshold', 5) }}" placeholder="5" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
+                        <p class="mt-1 text-[10px] text-slate-400">Trigger warnings when reserves drop below this value</p>
                     </div>
                 </div>
             </div>
 
-            {{-- SEO Settings --}}
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900 mb-6">SEO Settings</h2>
-                <div class="mb-5">
-                    <x-input name="meta_title" label="Meta Title" placeholder="SEO title for search engines" />
-                </div>
-                <div class="mb-5">
-                    <x-textarea name="meta_description" label="Meta Description" placeholder="SEO description for search engines" />
+            {{-- Optimization Architecture --}}
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">SEO Engine Optimization Architecture</h2>
+                <div>
+                    <x-input name="meta_title" label="Meta Title Tag" placeholder="Optimized SEO title string header fields" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
                 </div>
                 <div>
-                    <x-input name="tags" label="Tags" placeholder="e.g., summer, casual, cotton" />
-                    <p class="mt-1 text-xs text-slate-500">Separate tags with commas</p>
+                    <x-textarea name="meta_description" label="Meta Description String snippet" placeholder="Structured excerpt indexing summaries for crawl spiders description text" class="text-xs bg-slate-50/50 focus:bg-white" />
+                </div>
+                <div>
+                    <x-input name="tags" label="Catalog Search Tags Map" placeholder="e.g., summer, casual, cotton" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />
+                    <p class="mt-1 text-[10px] text-slate-400">Delineate tags via simple comma separations</p>
                 </div>
             </div>
         </div>
 
-        {{-- Sidebar --}}
-        <div class="space-y-6">
+        {{-- Sidebar Configurations Column --}}
+        <div class="space-y-4 text-xs">
+            {{-- Category / Visibility Options --}}
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">Taxonomy & Global Visibility</h2>
 
-            {{-- Status --}}
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900 mb-6">Status & Visibility</h2>
-
-                {{-- Category --}}
-                <div class="mb-5">
-                    <label for="category_id" class="block text-sm font-medium text-slate-700 mb-2">Category <span class="text-rose-500">*</span></label>
+                {{-- Root Category Select --}}
+                <div>
+                    <label for="category_id" class="block font-semibold text-slate-600 mb-1">Parent Category Namespace <span class="text-rose-500">*</span></label>
                     <select name="category_id" id="category_id" required
-                        class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('category_id') border-rose-500 @enderror">
-                        <option value="">Select Category</option>
+                        class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition @error('category_id') border-rose-500 @enderror">
+                        <option value="">Select Root Node</option>
                         @foreach($categories as $category)
-                        <option value="{{ $category['id'] }}" {{ old('category_id') == $category['id'] ? 'selected' : '' }}>
-                            {{ $category['name'] }}
-                        </option>
+                            <option value="{{ $category['id'] }}" {{ old('category_id') == $category['id'] ? 'selected' : '' }}>
+                                {{ $category['name'] }}
+                            </option>
                         @endforeach
                     </select>
-                    @error('category_id')
-                    <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                    @enderror
+                    @error('category_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="mb-5">
-                    <label for="subcategory_id" class="block text-sm font-medium text-slate-700 mb-2">Subcategory</label>
+                {{-- Child Subcategory Select --}}
+                <div>
+                    <label for="subcategory_id" class="block font-semibold text-slate-600 mb-1">Subcategory Branch Node</label>
                     <select name="subcategory_id" id="subcategory_id"
-                        class="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition @error('subcategory_id') border-rose-500 @enderror">
+                        class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition @error('subcategory_id') border-rose-500 @enderror">
                         <option value="">Select Subcategory</option>
-                       
                     </select>
-                    @error('subcategory_id')
-                    <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                    @enderror
+                    @error('subcategory_id') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                {{-- Product Status Checkboxes --}}
-                <div class="space-y-3">
-                    <label class="flex items-center">
-                        <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}
-                            class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
-                        <span class="ml-2 text-sm text-slate-700">Active (visible to customers)</span>
+                {{-- Custom Segment Flag Toggles --}}
+                <div class="space-y-2 border-t border-slate-100 pt-3">
+                    <label class="inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }} class="rounded border-slate-200 text-indigo-600 focus:ring-0 w-3.5 h-3.5 shadow-inner">
+                        <span class="ml-2 font-medium text-slate-700">Active Visibility Flag</span>
                     </label>
 
-                    <label class="flex items-center">
-                        <input type="checkbox" name="is_featured" value="1" {{ old('is_featured') ? 'checked' : '' }}
-                            class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
-                        <span class="ml-2 text-sm text-slate-700">Featured Product</span>
+                    <label class="flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="is_featured" value="1" {{ old('is_featured') ? 'checked' : '' }} class="rounded border-slate-200 text-indigo-600 focus:ring-0 w-3.5 h-3.5 shadow-inner">
+                        <span class="ml-2 font-medium text-slate-700">Featured Placement Focus</span>
                     </label>
 
-                    <label class="flex items-center">
-                        <input type="checkbox" name="is_new_arrival" value="1" {{ old('is_new_arrival') ? 'checked' : '' }}
-                            class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
-                        <span class="ml-2 text-sm text-slate-700">New Arrival</span>
+                    <label class="flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="is_new_arrival" value="1" {{ old('is_new_arrival') ? 'checked' : '' }} class="rounded border-slate-200 text-indigo-600 focus:ring-0 w-3.5 h-3.5 shadow-inner">
+                        <span class="ml-2 font-medium text-slate-700">New Arrival Segment Marker</span>
                     </label>
 
-                    <label class="flex items-center">
-                        <input type="checkbox" name="is_best_seller" value="1" {{ old('is_best_seller') ? 'checked' : '' }}
-                            class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
-                        <span class="ml-2 text-sm text-slate-700">Best Seller</span>
+                    <label class="flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="is_best_seller" value="1" {{ old('is_best_seller') ? 'checked' : '' }} class="rounded border-slate-200 text-indigo-600 focus:ring-0 w-3.5 h-3.5 shadow-inner">
+                        <span class="ml-2 font-medium text-slate-700">Best Seller Rank Indexer</span>
                     </label>
 
-                    <label class="flex items-center">
-                        <input type="checkbox" name="is_on_sale" value="1" {{ old('is_on_sale') ? 'checked' : '' }}
-                            class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500">
-                        <span class="ml-2 text-sm text-slate-700">On Sale</span>
+                    <label class="flex items-center cursor-pointer select-none">
+                        <input type="checkbox" name="is_on_sale" value="1" {{ old('is_on_sale') ? 'checked' : '' }} class="rounded border-slate-200 text-indigo-600 focus:ring-0 w-3.5 h-3.5 shadow-inner">
+                        <span class="ml-2 font-medium text-slate-700">Active Markdown Sale Promo</span>
                     </label>
                 </div>
             </div>
 
-            {{-- Product Media --}}
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <h2 class="text-lg font-bold text-slate-900 mb-6">Product Media</h2>
+            {{-- Main Media Engine --}}
+            <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm space-y-3.5">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-1.5">Asset Catalog Media</h2>
 
-                {{-- image --}}
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">image Image <span class="text-rose-500">*</span></label>
-                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-indigo-500 transition relative">
+                {{-- Hero Thumbnail File Slot --}}
+                <div>
+                    <label class="block font-semibold text-slate-600 mb-1.5">Hero Thumbnail Image <span class="text-rose-500">*</span></label>
+                    <div class="border border-dashed border-slate-200 bg-slate-50/50 rounded-xl p-4 text-center hover:border-slate-400 transition relative">
                         <input type="file" name="image" id="image" accept="image/*" class="hidden">
-                        <div id="imagePlaceholder">
-                            <i data-lucide="image"  class="w-12 h-12 fill-current text-4xl text-slate-400 mb-3"></i>
-                            <p class="text-sm text-slate-600 mb-2">Click to upload image</p>
-                            <p class="text-xs text-slate-500">PNG, JPG, WEBP up to 2MB</p>
+
+                        <div id="imagePlaceholder" class="py-2">
+                            <i data-lucide="image" class="w-8 h-8 mx-auto text-slate-400 mb-2"></i>
+                            <p class="text-slate-600 font-semibold mb-0.5">Click container target space to upload asset</p>
+                            <p class="text-[10px] text-slate-400">PNG, JPG or webp payloads up to 2MB</p>
                         </div>
-                        <div id="imagePreview" class="hidden">
-                            <img src="" class="mx-auto h-32 object-cover rounded-lg border border-slate-200">
-                            <button type="button" id="removeimage" class="absolute top-2 right-2 p-1 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition">
-                                <i data-lucide="x"  class="w-4 h-4 fill-current"></i>
+
+                        <div id="imagePreview" class="hidden relative">
+                            <img src="" class="mx-auto h-24 object-cover rounded border border-slate-200">
+                            <button type="button" id="removeimage" class="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full hover:bg-rose-700 shadow shadow-rose-200 transition">
+                                <i data-lucide="x" class="w-3 h-3"></i>
                             </button>
                         </div>
+
                         <button type="button" onclick="document.getElementById('image').click()"
-                            class="mt-3 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition" id="imageBtn">
+                            class="mt-2.5 px-3 h-7 inline-flex items-center justify-center text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100/70 rounded-md hover:bg-indigo-100/60 transition" id="imageBtn">
                             Choose File
                         </button>
                     </div>
-                    @error('image')
-                    <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                    @enderror
+                    @error('image') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
 
-                {{-- Gallery --}}
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Gallery Images (Max 5)</label>
-                    <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-indigo-500 transition">
-                        <i data-lucide="images"  class="w-12 h-12 fill-current text-4xl text-slate-400 mb-3"></i>
-                        <p class="text-sm text-slate-600 mb-2">Drop images here or click to upload</p>
-                        <p class="text-xs text-slate-500">PNG, JPG, WEBP up to 5MB. Max 5 images.</p>
+                {{-- Secondary Gallery Grid Slots --}}
+                <div class="border-t border-slate-100 pt-3">
+                    <label class="block font-semibold text-slate-600 mb-1.5">Secondary Gallery Array (Limit 5)</label>
+                    <div class="border border-dashed border-slate-200 bg-slate-50/50 rounded-xl p-4 text-center hover:border-slate-400 transition">
+                        <i data-lucide="images" class="w-8 h-8 mx-auto text-slate-400 mb-2"></i>
+                        <p class="text-slate-600 font-semibold mb-0.5">Drop files direct or click trigger button</p>
+                        <p class="text-[10px] text-slate-400">Multi PNG, JPG bounds maximum 5MB scope size</p>
                         <input type="file" name="images[]" id="images" multiple accept="image/*" class="hidden">
+
                         <button type="button" onclick="document.getElementById('images').click()"
-                            class="mt-3 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition">
+                            class="mt-2.5 px-3 h-7 inline-flex items-center justify-center text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100/70 rounded-md hover:bg-indigo-100/60 transition">
                             Choose Files
                         </button>
                     </div>
-                    <div id="galleryPreview" class="mt-4 grid grid-cols-2 gap-3"></div>
-                    @error('images')
-                    <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                    @enderror
-                    @error('images.*')
-                    <p class="mt-1 text-sm text-rose-600">{{ $message }}</p>
-                    @enderror
+                    <div id="galleryPreview" class="mt-3 grid grid-cols-2 gap-2"></div>
+                    @error('images') <p class="mt-1 text-[11px] text-rose-600">{{ $message }}</p> @enderror
                 </div>
             </div>
 
-            {{-- Action Buttons --}}
-            <div class="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                <button type="submit" id="submitBtn" class="w-full px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-medium rounded-lg hover:from-indigo-600 hover:to-indigo-700 focus:ring-4 focus:ring-indigo-300 transition">
-                    <i data-lucide="plus"  class="w-4 h-4 fill-current mr-2"></i><span id="btnText">Save Product</span>
-                    <i data-lucide="loader"  class="w-4 h-4 fill-current ml-2 hidden" id="btnSpinner"></i>
+            {{-- Form Operations Trigger Block --}}
+            <div class="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex flex-col gap-2">
+                <button type="submit" id="submitBtn" class="w-full h-9 inline-flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition shadow-sm focus:outline-none">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span id="btnText">Save Product Variant</span>
+                    <i data-lucide="loader" class="w-3.5 h-3.5 animate-spin hidden" id="btnSpinner"></i>
                 </button>
-                <a href="{{ route('admin.products.index') }}" class="block w-full px-6 py-3 text-center text-slate-700 font-medium bg-slate-100 rounded-lg hover:bg-slate-200 transition mt-3">
-                    Cancel
+                <a href="{{ route('admin.products.index') }}" class="w-full h-9 inline-flex items-center justify-center text-xs font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition">
+                    Cancel Operation
                 </a>
             </div>
         </div>
@@ -293,7 +279,6 @@
 @push('scripts')
 <script>
     const CATEGORIES = @json($categories);
-
     const subcatId = "{{ old('subcategory_id', 'null') }}";
 
     document.getElementById('category_id').addEventListener('change', function() {
@@ -317,8 +302,8 @@
             });
         }
     }
-    
-    // image preview functionality
+
+    // Core Single Thumbnail Preview Handling
     const imgInput = document.getElementById('image');
     const imagePlaceholder = document.getElementById('imagePlaceholder');
     const imagePreview = document.getElementById('imagePreview');
@@ -337,7 +322,7 @@
         }
     });
 
-    // Remove image functionality
+    // Reset Thumbnail Attachment Hook
     document.addEventListener('click', function(e) {
         if (e.target.closest('#removeimage')) {
             imgInput.value = '';
@@ -347,59 +332,41 @@
         }
     });
 
-    // Gallery images logic
+    // Array Gallery Files Buffer Core Logic
     const galleryInput = document.getElementById('images');
     const galleryPreviewContainer = document.getElementById('galleryPreview');
     let galleryFiles = new DataTransfer();
 
     galleryInput.addEventListener('change', function(e) {
-        // Get the newly selected files
         const newFiles = Array.from(this.files);
-
-        // If no files selected, ignore
         if (newFiles.length === 0) return;
 
-        // If the new selection is exactly the same as our stored state, it's likely our own update
         const currentFiles = Array.from(galleryFiles.files);
         if (newFiles.length === currentFiles.length &&
             newFiles.every((f, i) => f.name === currentFiles[i].name && f.size === currentFiles[i].size)) {
             return;
         }
 
-        // Check if adding these files would exceed the limit
-        // Note: We only count NEW unique files that aren't already in the gallery
         const uniqueNewFiles = newFiles.filter(file =>
             !currentFiles.some(existing => existing.name === file.name && existing.size === file.size)
         );
 
         if (galleryFiles.files.length + uniqueNewFiles.length > 5) {
-            showToast('error', 'Maximum 5 images allowed for gallery.');
-            // Restore previous valid state
+            alert('Maximum 5 images allowed for gallery.');
             this.files = galleryFiles.files;
             return;
         }
 
-        // Create a new DataTransfer to hold the combined list
         const dt = new DataTransfer();
-
-        // Add existing files
         currentFiles.forEach(file => dt.items.add(file));
+        uniqueNewFiles.forEach(file => dt.items.add(file));
 
-        // Add new unique files
-        uniqueNewFiles.forEach(file => {
-            dt.items.add(file);
-        });
-
-        // Update our state
         galleryFiles = dt;
-
-        // Update the input to hold all currently selected files
         this.files = galleryFiles.files;
-
         renderGalleryPreviews();
     });
 
-    // Event delegation for remove buttons
+    // Splice target index out of file buffer mapping
     galleryPreviewContainer.addEventListener('click', function(e) {
         const btn = e.target.closest('.remove-gallery-image');
         if (!btn) return;
@@ -407,7 +374,6 @@
         const indexToRemove = parseInt(btn.dataset.index);
         const dt = new DataTransfer();
 
-        // Rebuild DataTransfer excluding the removed file
         Array.from(galleryFiles.files).forEach((file, i) => {
             if (i !== indexToRemove) {
                 dt.items.add(file);
@@ -421,7 +387,6 @@
 
     function renderGalleryPreviews() {
         galleryPreviewContainer.innerHTML = '';
-
         if (galleryFiles.files.length === 0) return;
 
         Array.from(galleryFiles.files).forEach((file, index) => {
@@ -430,20 +395,21 @@
                 const div = document.createElement('div');
                 div.className = 'relative group';
                 div.innerHTML = `
-                    <div class="relative w-full h-32">
-                        <img src="${e.target.result}" class="w-full h-full object-cover rounded-lg border border-slate-200">
-                        <button type="button" class="absolute -top-2 -right-2 p-1.5 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition shadow-md remove-gallery-image" data-index="${index}" title="Remove image">
-                            <i data-lucide="x"  class="w-4 h-4 fill-current text-xs"></i>
+                    <div class="relative w-full h-20">
+                        <img src="${e.target.result}" class="w-full h-full object-cover rounded border border-slate-200">
+                        <button type="button" class="absolute -top-1.5 -right-1.5 p-1 bg-rose-600 text-white rounded-full hover:bg-rose-700 shadow transition remove-gallery-image" data-index="${index}" title="Remove image">
+                            <i data-lucide="x" class="w-2.5 h-2.5"></i>
                         </button>
-                        <span class="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">Image ${index + 1}</span>
                     </div>
                 `;
                 galleryPreviewContainer.appendChild(div);
+                if(window.lucide) lucide.createIcons();
             };
             reader.readAsDataURL(file);
         });
     }
 
+    // Ajax Form Payload Execution Pipeline
     const productForm = document.getElementById('productForm');
     const submitBtn = document.getElementById('submitBtn');
     const btnText = document.getElementById('btnText');
@@ -459,65 +425,47 @@
         const formData = new FormData(productForm);
 
         fetch(productForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw {
-                            status: response.status,
-                            data: data
-                        };
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    showToast('success', data.message);
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => { throw { status: response.status, data: data }; });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if(window.showToast) showToast('success', data.message);
+                productForm.reset();
+                galleryPreviewContainer.innerHTML = '';
+                galleryFiles = new DataTransfer();
+                imgInput.value = '';
+                imagePreview.classList.add('hidden');
+                imagePlaceholder.classList.remove('hidden');
+                imageBtn.textContent = 'Choose File';
 
-                    productForm.reset();
-                    document.getElementById('imagePreview').innerHTML = ''; // Reset managed gallery files
-                    galleryFiles = new DataTransfer();
-                    // Reset image preview
-                    document.getElementById('image').value = '';
-                    document.getElementById('imagePreview').classList.add('hidden');
-                    document.getElementById('imagePlaceholder').classList.remove('hidden');
-                    document.getElementById('imageBtn').textContent = 'Choose File';
-
-                    setTimeout(() => {
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        }
-                    }, 2000);
-                } else {
-                    showToast('error', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-
-                if (error.status === 422 && error.data.errors) {
-                    showToast('error', 'error.data.errors');
-                } else {
-                    const message = error.data?.message || 'An unexpected error occurred. Please try again.';
-                    showToast('error', message);
-                }
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                btnText.textContent = 'Save Product';
-                btnSpinner.classList.add('hidden');
-            });
-    });
-
-    document.getElementById('name').addEventListener('input', function(e) {
-        const name = e.target.value;
+                setTimeout(() => {
+                    if (data.redirect) window.location.href = data.redirect;
+                }, 1000);
+            } else {
+                if(window.showToast) showToast('error', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const errMsg = error.data?.message || 'An unexpected validation exception occurred.';
+            if(window.showToast) showToast('error', errMsg);
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            btnText.textContent = 'Save Product Variant';
+            btnSpinner.classList.add('hidden');
+        });
     });
 </script>
 @endpush

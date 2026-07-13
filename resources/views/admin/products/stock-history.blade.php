@@ -3,180 +3,167 @@
 @section('content')
 
 {{-- Page Header --}}
-<div class="mb-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Stock History</h1>
-            <p class="text-gray-500">{{ $product->name }}</p>
-        </div>
-        <div class="flex gap-3">
-            <a href="{{ route('admin.products.manage-stock', $product) }}"
-                class="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition">
-                <i class="fas fa-boxes mr-2"></i>Manage Stock
-            </a>
-            <a href="{{ route('admin.products.edit', $product) }}"
-                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                <i class="fas fa-arrow-left mr-2"></i>Back to Edit
-            </a>
-        </div>
+<div class="flex flex-col gap-2 mb-5 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+        <h1 class="text-xl font-bold tracking-tight text-slate-900">Stock History</h1>
+        <p class="text-xs font-medium text-slate-500 mt-0.5">{{ $product->name }}</p>
+    </div>
+    <div class="flex items-center gap-2">
+        <a href="{{ route('admin.products.manage-stock', $product) }}"
+            class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg hover:bg-indigo-100/60 transition">
+            <i data-lucide="boxes" class="w-3.5 h-3.5"></i>
+            <span>Manage Stock</span>
+        </a>
+        <a href="{{ route('admin.products.edit', $product) }}"
+            class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:text-slate-900 transition">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+            <span>Back to Edit</span>
+        </a>
     </div>
 </div>
 
-{{-- Stock Summary --}}
-<div class="grid md:grid-cols-3 gap-6 mb-6">
-    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+{{-- Stock Metrics Overview Cards --}}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-xs">
+    {{-- Balance Card --}}
+    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 mb-1">Current Stock</p>
-                <p class="text-3xl font-bold text-gray-900">
-                    @if($product->variants->isNotEmpty())
-                    {{ $product->variants->sum('stock_in') }}
-                    @else
-                    {{ $product->stock_in }}
-                    @endif
-                </p>
-                <p class="text-xs text-gray-500 mt-1">
-                    @if($product->variants->isNotEmpty())
-                    Total across all variants
-                    @else
-                    Base product stock
-                    @endif
-                </p>
+                <p class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Current Balance</p>
+                <p class="text-2xl font-extrabold text-slate-900 tracking-tight mt-0.5">{{ $product->stock_in }}</p>
+                <p class="text-[10px] text-slate-400 mt-1">Available operational warehouse reserves</p>
             </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-boxes text-blue-600 text-xl"></i>
+            <div class="w-9 h-9 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-500">
+                <i data-lucide="package" class="w-4 h-4"></i>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+    {{-- Log In Card --}}
+    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 mb-1">Total Stock In</p>
-                <p class="text-3xl font-bold text-green-600">
+                <p class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Total Restocked</p>
+                <p class="text-2xl font-extrabold text-emerald-600 tracking-tight mt-0.5">
                     {{ $stockLogs->where('type', 'in')->sum('quantity') }}
                 </p>
-                <p class="text-xs text-gray-500 mt-1">Added to inventory</p>
+                <p class="text-[10px] text-slate-400 mt-1">Gross increments logged inbound</p>
             </div>
-            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-arrow-down text-green-600 text-xl"></i>
+            <div class="w-9 h-9 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center justify-center text-emerald-600">
+                <i data-lucide="arrow-down-left" class="w-4 h-4"></i>
             </div>
         </div>
     </div>
 
-    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+    {{-- Log Out Card --}}
+    <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-sm text-gray-600 mb-1">Total Stock Out</p>
-                <p class="text-3xl font-bold text-red-600">
+                <p class="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Total Dispatched</p>
+                <p class="text-2xl font-extrabold text-rose-600 tracking-tight mt-0.5">
                     {{ $stockLogs->where('type', 'out')->sum('quantity') }}
                 </p>
-                <p class="text-xs text-gray-500 mt-1">Removed from inventory</p>
+                <p class="text-[10px] text-slate-400 mt-1">Gross decrements logged outbound</p>
             </div>
-            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <i class="fas fa-arrow-up text-red-600 text-xl"></i>
+            <div class="w-9 h-9 bg-rose-50 border border-rose-100 rounded-lg flex items-center justify-center text-rose-600">
+                <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
             </div>
         </div>
     </div>
 </div>
 
-{{-- Stock History Table --}}
-<div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="p-6 border-b border-gray-100">
-        <h2 class="text-lg font-bold text-gray-900">Transaction History</h2>
+{{-- Stock Ledger Registry --}}
+<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-100 bg-slate-50/40">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Transaction Audit Ledger</h2>
     </div>
 
     @if($stockLogs->count() > 0)
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-100">
-                <tr>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date & Time</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Variant</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Quantity</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock Change</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">By</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Note</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                @foreach($stockLogs as $log)
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">{{ $log->created_at->format('M d, Y') }}</div>
-                        <div class="text-xs text-gray-500">{{ $log->created_at->format('h:i A') }}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="text-sm text-gray-900">
-                            @if($log->product_variant_id)
-                            {{ $log->productVariant->variant_name }}
-                            @else
-                            <span class="text-gray-500">Base Product</span>
-                            @endif
-                        </div>
-                        @if($log->productVariant && $log->productVariant->sku)
-                        <div class="text-xs text-gray-500">{{ $log->productVariant->sku }}</div>
-                        @endif
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        @if($log->type === 'in')
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            <i class="fas fa-arrow-down mr-1"></i>Stock In
-                        </span>
-                        @else
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            <i class="fas fa-arrow-up mr-1"></i>Stock Out
-                        </span>
-                        @endif
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm font-semibold {{ $log->type === 'in' ? 'text-green-600' : 'text-red-600' }}">
-                            {{ $log->type === 'in' ? '+' : '-' }}{{ $log->quantity }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">
-                            <span class="text-gray-500">{{ $log->stock_before }}</span>
-                            <i class="fas fa-arrow-right mx-1 text-xs text-gray-400"></i>
-                            <span class="font-semibold">{{ $log->stock_after }}</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">{{ $log->user->name }}</div>
-                        <div class="text-xs text-gray-500">{{ $log->user->email }}</div>
-                    </td>
-                    <td class="px-6 py-4">
-                        @if($log->note)
-                        <p class="text-sm text-gray-600 max-w-xs">{{ $log->note }}</p>
-                        @else
-                        <span class="text-sm text-gray-400">—</span>
-                        @endif
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left">
+                <thead>
+                    <tr class="border-b bg-slate-50/70 border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-4 py-3">Timestamp</th>
+                        <th class="px-4 py-3">Log Type</th>
+                        <th class="px-4 py-3">Variance delta</th>
+                        <th class="px-4 py-3">Ledger Delta Bounds</th>
+                        <th class="px-4 py-3">Operator Context</th>
+                        <th class="px-4 py-3">Audit Reference Note</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    @foreach($stockLogs as $log)
+                        <tr class="hover:bg-slate-50/60 transition-colors">
+                            {{-- Timestamp --}}
+                            <td class="px-4 py-2.5 whitespace-nowrap">
+                                <span class="font-medium text-slate-700 block">{{ $log->created_at->format('M d, Y') }}</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5">{{ $log->created_at->format('h:i A') }}</span>
+                            </td>
 
-    {{-- Pagination --}}
-    @if($stockLogs->hasPages())
-    <div class="px-6 py-4 border-t border-gray-100">
-        {{ $stockLogs->links() }}
-    </div>
-    @endif
-    @else
-    <div class="p-12 text-center">
-        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-history text-gray-400 text-2xl"></i>
+                            {{-- Operational Status Flag --}}
+                            <td class="px-4 py-2.5 whitespace-nowrap">
+                                @if($log->type === 'in')
+                                    <span class="inline-flex px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-50 text-emerald-700 border border-emerald-100">Stock In</span>
+                                @else
+                                    <span class="inline-flex px-1.5 py-0.5 text-[10px] font-medium rounded bg-rose-50 text-rose-700 border border-rose-100/70">Stock Out</span>
+                                @endif
+                            </td>
+
+                            {{-- Delta Offset Weight --}}
+                            <td class="px-4 py-2.5 whitespace-nowrap font-bold text-sm">
+                                <span class="{{ $log->type === 'in' ? 'text-emerald-600' : 'text-rose-600' }}">
+                                    {{ $log->type === 'in' ? '+' : '–' }}{{ $log->quantity }}
+                                </span>
+                            </td>
+
+                            {{-- Timeline Tracking Vector --}}
+                            <td class="px-4 py-2.5 whitespace-nowrap text-slate-600 font-mono text-[11px]">
+                                <span class="text-slate-400">{{ $log->stock_before }}</span>
+                                <i data-lucide="move-right" class="w-3 h-3 inline mx-1 text-slate-300"></i>
+                                <span class="font-semibold text-slate-800">{{ $log->stock_after }}</span>
+                            </td>
+
+                            {{-- Identity Vector Metrics --}}
+                            <td class="px-4 py-2.5 whitespace-nowrap">
+                                <span class="font-medium text-slate-800 block">{{ $log->user->name }}</span>
+                                <span class="text-[10px] text-slate-400 block tracking-tight mt-0.5">{{ $log->user->email }}</span>
+                            </td>
+
+                            {{-- Ledger Explanatory Context --}}
+                            <td class="px-4 py-2.5 max-w-xs truncate text-slate-500">
+                                @if($log->note)
+                                    <span class="block truncate" title="{{ $log->note }}">{{ $log->note }}</span>
+                                @else
+                                    <span class="text-slate-300">—</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
-        <h3 class="text-lg font-semibold text-gray-900 mb-2">No Stock History</h3>
-        <p class="text-gray-500 mb-6">There haven't been any stock transactions for this product yet.</p>
-        <a href="{{ route('admin.products.manage-stock', $product) }}"
-            class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition">
-            <i class="fas fa-plus mr-2"></i>Add Stock
-        </a>
-    </div>
+
+        {{-- Pagination Strip --}}
+        @if($stockLogs->hasPages())
+            <div class="px-4 py-3 bg-slate-50/50 border-t border-slate-100 text-xs text-slate-600">
+                {{ $stockLogs->links() }}
+            </div>
+        @endif
+    @else
+        {{-- Clean Blank Workspace Illustration State --}}
+        <div class="p-12 text-center text-slate-500">
+            <div class="max-w-xs mx-auto flex flex-col items-center">
+                <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-50 text-slate-400 mb-3 border border-slate-100">
+                    <i data-lucide="history" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-900">No operational stock records</h3>
+                <p class="text-xs text-slate-500 mt-0.5 mb-4">There are no documented ledger increments tracked for this single storage item variant base catalog catalog unit.</p>
+                <a href="{{ route('admin.products.manage-stock', $product) }}"
+                    class="inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition shadow-sm">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Add First Entry</span>
+                </a>
+            </div>
+        </div>
     @endif
 </div>
 
