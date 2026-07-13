@@ -3,85 +3,85 @@
 
 @section('content')
 <div>
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    {{-- Page Header --}}
+    <div class="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-slate-800">Banners & Sliders</h1>
-            <p class="text-sm text-slate-600">Manage homepage hero sliders and promotional banners</p>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900">Banners & Sliders</h1>
+            <p class="text-xs text-slate-500">Manage homepage hero sliders and promotional banners</p>
         </div>
-
-        <button onclick="openCreateModal()"
-            class="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-medium rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition shadow-sm">
-            <i data-lucide="plus"  class="w-4 h-4 fill-current mr-2"></i> Add New Banner
-        </button>
+        <div>
+            <button onclick="openCreateModal()"
+                class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 text-xs font-semibold text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add New Banner</span>
+            </button>
+        </div>
     </div>
 
-    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-slate-200">
+    {{-- Data Dense Banners Table --}}
+    <div class="overflow-hidden bg-white border shadow-sm border-slate-200 rounded-xl">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-slate-500">
-                <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b">
-                    <tr>
-                        <th class="px-6 py-4">Preview</th>
-                        <th class="px-6 py-4">Banner Details</th>
-                        <th class="px-6 py-4">Position</th>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4">Order</th>
-                        <th class="px-6 py-4 text-right">Actions</th>
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b bg-slate-50/70 border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th class="px-4 py-3">Preview</th>
+                        <th class="px-4 py-3">Banner Details</th>
+                        <th class="px-4 py-3">Position</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Order</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200">
+                <tbody class="text-xs divide-y divide-slate-100">
                     @forelse($banners as $banner)
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="h-16 w-28 rounded overflow-hidden border border-slate-200 bg-slate-100">
+                    <tr class="transition-colors hover:bg-slate-50/60">
+                        <td class="px-4 py-2 whitespace-nowrap">
+                            <div class="h-14 w-24 rounded overflow-hidden border border-slate-200 bg-slate-100">
                                 <img src="{{ asset('storage/' . $banner->image) }}"
                                     class="h-full w-full object-cover"
                                     alt="{{ $banner->title }}">
                             </div>
                         </td>
 
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-bold text-slate-900">{{ $banner->title }}</div>
-                            <div class="text-xs text-slate-500 line-clamp-1">{{ $banner->subtitle ?? 'No subtitle' }}</div>
+                        <td class="px-4 py-2">
+                            <div class="font-semibold text-slate-800 text-sm">{{ $banner->title }}</div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">{{ $banner->subtitle ?? 'No subtitle' }}</div>
                         </td>
 
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 py-1 text-xs font-semibold rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        <td class="px-4 py-2.5 whitespace-nowrap">
+                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-indigo-50 text-indigo-700 border border-indigo-100/70">
                                 {{ strtoupper($banner->position->value) }}
                             </span>
                         </td>
 
-                        <td class="px-6 py-4">
+                        <td class="px-4 py-2.5 whitespace-nowrap">
                             @if($banner->is_active)
-                            <span class="flex items-center text-emerald-600 text-xs font-medium">
-                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-600 mr-1.5"></span> Active
-                            </span>
+                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-50 text-emerald-700 border border-emerald-100">Active</span>
                             @else
-                            <span class="flex items-center text-slate-400 text-xs font-medium">
-                                <span class="h-1.5 w-1.5 rounded-full bg-slate-400 mr-1.5"></span> Inactive
-                            </span>
+                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-slate-50 text-slate-500 border border-slate-200/80">Inactive</span>
                             @endif
                         </td>
 
-                        <td class="px-6 py-4 text-slate-600 font-mono text-xs">
+                        <td class="px-4 py-2.5 whitespace-nowrap text-slate-600 font-mono text-[11px]">
                             {{ $banner->sort_order }}
                         </td>
 
-                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                            <div class="flex justify-end items-center gap-1">
+                        <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-0.5">
                                 <button type="button"
                                     onclick="openEditModal({{ $banner->id }}, '{{ addslashes($banner->title) }}', '{{ addslashes($banner->subtitle) }}', '{{ addslashes($banner->description) }}', '{{ addslashes($banner->button_text) }}', '{{ addslashes($banner->button_link) }}', '{{ $banner->image }}', '{{ $banner->mobile_image }}', '{{ $banner->position->value }}', {{ $banner->sort_order }}, {{ $banner->is_active ? 'true' : 'false' }}, '{{ $banner->starts_at?->format('Y-m-d') }}', '{{ $banner->expires_at?->format('Y-m-d') }}')"
-                                    class="w-8 h-8 flex items-center justify-center text-indigo-600 hover:bg-indigo-50 rounded-md transition-all"
+                                    class="p-1 transition rounded text-slate-400 hover:text-emerald-600 hover:bg-slate-100"
                                     title="Edit Banner">
-                                    <i data-lucide="square-pen"  class="w-4 h-4 fill-current text-base"></i>
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </button>
 
                                 <form action="{{ route('admin.banners.delete', $banner->id) }}" method="POST" onsubmit="return confirm('Delete this banner?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit"
-                                        class="w-8 h-8 flex items-center justify-center text-rose-600 hover:bg-rose-50 rounded-md transition-all"
+                                        class="p-1 transition rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100"
                                         title="Delete">
-                                        <i data-lucide="trash-2"  class="w-4 h-4 fill-current text-base"></i>
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                     </button>
                                 </form>
                             </div>
@@ -89,8 +89,15 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-6 py-12 text-center text-slate-400 italic">
-                            No banners found. Click "Add New" to get started.
+                        <td colspan="6" class="px-4 py-16 text-center text-slate-500">
+                            <div class="flex flex-col items-center max-w-xs mx-auto">
+                                <div class="flex items-center justify-center w-12 h-12 mb-3 border rounded-xl bg-slate-50 text-slate-400 border-slate-100">
+                                    <i data-lucide="image" class="w-5 h-5"></i>
+                                </div>
+                                <h3 class="font-bold text-slate-900">No banners found</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">Click "Add New" to create your first banner.</p>
+                                <button onclick="openCreateModal()" class="inline-block mt-3 text-xs font-semibold text-indigo-600 hover:underline">Create Banner</button>
+                            </div>
                         </td>
                     </tr>
                     @endforelse
@@ -196,12 +203,12 @@
 
                     <div class="mt-8 flex justify-end gap-3 border-t pt-4">
                         <button type="button" onclick="closeCreateModal()"
-                            class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+                            class="px-3.5 h-9 inline-flex items-center text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
                             Cancel
                         </button>
                         <button type="submit"
-                            class="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition">
-                            <i data-lucide="save"  class="w-4 h-4 fill-current mr-2"></i>Save Banner
+                            class="px-3.5 h-9 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition">
+                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Banner
                         </button>
                     </div>
                 </form>
@@ -309,12 +316,12 @@
 
                     <div class="mt-8 flex justify-end gap-3 border-t pt-4">
                         <button type="button" onclick="closeEditModal()"
-                            class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+                            class="px-3.5 h-9 inline-flex items-center text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
                             Cancel
                         </button>
                         <button type="submit"
-                            class="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition">
-                            <i data-lucide="save"  class="w-4 h-4 fill-current mr-2"></i>Update Banner
+                            class="px-3.5 h-9 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition">
+                            <i data-lucide="save" class="w-3.5 h-3.5"></i> Update Banner
                         </button>
                     </div>
                 </form>

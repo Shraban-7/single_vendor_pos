@@ -47,17 +47,6 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
         Route::post('/update-category/{product_id}', [ProductController::class, 'setCategory'])->name('setCategory');
     });
 
-    Route::prefix('orders')->as('orders.')->group(function () {
-        Route::get('/', [OrderController::class, 'index'])->name('index');
-        Route::get('/{order_number}', [OrderController::class, 'show'])->name('show');
-        Route::post('/{id}/update-status', [OrderController::class, 'updateStatus'])->name('update-status');
-        Route::post('/{id}/update-tracking', [OrderController::class, 'updateTracking'])->name('update-tracking');
-        Route::post('/{id}/update-notes', [OrderController::class, 'updateNotes'])->name('update-notes');
-        Route::post('/{id}/return', [SaleReturnController::class, 'processReturn'])->name('processReturn');
-        Route::delete('/{id}', [OrderController::class, 'destroy'])->name('destroy');
-        Route::get('/{orderNumber}/invoice', [OrderController::class, 'invoice'])->name('invoice');
-    });
-
     Route::prefix('sale-returns')->as('saleReturns.')->group(function () {
         Route::get('/', [SaleReturnController::class, 'index'])->name('index');
         Route::get('/{return}', [SaleReturnController::class, 'show'])->name('show');
@@ -137,11 +126,7 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
 
         Route::get('/get-products', [PosController::class, 'getProducts'])->name('getProducts');
 
-        Route::prefix('sales')->as('sales.')->group(function () {
-            Route::get('/', [PosController::class, 'posSales'])->name('index');
-            Route::get('/{order_number}', [PosController::class, 'saleShow'])->name('show');
-            Route::delete('/{id}', [PosController::class, 'saleDelete'])->name('destroy');
-        });
+
 
         Route::prefix('cart')->as('cart.')->group(function () {
             Route::get('/', [PosController::class, 'getCart'])->name('get');
@@ -151,6 +136,12 @@ Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function ()
             Route::post('/update-item-price/{itemId}', [PosController::class, 'updateItemPrice'])->name('updateItemPrice');
             Route::delete('/clear', [PosController::class, 'clearCart'])->name('clear');
         });
+    });
+
+    Route::prefix('orders')->as('orders.')->group(function () {
+            Route::get('/', [PosController::class, 'posSales'])->name('index');
+            Route::get('/{order_number}', [PosController::class, 'saleShow'])->name('show');
+            Route::delete('/{id}', [PosController::class, 'saleDelete'])->name('destroy');
     });
 
 

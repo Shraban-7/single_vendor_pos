@@ -41,8 +41,6 @@ class PosController extends Controller
 
         $cart = $this->getCart($request);
 
-        $employees = User::where('role', 'staff')->get();
-
         [$start, $end] = businessDayRange();
 
         $orders = Order::where('is_pos', 1)
@@ -52,12 +50,12 @@ class PosController extends Controller
         $cashRegisterData = $this->getCashRegisterData($start, $end, $orders->sum('paid'));
         $cashRegister = $cashRegisterData['cashRegister'];
 
-        return view('admin.pos.index', compact('categories', 'cart', 'employees', 'order', 'cashRegister', 'cashRegisterData'));
+        return view('admin.pos.index', compact('categories', 'cart', 'order', 'cashRegister', 'cashRegisterData'));
     }
 
     public function getProducts()
     {
-        $products = Product::with(['category', 'variants.size', 'variants.color', 'images'])
+        $products = Product::with(['category', 'images'])
             ->where('is_active', true)
             ->get()
             ->sortByDesc('created_at')
@@ -72,7 +70,7 @@ class PosController extends Controller
 
     private function getCashRegisterData($start, $end, $ordersTotal)
     {
-        $cashRegister = CashRegister::whereBetween('opened_at', [$start, $end])
+        $cashRegister = CashRegister::whereNull('closed_at')
             ->first();
 
         $expense = Expense::whereBetween('created_at', [$start, $end])->sum('amount');
@@ -92,7 +90,7 @@ class PosController extends Controller
         $query = $request->get('query');
         $categoryId = $request->get('category_id');
 
-        $products = Product::with(['category', 'variants.size', 'variants.color'])
+        $products = Product::with(['category'])
             ->where('is_active', true)
             ->when($query, function ($q) use ($query) {
                 $q->where(function ($q) use ($query) {
