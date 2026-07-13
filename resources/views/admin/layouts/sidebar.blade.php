@@ -60,10 +60,14 @@ $user = auth()->user();
             </div>
 
             <div class="pt-4">
-                <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Customers</p>
+                <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">People</p>
                 <a href="{{ route('admin.customers.index') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl transition {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                     <i data-lucide="users" class="w-5 h-5"></i>
                     <span class="font-heading">Customers</span>
+                </a>
+                <a href="{{ route('admin.employees.index') }}" class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl transition {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
+                    <i data-lucide="user-cog" class="w-5 h-5"></i>
+                    <span class="font-heading">Employees</span>
                 </a>
             </div>
 
