@@ -1,250 +1,287 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Orders')
+@section('title', 'Orders Management')
 
 @section('content')
-
-{{-- Header --}}
-<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">Orders</h1>
-        <p class="text-sm text-gray-500 mt-1">Manage and track all customer orders</p>
-    </div>
-    <div class="flex items-center gap-3">
-        <button onclick="window.print()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition flex items-center gap-2">
-            <i class="fas fa-print"></i>
-            <span class="hidden sm:inline">Print</span>
-        </button>
-        <button onclick="exportOrders()" class="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition flex items-center gap-2">
-            <i class="fas fa-download"></i>
-            <span class="hidden sm:inline">Export</span>
-        </button>
-    </div>
-</div>
-
-{{-- Filters & Search --}}
-<div class="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-    <form method="GET" action="{{ route('admin.orders.index') }}" class="space-y-4">
-        {{-- Status Tabs --}}
-        <div class="flex flex-wrap gap-2 border-b border-gray-200 pb-4">
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'all'])) }}"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition {{ request('status', 'all') === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                All ({{ $statusCounts['all'] }})
-            </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'pending'])) }}"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition {{ request('status') === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Pending ({{ $statusCounts['pending'] }})
-            </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'confirmed'])) }}"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition {{ request('status') === 'confirmed' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Confirmed ({{ $statusCounts['confirmed'] }})
-            </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'shipped'])) }}"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition {{ request('status') === 'shipped' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Shipped ({{ $statusCounts['shipped'] }})
-            </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'delivered'])) }}"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition {{ request('status') === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Delivered ({{ $statusCounts['delivered'] }})
-            </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'cancelled'])) }}"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition {{ request('status') === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
-                Cancelled ({{ $statusCounts['cancelled'] }})
-            </a>
+    {{-- Header Section --}}
+    <div class="flex flex-col gap-4 mb-8 sm:mb-10 md:flex-row md:items-center md:justify-between">
+        <div>
+            <h1 class="text-3xl font-extrabold tracking-tight text-slate-950">Orders</h1>
+            <p class="mt-1 text-sm text-slate-500">Overview, filters, tracking, and customer history management.</p>
         </div>
+        <div class="flex items-center gap-3">
+            <button onclick="window.print()"
+                class="flex items-center justify-center gap-2 px-4 text-sm font-medium transition bg-white border shadow-sm h-11 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <i data-lucide="printer" class="w-4 h-4 text-slate-400 group-hover:text-slate-600"></i>
+                <span>Print Report</span>
+            </button>
+            <button onclick="exportOrders()"
+                class="flex items-center justify-center gap-2 px-4 text-sm font-medium text-white transition shadow-sm h-11 bg-emerald-600 rounded-xl hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Export CSV</span>
+            </button>
+        </div>
+    </div>
 
-        {{-- Search & Advanced Filters --}}
-        <div class="grid md:grid-cols-4 gap-4">
-            {{-- Search --}}
-            <div class="md:col-span-2">
-                <div class="relative">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by order #, customer name, or phone..." class="w-full h-11 pl-10 pr-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+    {{-- Filters & Search Section --}}
+    <div class="p-6 mb-8 bg-white border shadow-sm border-slate-200/80 rounded-2xl">
+        <form method="GET" action="{{ route('admin.orders.index') }}" class="space-y-6">
+            {{-- Status Tabs --}}
+            <div>
+                <label class="block mb-2 text-xs font-semibold tracking-wider uppercase text-slate-400">Filter By Status</label>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'all'])) }}"
+                        class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ request('status', 'all') === 'all' ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        All Orders <span class="ml-1 text-xs opacity-80">({{ $statusCounts['all'] }})</span>
+                    </a>
+                    <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'pending'])) }}"
+                        class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ request('status') === 'pending' ? 'bg-amber-500 text-white shadow-sm shadow-amber-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        Pending <span class="ml-1 text-xs opacity-80">({{ $statusCounts['pending'] }})</span>
+                    </a>
+                    <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'confirmed'])) }}"
+                        class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ request('status') === 'confirmed' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        Confirmed <span class="ml-1 text-xs opacity-80">({{ $statusCounts['confirmed'] }})</span>
+                    </a>
+                    <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'shipped'])) }}"
+                        class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ request('status') === 'shipped' ? 'bg-violet-600 text-white shadow-sm shadow-violet-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        Shipped <span class="ml-1 text-xs opacity-80">({{ $statusCounts['shipped'] }})</span>
+                    </a>
+                    <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'delivered'])) }}"
+                        class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ request('status') === 'delivered' ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        Delivered <span class="ml-1 text-xs opacity-80">({{ $statusCounts['delivered'] }})</span>
+                    </a>
+                    <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'cancelled'])) }}"
+                        class="px-4 py-2 rounded-xl text-sm font-medium transition-all {{ request('status') === 'cancelled' ? 'bg-rose-600 text-white shadow-sm shadow-rose-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900' }}">
+                        Cancelled <span class="ml-1 text-xs opacity-80">({{ $statusCounts['cancelled'] }})</span>
+                    </a>
                 </div>
             </div>
 
-            {{-- Payment Status --}}
-            <div>
-                <select name="payment_status" class="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="all">All Payment Status</option>
-                    <option value="pending" {{ request('payment_status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                    <option value="paid" {{ request('payment_status') === 'paid' ? 'selected' : '' }}>Paid</option>
-                    <option value="failed" {{ request('payment_status') === 'failed' ? 'selected' : '' }}>Failed</option>
-                </select>
+            <hr class="border-slate-100" />
+
+            {{-- Inputs Grid --}}
+            <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                {{-- Search --}}
+                <div class="sm:col-span-2">
+                    <label class="block mb-1.5 text-xs font-semibold tracking-wider uppercase text-slate-400">Search Parameter</label>
+                    <div class="relative">
+                        <input type="text" name="search" value="{{ request('search') }}"
+                            placeholder="Order #, name, phone..."
+                            class="w-full pl-10 pr-4 text-sm transition-all border bg-slate-50 h-11 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                        <i data-lucide="search" class="absolute w-4 h-4 -translate-y-1/2 left-3 top-1/2 text-slate-400"></i>
+                    </div>
+                </div>
+
+                {{-- Payment Status --}}
+                <div>
+                    <label class="block mb-1.5 text-xs font-semibold tracking-wider uppercase text-slate-400">Payment Status</label>
+                    <select name="payment_status"
+                        class="w-full px-4 text-sm transition-all border bg-slate-50 h-11 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                        <option value="all">All Statuses</option>
+                        <option value="pending" {{ request('payment_status') === 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="paid" {{ request('payment_status') === 'paid' ? 'selected' : '' }}>Paid</option>
+                        <option value="failed" {{ request('payment_status') === 'failed' ? 'selected' : '' }}>Failed</option>
+                    </select>
+                </div>
+
+                {{-- Payment Method --}}
+                <div>
+                    <label class="block mb-1.5 text-xs font-semibold tracking-wider uppercase text-slate-400">Gateway/Method</label>
+                    <select name="payment_method"
+                        class="w-full px-4 text-sm transition-all border bg-slate-50 h-11 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                        <option value="all">All Methods</option>
+                        <option value="cod" {{ request('payment_method') === 'cod' ? 'selected' : '' }}>Cash on Delivery</option>
+                        <option value="bkash" {{ request('payment_method') === 'bkash' ? 'selected' : '' }}>bKash</option>
+                        <option value="nagad" {{ request('payment_method') === 'nagad' ? 'selected' : '' }}>Nagad</option>
+                    </select>
+                </div>
             </div>
 
-            {{-- Payment Method --}}
-            <div>
-                <select name="payment_method" class="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="all">All Payment Methods</option>
-                    <option value="cod" {{ request('payment_method') === 'cod' ? 'selected' : '' }}>Cash on Delivery</option>
-                    <option value="bkash" {{ request('payment_method') === 'bkash' ? 'selected' : '' }}>bKash</option>
-                    <option value="nagad" {{ request('payment_method') === 'nagad' ? 'selected' : '' }}>Nagad</option>
-                </select>
-            </div>
-        </div>
+            {{-- Advanced Meta & Triggers --}}
+            <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                <div>
+                    <label class="block mb-1.5 text-xs font-semibold tracking-wider uppercase text-slate-400">From Date</label>
+                    <input type="date" name="from_date" value="{{ request('from_date') }}"
+                        class="w-full px-4 text-sm transition-all border bg-slate-50 h-11 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                </div>
+                <div>
+                    <label class="block mb-1.5 text-xs font-semibold tracking-wider uppercase text-slate-400">To Date</label>
+                    <input type="date" name="to_date" value="{{ request('to_date') }}"
+                        class="w-full px-4 text-sm transition-all border bg-slate-50 h-11 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
+                </div>
 
-        {{-- Date Range --}}
-        <div class="grid md:grid-cols-4 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                <input type="date" name="from_date" value="{{ request('from_date') }}" class="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {{-- Actions Alignment --}}
+                <div class="flex items-end gap-2 sm:col-span-2">
+                    <button type="submit"
+                        class="flex items-center justify-center flex-1 text-sm font-semibold text-white transition-all bg-indigo-600 shadow-sm h-11 rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <i data-lucide="funnel" class="w-4 h-4 mr-2"></i>
+                        <span>Apply Filters</span>
+                    </button>
+                    <a href="{{ route('admin.orders.index') }}"
+                        class="flex items-center justify-center transition-all bg-white border shadow-sm w-11 h-11 text-slate-600 border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                        title="Reset Filters">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </a>
+                </div>
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                <input type="date" name="to_date" value="{{ request('to_date') }}" class="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="md:col-span-2 flex items-end gap-2">
-                <button type="submit" class="flex-1 h-11 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium">
-                    <i class="fas fa-filter mr-2"></i>Apply Filters
-                </button>
-                <a href="{{ route('admin.orders.index') }}" class="h-11 px-4 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition flex items-center justify-center">
-                    <i class="fas fa-times"></i>
-                </a>
-            </div>
-        </div>
-    </form>
-</div>
-
-{{-- Orders Table --}}
-<div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
-        <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
-                <tr>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Order</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Items</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                @forelse($orders as $order)
-                <tr class="hover:bg-gray-50 transition">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <i class="fas fa-shopping-bag text-blue-600"></i>
-                            </div>
-                            <div>
-                                <a href="{{ route('admin.orders.show', $order->id) }}" class="font-semibold text-blue-600 hover:text-blue-800">
-                                    {{ $order->order_number }}
-                                </a>
-                                <p class="text-xs text-gray-500">ID: #{{ $order->id }}</p>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div>
-                            <p class="font-medium text-gray-900">{{ $order->shipping_name }}</p>
-                            <p class="text-sm text-gray-500">{{ $order->shipping_phone }}</p>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-sm font-medium text-gray-900">{{ $order->items->count() }} item(s)</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-base font-bold text-gray-900">{{ money($order->total) }}</span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex flex-col gap-1">
-                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 w-fit">
-                                {{ $order->payment_method->label() }}
-                            </span>
-                            @if($order->payment_status->value === 'paid')
-                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 w-fit">
-                                <i class="fas fa-check-circle text-xs"></i>
-                                Paid
-                            </span>
-                            @else
-                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 w-fit">
-                                <i class="fas fa-clock text-xs"></i>
-                                {{ $order->payment_status->label() }}
-                            </span>
-                            @endif
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        @php
-                        $statusColors = [
-                        'pending' => 'bg-yellow-100 text-yellow-700',
-                        'confirmed' => 'bg-blue-100 text-blue-700',
-                        'shipped' => 'bg-purple-100 text-purple-700',
-                        'delivered' => 'bg-green-100 text-green-700',
-                        'cancelled' => 'bg-red-100 text-red-700',
-                        ];
-                        $statusIcons = [
-                        'pending' => 'fa-clock',
-                        'confirmed' => 'fa-check',
-                        'shipped' => 'fa-truck',
-                        'delivered' => 'fa-box-open',
-                        'cancelled' => 'fa-times-circle',
-                        ];
-                        @endphp
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold {{ $statusColors[$order->status->value] ?? 'bg-gray-100 text-gray-700' }}">
-                            <i class="fas {{ $statusIcons[$order->status->value] ?? 'fa-circle' }}"></i>
-                            {{ $order->status->label() }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">{{ $order->created_at->format('M d, Y') }}</p>
-                            <p class="text-xs text-gray-500">{{ $order->created_at->format('h:i A') }}</p>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <a href="{{ route('admin.orders.show', $order->id) }}" class="w-8 h-8 flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg transition" title="View Details">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <button onclick="printOrder({{ $order->id }})" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-lg transition" title="Print">
-                                <i class="fas fa-print"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="8" class="px-6 py-12 text-center">
-                        <div class="flex flex-col items-center gap-3">
-                            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-shopping-bag text-gray-400 text-2xl"></i>
-                            </div>
-                            <div>
-                                <p class="text-lg font-semibold text-gray-900">No orders found</p>
-                                <p class="text-sm text-gray-500">Try adjusting your filters</p>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+        </form>
     </div>
 
-    {{-- Pagination --}}
-    @if($orders->hasPages())
-    <div class="border-t border-gray-200 px-6 py-4">
-        {{ $orders->links() }}
+    {{-- Orders Content Container --}}
+    <div class="overflow-hidden bg-white border shadow-sm border-slate-200/80 rounded-2xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-xs font-bold tracking-wider uppercase border-b bg-slate-50/70 border-slate-200 text-slate-500">
+                        <th class="px-6 py-4.5">Order Info</th>
+                        <th class="px-6 py-4.5">Customer Details</th>
+                        <th class="px-6 py-4.5">Items Count</th>
+                        <th class="px-6 py-4.5">Grand Total</th>
+                        <th class="px-6 py-4.5">Payment Metrics</th>
+                        <th class="px-6 py-4.5">Fulfillment Status</th>
+                        <th class="px-6 py-4.5">Date Added</th>
+                        <th class="px-6 py-4.5 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="text-sm divide-y divide-slate-100">
+                    @forelse($orders as $order)
+                        <tr class="transition-all group hover:bg-slate-50/40">
+                            {{-- Order Spec --}}
+                            <td class="px-6 py-4.5 whitespace-nowrap">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center justify-center flex-shrink-0 w-10 h-10 text-indigo-600 border border-indigo-100 bg-indigo-50 rounded-xl">
+                                        <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <a href="{{ route('admin.orders.show', $order->id) }}"
+                                            class="block font-semibold transition-colors text-slate-900 group-hover:text-indigo-600">
+                                            {{ $order->order_number }}
+                                        </a>
+                                        <span class="text-xs font-medium text-slate-400 block mt-0.5">ID: #{{ $order->id }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            {{-- Customer Profile --}}
+                            <td class="px-6 py-4.5">
+                                <div class="max-w-[180px] truncate">
+                                    <p class="font-semibold text-slate-800">{{ $order->shipping_name }}</p>
+                                    <p class="text-xs text-slate-400 mt-0.5 tracking-tight">{{ $order->shipping_phone }}</p>
+                                </div>
+                            </td>
+                            {{-- Items Count --}}
+                            <td class="px-6 py-4.5 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800">
+                                    {{ $order->items->count() }} {{ Str::plural('item', $order->items->count()) }}
+                                </span>
+                            </td>
+                            {{-- Total --}}
+                            <td class="px-6 py-4.5 whitespace-nowrap">
+                                <span class="text-base font-bold text-slate-900">{{ money($order->total) }}</span>
+                            </td>
+                            {{-- Payment Details --}}
+                            <td class="px-6 py-4.5 whitespace-nowrap">
+                                <div class="flex flex-col gap-1.5">
+                                    <span class="inline-flex items-center text-xs font-medium text-slate-500">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span>
+                                        {{ $order->payment_method->label() }}
+                                    </span>
+                                    @if ($order->payment_status->value === 'paid')
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 w-fit border border-emerald-100">
+                                            <i data-lucide="check" class="w-3 h-3"></i> Paid
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 w-fit border border-amber-100">
+                                            <i data-lucide="alert-circle" class="w-3 h-3"></i> {{ $order->payment_status->label() }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </td>
+                            {{-- Core Fulfillment Status --}}
+                            <td class="px-6 py-4.5 whitespace-nowrap">
+                                @php
+                                    $statusColors = [
+                                        'pending' => 'bg-amber-50 text-amber-700 border-amber-100',
+                                        'confirmed' => 'bg-indigo-50 text-indigo-700 border-indigo-100',
+                                        'shipped' => 'bg-violet-50 text-violet-700 border-violet-100',
+                                        'delivered' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                                        'cancelled' => 'bg-rose-50 text-rose-700 border-rose-100',
+                                    ];
+                                    $statusIcons = [
+                                        'pending' => 'clock',
+                                        'confirmed' => 'check-circle-2',
+                                        'shipped' => 'truck',
+                                        'delivered' => 'package',
+                                        'cancelled' => 'x-circle',
+                                    ];
+                                @endphp
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border {{ $statusColors[$order->status->value] ?? 'bg-slate-50 text-slate-700 border-slate-200' }}">
+                                    <i data-lucide="{{ $statusIcons[$order->status->value] ?? 'help-circle' }}" class="w-3.5 h-3.5"></i>
+                                    {{ $order->status->label() }}
+                                </span>
+                            </td>
+                            {{-- Date Structure --}}
+                            <td class="px-6 py-4.5 whitespace-nowrap">
+                                <div>
+                                    <p class="font-medium text-slate-700">{{ $order->created_at->format('M d, Y') }}</p>
+                                    <p class="text-xs text-slate-400 mt-0.5">{{ $order->created_at->format('h:i A') }}</p>
+                                </div>
+                            </td>
+                            {{-- Row Actions --}}
+                            <td class="px-6 py-4.5 text-right whitespace-nowrap">
+                                <div class="flex items-center justify-end gap-1">
+                                    <a href="{{ route('admin.orders.show', $order->id) }}"
+                                        class="flex items-center justify-center w-8 h-8 transition rounded-lg text-slate-500 hover:bg-slate-100 hover:text-indigo-600"
+                                        title="View Details">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
+                                    </a>
+                                    <button onclick="printOrder({{ $order->id }})"
+                                        class="flex items-center justify-center w-8 h-8 transition rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                                        title="Print Invoice">
+                                        <i data-lucide="printer" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        {{-- Clean Empty State Illustration --}}
+                        <tr>
+                            <td colspan="8" class="px-6 py-16 text-center">
+                                <div class="flex flex-col items-center max-w-sm mx-auto">
+                                    <div class="flex items-center justify-center mb-4 border shadow-inner w-14 h-14 rounded-2xl bg-slate-50 text-slate-400 border-slate-100">
+                                        <i data-lucide="shopping-bag" class="w-6 h-6"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-slate-900">No matching orders found</h3>
+                                    <p class="mt-1 text-sm text-slate-500">We couldn't find any orders matching your combination of keyword filters and parameters.</p>
+                                    <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center justify-center px-4 py-2 mt-4 text-xs font-semibold transition-all bg-white border text-slate-700 border-slate-200 rounded-xl hover:bg-slate-50">
+                                        Clear Search Filters
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Pagination Block --}}
+        @if ($orders->hasPages())
+            <div class="px-6 py-4 border-t bg-slate-50/50 border-slate-100">
+                {{ $orders->links() }}
+            </div>
+        @endif
     </div>
-    @endif
-</div>
 
-@push('scripts')
-<script>
-    function printOrder(orderId) {
-        window.open(`/admin/orders/${orderId}/print`, '_blank');
-    }
+    @push('scripts')
+        <script>
+            function printOrder(orderId) {
+                window.open(`/admin/orders/${orderId}/print`, '_blank');
+            }
 
-    function exportOrders() {
-        const params = new URLSearchParams(window.location.search);
-        params.append('export', 'csv');
-        window.location.href = `{{ route('admin.orders.index') }}?${params.toString()}`;
-    }
-</script>
-@endpush
+            function exportOrders() {
+                const params = new URLSearchParams(window.location.search);
+                params.append('export', 'csv');
+                window.location.href = `{{ route('admin.orders.index') }}?${params.toString()}`;
+            }
+        </script>
+    @endpush
 @endsection

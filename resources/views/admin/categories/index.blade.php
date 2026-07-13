@@ -6,11 +6,11 @@
 <div>
 
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <h3 class="text-2xl font-bold text-gray-800">Categories</h3>
+        <h3 class="text-2xl font-bold text-slate-800 font-heading">Categories</h3>
 
         <button onclick="openCreateModal()"
-            class="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-sm">
-            <i class="fas fa-plus mr-2"></i> Add New Category
+            class="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white font-medium rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition shadow-sm">
+            <i data-lucide="plus" class="w-4 h-4 fill-current mr-2"></i> Add New Category
         </button>
     </div>
 
@@ -19,17 +19,17 @@
         <div class="border rounded-lg bg-white">
 
             {{-- Parent Category --}}
-            <div class="flex justify-between items-center bg-gray-100 px-4 py-3 rounded-t-lg">
+            <div class="flex justify-between items-center bg-slate-100 px-4 py-3 rounded-t-lg">
 
                 <div class="flex items-center gap-3">
                     @if($category->image)
-                    <img src="{{ asset('storage/' . $category->image) }}" alt="{{ $category->name }}" class="w-12 h-12 object-cover rounded-lg border border-gray-300">
+                    <img src="{{ asset('storage/' . $category->image) }}" alt="{{ $category->name }}" class="w-12 h-12 object-cover rounded-lg border border-slate-300">
                     @else
-                    <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <i class="{{ $category->icon ?? 'fas fa-image' }} text-gray-400"></i>
+                    <div class="w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center">
+                        <i class="{{ $category->icon ?? 'fas fa-image' }} text-slate-400"></i>
                     </div>
                     @endif
-                    <h3 class="font-semibold text-gray-800">
+                    <h3 class="font-semibold text-slate-800">
                         {{ $category->name }}
                     </h3>
                 </div>
@@ -37,7 +37,7 @@
                 <div class="space-x-3">
                     <button type="button"
                         onclick="openEditModal({{ $category->id }}, '{{ addslashes($category->name) }}', {{ $category->parent_id ?? 'null' }}, '{{ $category->icon }}', {{ $category->sort_order }}, {{ $category->is_active ? 'true' : 'false' }}, {{ $category->is_featured ? 'true' : 'false' }}, '{{ $category->image }}')"
-                        class="text-blue-500 text-sm hover:underline">
+                        class="text-indigo-500 text-sm hover:underline">
                         Edit
                     </button>
 
@@ -47,7 +47,7 @@
                         onsubmit="return confirm('Are you sure you want to delete this category?');">
                         @csrf
                         @method('DELETE')
-                        <button class="text-red-500 text-sm hover:underline">
+                        <button class="text-rose-500 text-sm hover:underline">
                             Delete
                         </button>
                     </form>
@@ -61,13 +61,13 @@
 
                     <div class="flex items-center gap-3">
                         @if($sub->image)
-                        <img src="{{ asset('storage/' . $sub->image) }}" alt="{{ $sub->name }}" class="w-10 h-10 object-cover rounded-lg border border-gray-300">
+                        <img src="{{ asset('storage/' . $sub->image) }}" alt="{{ $sub->name }}" class="w-10 h-10 object-cover rounded-lg border border-slate-300">
                         @else
-                        <div class="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
-                            <i class="{{ $sub->icon ?? 'fas fa-image' }} text-gray-400 text-sm"></i>
+                        <div class="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center">
+                            <i class="{{ $sub->icon ?? 'fas fa-image' }} text-slate-400 text-sm"></i>
                         </div>
                         @endif
-                        <span class="text-gray-700">
+                        <span class="text-slate-700">
                             {{ $sub->name }}
                         </span>
                     </div>
@@ -75,7 +75,7 @@
                     <div class="space-x-3">
                         <button type="button"
                             onclick="openEditModal({{ $sub->id }}, '{{ addslashes($sub->name) }}', {{ $sub->parent_id ?? 'null' }}, '{{ $sub->icon }}', {{ $sub->sort_order }}, {{ $sub->is_active ? 'true' : 'false' }}, {{ $sub->is_featured ? 'true' : 'false' }}, '{{ $sub->image }}')"
-                            class="text-blue-500 text-sm hover:underline">
+                            class="text-indigo-500 text-sm hover:underline">
                             Edit
                         </button>
 
@@ -85,7 +85,7 @@
                             onsubmit="return confirm('Are you sure you want to delete this subcategory?');">
                             @csrf
                             @method('DELETE')
-                            <button class="text-red-500 text-sm hover:underline">
+                            <button class="text-rose-500 text-sm hover:underline">
                                 Delete
                             </button>
                         </form>
@@ -93,7 +93,7 @@
                     </div>
                 </div>
                 @empty
-                <div class="px-6 py-3 text-sm text-gray-400">
+                <div class="px-6 py-3 text-sm text-slate-400">
                     No subcategories
                 </div>
                 @endforelse
@@ -107,14 +107,14 @@
     <div id="createModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             {{-- Background Backdrop --}}
-            <div onclick="closeCreateModal()" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <div onclick="closeCreateModal()" class="fixed inset-0 bg-slate-900/75 transition-opacity"></div>
 
             {{-- Modal Content --}}
             <div class="inline-block w-full max-w-lg p-6 my-8 text-left align-middle bg-white shadow-xl rounded-2xl relative">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-bold text-gray-900">Add New Category</h3>
-                    <button type="button" onclick="closeCreateModal()" class="text-gray-400 hover:text-gray-500 transition">
-                        <i class="fas fa-times text-xl"></i>
+                    <h3 class="text-lg font-bold text-slate-900">Add New Category</h3>
+                    <button type="button" onclick="closeCreateModal()" class="text-slate-400 hover:text-slate-500 transition">
+                        <i data-lucide="x" class="w-6 h-6"></i>
                     </button>
                 </div>
 
@@ -126,9 +126,9 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Parent Category</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Parent Category</label>
                             <select name="parent_id"
-                                class="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition">
+                                class="block w-full px-4 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition">
                                 <option value="">None (Root Category)</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -137,19 +137,19 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Category Image</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Category Image</label>
                             <input type="file" name="image" accept="image/*"
-                                class="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
+                                class="block w-full px-4 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition"
                                 onchange="previewCreateImage(event)">
                             <div id="createImagePreview" class="mt-3 hidden">
-                                <img src="" alt="Preview" class="w-24 h-24 object-cover rounded-lg border border-gray-300">
+                                <img src="" alt="Preview" class="w-24 h-24 object-cover rounded-lg border border-slate-300">
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <x-input name="icon" type="text" label="Icon Class" placeholder="fas fa-tag" required />
-                                <p class="mt-1 text-xs text-gray-500">FontAwesome icon class</p>
+                                <p class="mt-1 text-xs text-slate-500">FontAwesome icon class</p>
                             </div>
                             <div>
                                 <x-input name="sort_order" type="number" value="0" label="Sort Order" placeholder="fas fa-tag" required />
@@ -159,25 +159,25 @@
                         <div class="flex items-center gap-6 pt-2">
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox" name="is_active" checked
-                                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 focus:ring-2">
-                                <span class="ml-2 text-sm text-gray-700">Active</span>
+                                    class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500 focus:ring-2">
+                                <span class="ml-2 text-sm text-slate-700">Active</span>
                             </label>
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox" name="is_featured"
-                                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 focus:ring-2">
-                                <span class="ml-2 text-sm text-gray-700">Featured</span>
+                                    class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500 focus:ring-2">
+                                <span class="ml-2 text-sm text-slate-700">Featured</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="mt-8 flex justify-end gap-3">
                         <button type="button" onclick="closeCreateModal()"
-                            class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                            class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
                             Cancel
                         </button>
                         <button type="submit"
-                            class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition">
-                            <i class="fas fa-save mr-2"></i>Save Category
+                            class="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition">
+                            <i data-lucide="save" class="w-4 h-4 fill-current mr-2"></i>Save Category
                         </button>
                     </div>
                 </form>
@@ -189,14 +189,14 @@
     <div id="editModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             {{-- Background Backdrop --}}
-            <div onclick="closeEditModal()" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <div onclick="closeEditModal()" class="fixed inset-0 bg-slate-900/75 transition-opacity"></div>
 
             {{-- Modal Content --}}
             <div class="inline-block w-full max-w-lg p-6 my-8 text-left align-middle bg-white shadow-xl rounded-2xl relative">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-bold text-gray-900">Edit Category</h3>
-                    <button type="button" onclick="closeEditModal()" class="text-gray-400 hover:text-gray-500 transition">
-                        <i class="fas fa-times text-xl"></i>
+                    <h3 class="text-lg font-bold text-slate-900">Edit Category</h3>
+                    <button type="button" onclick="closeEditModal()" class="text-slate-400 hover:text-slate-500 transition">
+                        <i data-lucide="x" class="w-6 h-6"></i>
                     </button>
                 </div>
 
@@ -209,9 +209,9 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Parent Category</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Parent Category</label>
                             <select id="edit_parent_id" name="parent_id"
-                                class="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition">
+                                class="block w-full px-4 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition">
                                 <option value="">None (Root Category)</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}">{{ $cat->name }}</option>
@@ -220,20 +220,20 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Category Image</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">Category Image</label>
                             <input type="file" name="image" accept="image/*"
-                                class="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition"
+                                class="block w-full px-4 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 transition"
                                 onchange="previewEditImage(event)">
                             <div id="editImagePreview" class="mt-3">
-                                <img id="edit_image_preview" src="" alt="Preview" class="w-24 h-24 object-cover rounded-lg border border-gray-300">
+                                <img id="edit_image_preview" src="" alt="Preview" class="w-24 h-24 object-cover rounded-lg border border-slate-300">
                             </div>
-                            <p class="mt-1 text-xs text-gray-500">Leave empty to keep current image</p>
+                            <p class="mt-1 text-xs text-slate-500">Leave empty to keep current image</p>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <x-input name="icon" type="text" label="Icon Class" id="edit_icon" required />
-                                <p class="mt-1 text-xs text-gray-500">FontAwesome icon class</p>
+                                <p class="mt-1 text-xs text-slate-500">FontAwesome icon class</p>
                             </div>
                             <div>
                                 <x-input name="sort_order" type="number" id="edit_sort_order" label="Sort Order" required />
@@ -243,25 +243,25 @@
                         <div class="flex items-center gap-6 pt-2">
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="edit_is_active" name="is_active"
-                                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 focus:ring-2">
-                                <span class="ml-2 text-sm text-gray-700">Active</span>
+                                    class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500 focus:ring-2">
+                                <span class="ml-2 text-sm text-slate-700">Active</span>
                             </label>
                             <label class="inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="edit_is_featured" name="is_featured"
-                                    class="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500 focus:ring-2">
-                                <span class="ml-2 text-sm text-gray-700">Featured</span>
+                                    class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500 focus:ring-2">
+                                <span class="ml-2 text-sm text-slate-700">Featured</span>
                             </label>
                         </div>
                     </div>
 
                     <div class="mt-8 flex justify-end gap-3">
                         <button type="button" onclick="closeEditModal()"
-                            class="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                            class="px-4 py-2.5 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
                             Cancel
                         </button>
                         <button type="submit"
-                            class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-sm transition">
-                            <i class="fas fa-save mr-2"></i>Update Category
+                            class="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition">
+                            <i data-lucide="save" class="w-4 h-4 fill-current mr-2"></i>Update Category
                         </button>
                     </div>
                 </form>
@@ -356,6 +356,6 @@
         }
     }
 </script>
-@endpush
+@Endpush
 
 @endsection

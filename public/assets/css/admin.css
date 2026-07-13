@@ -3,15 +3,18 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
+.font-heading, h1, h2, h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
 .sidebar-link.active {
-    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
 }
 
 .sidebar-link:not(.active):hover {
-    background: #f3f4f6;
-    color: #1f2937;
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
 }
 
 .chart-container {

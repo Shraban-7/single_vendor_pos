@@ -15,20 +15,22 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/lucide@1.24.0/dist/umd/lucide.min.js"></script>
 
     <link rel="stylesheet" href="{{ asset('assets/css/admin.css') }}">
 
     @stack('styles')
 </head>
 
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen bg-slate-50">
     <div class="flex h-screen overflow-hidden">
         @include('admin.layouts.sidebar')
 
-        <div id="mainContent" class="flex-1 flex flex-col overflow-hidden transition-all duration-300">
+        <div id="mainContent" class="flex flex-col flex-1 overflow-hidden transition-all duration-300">
             @include('admin.layouts.header')
 
             <main class="flex-1 overflow-y-auto">
@@ -40,10 +42,12 @@
     </div>
 
     {{-- Overlay for mobile sidebar --}}
-    <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
+    <div id="sidebarOverlay" class="fixed inset-0 z-40 hidden bg-black bg-opacity-50 lg:hidden"></div>
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="{{ asset('assets/js/admin.js') }}"></script>
+
+    <script>lucide.createIcons();</script>
 
     @stack('scripts')
 
