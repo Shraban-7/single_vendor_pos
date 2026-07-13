@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->foreignId('product_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('product_variant_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('order_id');
+            $table->unsignedBigInteger('product_id')->nullable();
+            $table->unsignedBigInteger('product_variant_id')->nullable();
 
             // Snapshot of product at time of order (in case product is edited/deleted later)
             $table->string('product_name');

@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('carts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->string('session_id')->nullable(); // For guest carts
-            $table->foreignId('coupon_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('coupon_id')->nullable();
             $table->timestamps();
 
             $table->index(['user_id']);
@@ -24,9 +24,9 @@ return new class extends Migration
 
         Schema::create('cart_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('cart_id')->constrained()->onDelete('cascade');
-            $table->foreignId('product_id')->constrained()->onDelete('cascade');
-            $table->foreignId('product_variant_id')->nullable()->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('cart_id');
+            $table->unsignedBigInteger('product_id');
+            $table->unsignedBigInteger('product_variant_id')->nullable();
             $table->integer('quantity')->default(1);
             $table->timestamps();
 

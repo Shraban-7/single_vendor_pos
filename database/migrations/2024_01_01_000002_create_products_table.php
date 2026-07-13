@@ -23,10 +23,11 @@ return new class extends Migration
             $table->text('short_description')->nullable();
             $table->longText('description')->nullable();
             $table->decimal('price', 10, 2);
-            $table->decimal('compare_price', 10, 2)->nullable(); // Original price for showing discount
-            $table->decimal('cost_price', 10, 2)->nullable(); // For profit calculation
-            $table->foreignId('category_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('brand')->nullable();
+            $table->decimal('compare_price', 10, 2)->nullable(); 
+            $table->decimal('cost_price', 10, 2)->nullable();
+            $table->unsignedBigInteger('category_id')->nullable();
+            $table->unsignedBigInteger('subcategory_id')->nullable();
+            $table->unsignedBigInteger('sub_subcategory_id')->nullable();
             $table->string('material')->nullable();
             $table->enum('fit_type', FitType::values())->nullable();
             $table->enum('pattern', Pattern::values())->nullable();
@@ -48,7 +49,7 @@ return new class extends Migration
             $table->json('tags')->nullable(); // For search
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index('slug');
             $table->index('sku');
         });

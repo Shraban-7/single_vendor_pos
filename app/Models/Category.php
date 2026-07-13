@@ -11,40 +11,42 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name',
-        'slug',
-        'description',
-        'icon',
-        'image',
-        'parent_id',
-        'sort_order',
-        'is_active',
-        'is_featured',
-        'meta_title',
-        'meta_description',
-    ];
+    protected $guarded = ['id'];
 
     protected $casts = [
+        'show_in_menu' => 'boolean',
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
         'sort_order' => 'integer',
     ];
 
-    // Relationships
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    public function children(): HasMany
+    // Inside App\Models\Category.php
+
+    public function children()
     {
-        return $this->hasMany(Category::class, 'parent_id')->orderBy('sort_order');
+        return $this->hasMany(Category::class, 'parent_id')
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('name', 'asc');
     }
 
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'category_id');
+    }
+
+    public function subCatProducts(): HasMany
+    {
+        return $this->hasMany(Product::class, 'subcategory_id');
+    }
+
+    public function subSubCatProducts(): HasMany
+    {
+        return $this->hasMany(Product::class, 'sub_subcategory_id');
     }
 
     // Scopes

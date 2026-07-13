@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
@@ -11,138 +12,187 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SubscriberController;
+use App\Http\Controllers\StaticPageController;
 use App\Models\Size;
 
 Route::get('/sitemap.xml', [App\Http\Controllers\SitemapController::class, 'index']);
 
-Route::get('/image-path', function(){
-    $products = \App\Models\Product::select('id', 'image')->get();
-    foreach ($products as $product) {
-        $product->image = str_replace(['images/spinner-fashion', 'https://slash-mart.com/storage/', 'spinner-fashion'], '', $product->image);
-        $product->save();
-    }
+// Route::get('fix-category', function(){
+//     $products = \App\Models\Product::get();
+//     foreach($products as $product) {
+//         $product->update([
+//             'category_id' => null,
+//             'subcategory_id' => null,
+//             'sub_subcategory_id' => null
+//         ]);
+//     }
+// });
 
-    $productImages = \App\Models\ProductImage::select('id', 'image_path')->get();
-    foreach ($productImages as $productImage) {
-        $productImage->image_path = str_replace(['images/spinner-fashion', 'https://slash-mart.com/storage/', 'spinner-fashion'], '', $productImage->image_path);
-        $productImage->save();
-    }
-});
+// Route::get('/image-path', function () {
+//     $products = \App\Models\Product::select('id', 'image')->get();
+//     foreach ($products as $product) {
+//         $product->image = str_replace(['images/spinner-fashion', 'https://slash-mart.com/storage/', 'spinner-fashion'], '', $product->image);
+//         $product->save();
+//     }
 
-Route::get('save-products', function () {
-    ini_set('max_execution_time', 3600);
-    $json = file_get_contents('sp_products.json');
-    $products = json_decode($json, true);
+//     $productImages = \App\Models\ProductImage::select('id', 'image_path')->get();
+//     foreach ($productImages as $productImage) {
+//         $productImage->image_path = str_replace(['images/spinner-fashion', 'https://slash-mart.com/storage/', 'spinner-fashion'], '', $productImage->image_path);
+//         $productImage->save();
+//     }
+// });
 
-    foreach ($products as $product) {
-        $alreadyExists = \App\Models\Product::where('name', $product['name'])->first();
-        if ($alreadyExists) {
-            $alreadyExists->update([
-                'sku' => $product['sku'],
-                'price' => $product['price'] ?? 0,
-                'cost_price' => $product['buying_price'] ?? 0,
-                'stock_in' => $product['stock'],
-                'stock_out' => 0,
-            ]);
-            continue; // Skip if product already exists
-        }
+// function fixThumbnailPath($path)
+// {
+//     return str_replace(['images/spinner-fashion', 'https://slash-mart.com/storage/', 'spinner-fashion'], '', $path);
+// }
 
-        $category = \App\Models\Category::firstOrCreate([
-            'name' => $product['category'],
-            'slug' => str_slug($product['category']),
-        ]);
+// Route::get('save-products', function () {
+//     ini_set('max_execution_time', 3600);
+//     $json = file_get_contents('sp_products.json');
+//     $products = json_decode($json, true);
 
-        $subcategory = null;
+//     foreach ($products as $product) {
+//         $brandId = $brandName = null;
 
-        if ($product['subcategory']) {
-            $cat_id = $category->id;
-            $subcategory = \App\Models\Category::firstOrCreate([
-                'name' => $product['subcategory'],
-                'parent_id' => $cat_id,
-                'slug' => str_slug($product['subcategory']),
-            ]);
-        }
+//         if ($product['brand'] != null) {
+//             $brandName = $product['brand'];
+//             $brand = \App\Models\Brand::firstOrCreate([
+//                 'name' => $brandName,
+//                 'slug' => str_slug($brandName),
+//             ]);
 
-        $newProduct = \App\Models\Product::create([
-            'name' => $product['name'],
-            'slug' => $product['slug'],
-            'sku' => $product['sku'],
-            'image' => str_replace(['images/spinner-fashion', 'spinner-fashion'], '', $product['thumbnail']),
+//             $brandId = $brand->id;
+//         }
+//         $alreadyExists = \App\Models\Product::where('name', $product['name'])->first();
+//         if ($alreadyExists) {
+//             $alreadyExists->update([
+//                 'sku' => $product['sku'],
+//                 'price' => $product['price'] ?? 0,
+//                 'cost_price' => $product['buying_price'] ?? 0,
+//                 'stock_in' => $product['stock'],
+//                 'stock_out' => 0,
+//             ]);
 
-            'description' => $product['description'] ?? null,
-            'short_description' => $product['short_description'] ?? null,
+//             if (isset($product['variants']) && is_array($product['variants'])) {
+//                 saveVariants($alreadyExists, $product['variants']);
+//             }
 
-            'price' => $product['price'] ?? 0,
-            'cost_price' => $product['buying_price'] ?? 0,
+//             continue; // Skip if product already exists
+//         }
 
-            'category_id' => $category->id ?? null,
-            'subcategory_id' => $subcategory->id ?? null,
+//         // $category = \App\Models\Category::firstOrCreate([
+//         //     'name' => $product['category'],
+//         //     'slug' => str_slug($product['category']),
+//         // ]);
 
-            'brand' => $product['brand'] ?? null,
-            'stock_in' => $product['stock'],
-            'stock_out' => 0,
-        ]);
+//         // $subcategory = null;
 
-        foreach ($product['images'] as $imageUrl) {
-            \App\Models\ProductImage::create([
-                'product_id' => $newProduct->id,
-                'image_path' => str_replace(['images/spinner-fashion', 'spinner-fashion'], '', $imageUrl),
-            ]);
-        }
+//         // if ($product['subcategory']) {
+//         //     $cat_id = $category->id;
+//         //     $subcategory = \App\Models\Category::firstOrCreate([
+//         //         'name' => $product['subcategory'],
+//         //         'parent_id' => $cat_id,
+//         //         'slug' => str_slug($product['subcategory']),
+//         //     ]);
+//         // }
 
-        foreach ($product['variants'] as $variant) {
+//         $newProduct = \App\Models\Product::create([
+//             'name' => ucwords($product['name']),
+//             'slug' => $product['slug'],
+//             'sku' => $product['sku'],
+//             'image' => fixThumbnailPath($product['thumbnail']),
 
-            $alreadyExists = \App\Models\ProductVariant::where('sku', $variant['sku'])->first();
-            if ($alreadyExists) {
-                $alreadyExists->update([
-                    'stock_in' => $variant['stock'],
-                    'stock_out' => 0,
-                    'price' => $variant['price'] ?? 0,
-                    'cost_price' => $variant['buying_price'] ?? 0,
-                ]);
-                continue; // Skip if variant already exists
-            }
+//             'description' => $product['description'] ?? null,
+//             'short_description' => $product['short_description'] ?? null,
 
-            $size = $color = null;
-            if ($variant['size']) {
-                $size = Size::firstOrCreate([
-                    'name' => $variant['size'],
-                    'code' => strtolower($variant['size']),
-                ]);
-            }
+//             'price' => $product['price'] ?? 0,
+//             'cost_price' => $product['buying_price'] ?? 0,
 
-            if ($variant['color']) {
-                $color = \App\Models\Color::firstOrCreate(['name' => $variant['color']]);
-            }
+//             //'category_id' => $category->id ?? null,
+//             //'subcategory_id' => $subcategory->id ?? null,
 
-            try {
-                $newProduct->variants()->create([
-                    'sku' => $variant['sku'],
-                    'size_id' => $size->id ?? null,
-                    'color_id' => $color->id ?? null,
-                    'stock_in' => $variant['stock'],
-                    'price' => $variant['price'] ?? 0,
-                    'cost_price' => $variant['buying_price'] ?? 0,
-                ]);
-            } catch (\Exception $e) {
-                dump('Error creating product variant: ' . $e->getMessage());
-            }
-        }
-    }
+//             'brand_name' => $brandName,
+//             'brand_id' => $brandId,
+//             'stock_in' => $product['stock'],
+//             'stock_out' => 0,
+//         ]);
 
-    echo 'done';
-});
+//         foreach ($product['images'] as $imageUrl) {
+//             \App\Models\ProductImage::create([
+//                 'product_id' => $newProduct->id,
+//                 'image_path' => fixThumbnailPath($imageUrl),
+//             ]);
+//         }
+
+//         if (isset($product['variants']) && is_array($product['variants'])) {
+//             saveVariants($newProduct, $product['variants']);
+//         }
+//     }
+
+//     echo 'done';
+// });
+
+// function saveVariants($newProduct, $variants)
+// {
+//     foreach ($variants as $variant) {
+
+//         $alreadyExists = \App\Models\ProductVariant::where('sku', $variant['sku'])->first();
+
+//         if ($alreadyExists) {
+//             $alreadyExists->update([
+//                 'stock_in' => $variant['stock'],
+//                 'stock_out' => 0,
+//                 'price' => $variant['price'] ?? 0,
+//                 'cost_price' => $variant['buying_price'] ?? 0,
+//             ]);
+//             continue; // Skip if variant already exists
+//         }
+
+//         $size = $color = null;
+//         if ($variant['size']) {
+//             $size = Size::firstOrCreate([
+//                 'name' => $variant['size'],
+//                 'code' => strtolower($variant['size']),
+//             ]);
+//         }
+
+//         if ($variant['color']) {
+//             $color = \App\Models\Color::firstOrCreate(['name' => $variant['color']]);
+//         }
+
+//         try {
+//             $newProduct->variants()->create([
+//                 'sku' => $variant['sku'],
+//                 'size_id' => $size->id ?? null,
+//                 'color_id' => $color->id ?? null,
+//                 'stock_in' => $variant['stock'],
+//                 'price' => $variant['price'] ?? 0,
+//                 'cost_price' => $variant['buying_price'] ?? 0,
+//             ]);
+//         } catch (\Exception $e) {
+//             dump('Error creating product variant: ' . $e->getMessage());
+//         }
+//     }
+// }
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+Route::get('/login', [AuthController::class, 'loginView'])->middleware('guest')->name('login');
+Route::get('/register', [AuthController::class, 'registerView'])->middleware('guest')->name('register');
 Route::prefix('auth')->as('auth.')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->name('login');
     Route::post('/register', [AuthController::class, 'register'])->name('register');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
 
+
 Route::prefix('products')->as('products.')->group(function () {
     Route::get('/', [ProductController::class, 'index'])->name('index');
+    Route::get('/update-category', [ProductController::class, 'updateCategory'])->name('updateCategory');
+    Route::post('/update-category/{product_id}', [ProductController::class, 'setCategory'])->name('setCategory');
+    Route::get('search', [ProductController::class, 'search'])->name('search');
+    Route::get('/suggestions', [ProductController::class, 'suggestions'])->name('suggestions');
     Route::get('/{slug}', [ProductController::class, 'show'])->name('show');
     Route::get('/{product}/quickview', [ProductController::class, 'getQuickviewData'])->name('getQuickviewData');
 });
@@ -187,7 +237,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [OrderController::class, 'index'])->name('index');
         Route::get('/{order:order_number}/show', [OrderController::class, 'show'])->name('show');
         Route::post('/{order:order_number}/pay-now', [CheckoutController::class, 'payNow'])->name('payNow');
+        Route::get('/{orderNumber}/invoice', [OrderController::class, 'invoice'])->name('invoice');
     });
+
+    Route::post('/review', [ReviewController::class, 'store'])->name('review.store');
 });
 
 Route::post('/subscribe', [SubscriberController::class, 'store'])->name('subscribe');
@@ -198,6 +251,8 @@ Route::prefix('payment')->as('payment.')->group(function () {
     Route::get('/failed', [PaymentController::class, 'failed'])->name('failed');
     Route::post('/ipn', [PaymentController::class, 'ipn'])->name('ipn');
 });
+
+Route::get('/pages/{slug}', [StaticPageController::class, 'show'])->name('static_page.show');
 
 Route::post('/logout', function () {
     Auth::logout();

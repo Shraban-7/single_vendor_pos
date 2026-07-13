@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Banner;
+use App\Models\Brand;
 use App\Models\Category;
+use App\Models\HomeSection;
 use App\Models\Product;
 use Illuminate\Http\Request;
 
@@ -31,6 +33,20 @@ class HomeController extends Controller
         // Fetch best selling products
         $bestSelling = Product::where('is_active', true)
             ->where('is_best_seller', true)
+            ->with('category')
+            ->orderBy('review_count', 'desc')
+            ->take($productLimit)
+            ->get();
+
+        $featuredProducts = Product::where('is_active', true)
+            ->where('is_featured', true)
+            ->with('category')
+            ->orderBy('review_count', 'desc')
+            ->take($productLimit)
+            ->get();
+
+        $onSaleProducts = Product::where('is_active', true)
+            ->where('is_on_sale', true)
             ->with('category')
             ->orderBy('review_count', 'desc')
             ->take($productLimit)
@@ -77,6 +93,43 @@ class HomeController extends Controller
 
         $banners = Banner::get();
 
+        $ourBrands = Brand::where('is_active', true)
+            ->where('own_brand', true)
+            ->limit(5)
+            ->get();
+
+        // Fetch active home sections with dynamic items
+        $homeSections = HomeSection::active()
+            ->with(['items' => function ($query) {
+                $query->orderBy('sort_order', 'asc');
+            }, 'items.item'])
+            ->orderBy('sort_order', 'asc')
+            ->get();
+
+        // Resolve products based on source for dynamic sections
+        foreach ($homeSections as $section) {
+            $source = $section->source?->value;
+
+            if ($source === 'new_arrivals') {
+                $section->resolvedProducts = Product::where('is_active', true)
+                    ->latest()
+                    ->take(15)
+                    ->get();
+            } elseif ($source === 'best_sellers') {
+                $section->resolvedProducts = Product::where('is_active', true)
+                    ->where('is_best_seller', true)
+                    ->orderBy('review_count', 'desc')
+                    ->take(15)
+                    ->get();
+            } elseif ($source === 'featured') {
+                $section->resolvedProducts = Product::where('is_active', true)
+                    ->where('is_featured', true)
+                    ->orderBy('review_count', 'desc')
+                    ->take(15)
+                    ->get();
+            }
+        }
+
         return view('home', compact(
             'newArrivals',
             'bestSelling',
@@ -84,6 +137,10 @@ class HomeController extends Controller
             'womensProducts',
             'featuredCategories',
             'banners',
+            'ourBrands',
+            'featuredProducts',
+            'onSaleProducts',
+            'homeSections'
         ));
     }
 }

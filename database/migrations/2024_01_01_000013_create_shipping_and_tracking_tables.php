@@ -30,7 +30,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('bn_name')->nullable(); // Bengali name
-            $table->foreignId('shipping_zone_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('shipping_zone_id')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -38,7 +38,7 @@ return new class extends Migration
         // Order status history/tracking
         Schema::create('order_status_histories', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('order_id');
             $table->string('status');
             $table->text('comment')->nullable();
             $table->string('updated_by')->nullable(); // Admin name or 'system'
@@ -50,8 +50,8 @@ return new class extends Migration
         // SMS/Notification logs
         Schema::create('notification_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('order_id')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->enum('type', NotificationType::values())->default(NotificationType::SMS->value);
             $table->string('recipient'); // Phone or email
             $table->string('template')->nullable();

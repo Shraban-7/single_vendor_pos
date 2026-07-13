@@ -18,15 +18,15 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_number')->unique(); // SF2026011901
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null'); // Nullable for guest orders
-            $table->foreignId('coupon_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('user_id')->nullable(); // Nullable for guest orders
+            $table->unsignedBigInteger('coupon_id')->nullable();
 
             // Order Status
-            $table->enum('status', OrderStatus::values())->default(OrderStatus::PENDING->value);
+            $table->string('status')->default(OrderStatus::PENDING->value);
 
             // Payment Info
-            $table->enum('payment_method', PaymentMethod::values())->default(PaymentMethod::COD->value);
-            $table->enum('payment_status', PaymentStatus::values())->default(PaymentStatus::PENDING->value);
+            $table->string('payment_method')->default(PaymentMethod::COD->value);
+            $table->string('payment_status')->default(PaymentStatus::PENDING->value);
             $table->string('payment_method_name')->nullable();
             $table->string('payment_id')->nullable();
             $table->timestamp('paid_at')->nullable();
@@ -39,14 +39,14 @@ return new class extends Migration
             $table->decimal('total', 10, 2);
 
             // Shipping Address
-            $table->string('shipping_name');
-            $table->string('shipping_phone');
+            $table->string('shipping_name')->nullable();
+            $table->string('shipping_phone')->nullable();
             $table->string('shipping_email')->nullable();
-            $table->string('shipping_district');
-            $table->string('shipping_city');
-            $table->text('shipping_address');
+            $table->string('shipping_district')->nullable();
+            $table->string('shipping_city')->nullable();
+            $table->text('shipping_address')->nullable();
             $table->string('shipping_postal_code')->nullable();
-            $table->enum('delivery_zone', DeliveryZone::values())->default(DeliveryZone::OUTSIDE_DHAKA->value);
+            $table->string('delivery_zone')->default(DeliveryZone::OUTSIDE_DHAKA->value);
 
             // Additional Info
             $table->text('notes')->nullable(); // Customer notes

@@ -11,10 +11,7 @@ class Cart extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'user_id',
-        'session_id',
-    ];
+   protected $guarded = ['id'];
 
     // Relationships
     public function user(): BelongsTo

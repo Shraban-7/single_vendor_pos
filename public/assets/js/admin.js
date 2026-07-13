@@ -1,115 +1,113 @@
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
-const sidebarClose = document.getElementById('sidebarClose');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
 const mainContent = document.getElementById('mainContent');
+const tooltip = document.getElementById('sidebarTooltip');
 
 let isDesktop = window.innerWidth >= 1024;
 let sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
 
+// ── Collapse / Expand ────────────────────────────────────────
 function toggleSidebar() {
     if (isDesktop) {
-        // Desktop toggle: collapse/expand
         sidebarCollapsed = !sidebarCollapsed;
         localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
-
-        if (sidebarCollapsed) {
-            sidebar.classList.add('sidebar-collapsed');
-            mainContent.classList.add('content-expanded');
-        } else {
-            sidebar.classList.remove('sidebar-collapsed');
-            mainContent.classList.remove('content-expanded');
-        }
+        applySidebarState();
     } else {
-        // Mobile toggle: show/hide
         const isOpen = !sidebar.classList.contains('-translate-x-full');
-        if (isOpen) {
-            closeSidebar();
-        } else {
-            openSidebar();
-        }
+        isOpen ? closeMobileSidebar() : openMobileSidebar();
     }
 }
 
-function openSidebar() {
+function applySidebarState() {
+    if (sidebarCollapsed) {
+        sidebar.classList.add('sidebar-collapsed');
+    } else {
+        sidebar.classList.remove('sidebar-collapsed');
+    }
+}
+
+function openMobileSidebar() {
     sidebar.classList.remove('-translate-x-full');
     sidebarOverlay.classList.remove('hidden');
 }
 
-function closeSidebar() {
+function closeMobileSidebar() {
     sidebar.classList.add('-translate-x-full');
     sidebarOverlay.classList.add('hidden');
 }
 
 sidebarToggle?.addEventListener('click', toggleSidebar);
-sidebarOverlay?.addEventListener('click', closeSidebar);
+sidebarOverlay?.addEventListener('click', closeMobileSidebar);
 
-// Handle sidebar state on window resize
+// ── Resize handler ───────────────────────────────────────────
 function handleResize() {
-    const wasDesktop = isDesktop;
     isDesktop = window.innerWidth >= 1024;
-
     if (isDesktop) {
-        // Desktop: remove mobile classes and apply collapse state
         sidebar.classList.remove('-translate-x-full');
         sidebarOverlay.classList.add('hidden');
-
-        // Apply saved collapse state
-        if (sidebarCollapsed) {
-            sidebar.classList.add('sidebar-collapsed');
-            mainContent.classList.add('content-expanded');
-        } else {
-            sidebar.classList.remove('sidebar-collapsed');
-            mainContent.classList.remove('content-expanded');
-        }
+        applySidebarState();
     } else {
-        // Mobile: remove desktop classes and hide sidebar
         sidebar.classList.remove('sidebar-collapsed');
-        mainContent.classList.remove('content-expanded');
         sidebar.classList.add('-translate-x-full');
         sidebarOverlay.classList.add('hidden');
     }
 }
 
-// Initialize sidebar state on page load
 handleResize();
-
-// Handle resize events
 window.addEventListener('resize', handleResize);
 
-// Scroll active menu item into view
+// ── Submenu toggle ───────────────────────────────────────────
+window.toggleSidebarGroup = function(btn) {
+    if (sidebarCollapsed) return; // no submenu in collapsed mode
+    const group = btn.closest('.sidebar-group');
+    if (!group) return;
+    group.classList.toggle('open');
+};
+
+// ── Tooltip on collapsed hover ───────────────────────────────
+sidebar.addEventListener('mouseover', function(e) {
+    if (!sidebarCollapsed || !isDesktop) return;
+    const target = e.target.closest('[data-tooltip]');
+    if (!target) { hideTooltip(); return; }
+
+    const label = target.getAttribute('data-tooltip');
+    const rect = target.getBoundingClientRect();
+    tooltip.textContent = label;
+    tooltip.style.top = (rect.top + rect.height / 2 - 14) + 'px';
+    tooltip.classList.add('visible');
+});
+
+sidebar.addEventListener('mouseout', function(e) {
+    if (!e.relatedTarget || !e.relatedTarget.closest('#sidebar')) {
+        hideTooltip();
+    }
+});
+
+function hideTooltip() {
+    tooltip?.classList.remove('visible');
+}
+
+// ── Scroll active item into view ─────────────────────────────
 function scrollToActiveMenuItem() {
-    const activeLink = sidebar.querySelector('.sidebar-link.active');
-    if (activeLink) {
-        const sidebarNav = sidebar.querySelector('nav');
-        if (sidebarNav) {
-            // Get positions
-            const navRect = sidebarNav.getBoundingClientRect();
-            const linkRect = activeLink.getBoundingClientRect();
-            
-            // Calculate if link is out of view
-            const isAboveView = linkRect.top < navRect.top;
-            const isBelowView = linkRect.bottom > navRect.bottom;
-            
-            if (isAboveView || isBelowView) {
-                // Scroll to center the active link
-                const scrollTop = activeLink.offsetTop - sidebarNav.offsetTop - (sidebarNav.clientHeight / 2) + (activeLink.clientHeight / 2);
-                sidebarNav.scrollTo({
-                    top: scrollTop,
-                    behavior: 'smooth'
-                });
-            }
-        }
+    const activeLink = sidebar.querySelector('.sidebar-link.active, .sidebar-group-btn.active');
+    if (!activeLink) return;
+    const nav = sidebar.querySelector('.sidebar-nav');
+    if (!nav) return;
+    const navRect = nav.getBoundingClientRect();
+    const linkRect = activeLink.getBoundingClientRect();
+    if (linkRect.top < navRect.top || linkRect.bottom > navRect.bottom) {
+        const scrollTop = activeLink.offsetTop - nav.offsetTop - nav.clientHeight / 2 + activeLink.clientHeight / 2;
+        nav.scrollTo({ top: scrollTop, behavior: 'smooth' });
     }
 }
 
-// Scroll to active menu on page load (after a small delay to ensure CSS is applied)
 setTimeout(scrollToActiveMenuItem, 100);
 
+// ── Modals ───────────────────────────────────────────────────
 window.toggleModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
-
     if (modal.classList.contains('hidden-modal')) {
         modal.classList.remove('hidden-modal');
         document.body.classList.add('modal-active');
@@ -122,10 +120,8 @@ window.toggleModal = function(modalId) {
 document.addEventListener('click', function(e) {
     const closeBtn = e.target.closest('.modal-overlay .close');
     if (!closeBtn) return;
-
     const modal = closeBtn.closest('.modal-overlay');
     if (!modal) return;
-
     modal.classList.add('hidden-modal');
     document.body.classList.remove('modal-active');
 });

@@ -18,6 +18,7 @@ class Review extends Model
         'rating',
         'title',
         'comment',
+        'reviewer_name',
         'is_approved',
         'is_verified_purchase',
         'admin_reply',

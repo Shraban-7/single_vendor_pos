@@ -5,13 +5,395 @@ namespace Database\Seeders;
 use App\Models\Category;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CategorySeeder extends Seeder
 {
+    public function run()
+    {
+        $rootIcons = [
+            'Men' => 'fa-solid fa-person',
+            'Women' => 'fa-solid fa-person-dress',
+            'Kids' => 'fa-solid fa-child',
+            'Footwear' => 'fa-solid fa-shoe-prints',
+            'Fashion Accessories' => 'fa-solid fa-gem',
+            'Winter Collection' => 'fa-solid fa-snowflake',
+            'Islamic Fashion' => 'fa-solid fa-mosque',
+            'Summer Collection' => 'fa-solid fa-sun',
+            'Bags & Luggage' => 'fa-solid fa-suitcase',
+        ];
+
+        $categoryIcons = [
+            'Panjabi' => 'fa-solid fa-shirt',
+            'Shirt' => 'fa-solid fa-shirt',
+            'T-Shirt' => 'fa-solid fa-shirt',
+            'Pant' => 'fa-solid fa-user-tie',
+
+            'Saree' => 'fa-solid fa-person-dress',
+            'Salwar Kameez' => 'fa-solid fa-person-dress',
+            'Kurti' => 'fa-solid fa-shirt',
+
+            'Boys' => 'fa-solid fa-child',
+            'Girls' => 'fa-solid fa-child-dress',
+
+            'Men Shoes' => 'fa-solid fa-shoe-prints',
+            'Women Shoes' => 'fa-solid fa-shoe-prints',
+
+            'Men Accessories' => 'fa-solid fa-gem',
+            'Women Accessories' => 'fa-solid fa-gem',
+
+            'Men Islamic Wear' => 'fa-solid fa-mosque',
+            'Women Islamic Wear' => 'fa-solid fa-mosque',
+            'Islamic Accessories' => 'fa-solid fa-star-and-crescent',
+
+            'Men Summer Wear' => 'fa-solid fa-shirt',
+            'Women Summer Wear' => 'fa-solid fa-person-dress',
+            'Kids Summer Wear' => 'fa-solid fa-child',
+            'Summer Accessories' => 'fa-solid fa-glasses',
+
+            'Backpack' => 'fa-solid fa-backpack',
+            'Handbag' => 'fa-solid fa-bag-shopping',
+            'Travel Bags' => 'fa-solid fa-suitcase-rolling',
+            'Wallets & Holders' => 'fa-solid fa-wallet',
+        ];
+
+        $categories = [
+            'Men' => [
+                'Panjabi' => [
+                    'Casual Panjabi',
+                    'Cotton Panjabi',
+                    'Printed Panjabi',
+                    'Embroidered Panjabi',
+                    'Silk Panjabi',
+                    'Linen Panjabi',
+                    'Party Panjabi'
+                ],
+
+                'Shirt' => [
+                    'Formal Shirt',
+                    'Casual Shirt',
+                    'Half Sleeve Shirt',
+                    'Full Sleeve Shirt',
+                ],
+
+                'T-Shirt' => [
+                    'Basic T-Shirt',
+                    'Polo T-Shirt',
+                    'Graphic T-Shirt',
+                    'Oversized T-Shirt',
+                    'V-Neck T-Shirt',
+                    'Round Neck T-Shirt',
+                    'Drop Shoulder T-Shirt',
+                ],
+
+                'Pant' => [
+                    'Formal Pant',
+                    'Jeans',
+                    'Chino Pant',
+                    'Cargo Pant',
+                    'Jogger Pant',
+                    'Shorts',
+                    'Trousers',
+                    'Track Pant',
+                ],
+            ],
+
+            'Women' => [
+                'Saree' => [
+                    'Cotton Saree',
+                    'Jamdani Saree',
+                    'Silk Saree',
+                    'Party Saree',
+                    'Katan Saree',
+                    'Printed Saree',
+                    'Embroidered Saree',
+                    'Banarasi Saree'
+                ],
+
+                'Salwar Kameez' => [
+                    'Printed',
+                    'Embroidered',
+                    'Readymade',
+                    'Unstitched',
+                    'Pakistani',
+                ],
+
+                'Kurti' => [
+                    'Casual Kurti',
+                    'Long Kurti',
+                    'Short Kurti',
+                    'Printed Kurti',
+                    'Embroidered Kurti',
+                    'Party Kurti',
+                    'Festive Kurti'
+                ],
+            ],
+
+            'Kids' => [
+                'Boys' => [
+                    'Panjabi',
+                    'Shirt',
+                    'T-Shirt',
+                    'Jeans',
+                    'Shorts',
+                ],
+
+                'Girls' => [
+                    'Frock',
+                    'Party Dress',
+                    'Skirt',
+                    'Leggings',
+                    'Tops',
+                ],
+            ],
+
+            'Footwear' => [
+                'Mens Footwear' => [
+                    'Sneaker',
+                    'Loafer',
+                    'Formal Shoes',
+                    'Sandal',
+                    'Boot',
+                    'Sports Shoes',
+                    'Slip-On',
+                    'Casual Shoes',
+                ],
+
+                'Womens Footwear' => [
+                    'Heel',
+                    'Flat Sandal',
+                    'Sneaker',
+                    'Boot',
+                    'Loafer',
+                    'Wedge',
+                    'Sports Shoes',
+                    'Slip-On',
+                ],
+            ],
+
+            'Accessories' => [
+                'Men Accessories' => [
+                    'Wallet',
+                    'Belt',
+                    'Watch',
+                    'Cap',
+                    'Sunglasses',
+                    'Tie',
+                    'Cufflinks',
+                    'Bracelet',
+                ],
+
+                'Women Accessories' => [
+                    'Jewelry',
+                    'Handbag',
+                    'Hair Accessories',
+                    'Watch',
+                    'Sunglasses',
+                    'Scarf',
+                    'Belt',
+                    'Hat',
+                ],
+            ],
+
+            'Winter Collection' => [
+
+                'Men Winter Wear' => [
+                    'Hoodie',
+                    'Sweater',
+                    'Jacket',
+                    'Blazer',
+                    'Coat',
+                    'Cardigan',
+                    'Thermal Wear',
+                    'Winter Tracksuit',
+                ],
+
+                'Women Winter Wear' => [
+                    'Hoodie',
+                    'Sweater',
+                    'Jacket',
+                    'Coat',
+                    'Cardigan',
+                    'Shawl',
+                    'Thermal Wear',
+                    'Winter Dress',
+                ],
+
+                'Kids Winter Wear' => [
+                    'Kids Hoodie',
+                    'Kids Sweater',
+                    'Kids Jacket',
+                    'Kids Coat',
+                    'Kids Thermal Wear',
+                    'Kids Winter Set',
+                ],
+
+                'Winter Accessories' => [
+                    'Muffler',
+                    'Scarf',
+                    'Winter Cap',
+                    'Beanie',
+                    'Gloves',
+                    'Ear Muff',
+                    'Winter Socks',
+                ],
+            ],
+
+            'Islamic Fashion' => [
+
+                'Men Islamic Wear' => [
+                    'Jubba',
+                    'Thobe',
+                    'Arabic Thobe',
+                    'Emirati Thobe',
+                    'Saudi Thobe',
+                    'Panjabi',
+                    'Prayer Cap',
+                    'Imama',
+                ],
+
+                'Women Islamic Wear' => [
+                    'Abaya',
+                    'Dubai Abaya',
+                    'Saudi Abaya',
+                    'Front Open Abaya',
+                    'Butterfly Abaya',
+                    'Khimar',
+                    'Hijab',
+                    'Niqab',
+                    'Jilbab',
+                    'Prayer Dress',
+                ],
+
+                'Islamic Accessories' => [
+                    'Prayer Mat',
+                    'Tasbih',
+                    'Prayer Cap',
+                    'Hijab Pin',
+                    'Sleeves',
+                    'Undercap',
+                ],
+            ],
+            'Bags & Luggage' => [
+                'Backpack' => [
+                    'School Backpack',
+                    'College Backpack',
+                    'Travel Backpack',
+                    'Laptop Backpack',
+                ],
+
+                'Handbag' => [
+                    'Casual Handbag',
+                    'Party Handbag',
+                    'Shoulder Bag',
+                    'Tote Bag',
+                ],
+
+                'Travel Bags' => [
+                    'Duffel Bag',
+                    'Trolley Bag',
+                    'Suitcase',
+                    'Cabin Luggage',
+                ],
+
+                'Wallets & Holders' => [
+                    'Wallet',
+                    'Card Holder',
+                    'Passport Holder',
+                ],
+            ],
+
+            'Summer Collection' => [
+                'Men Summer Wear' => [
+                    'Polo T-Shirt',
+                    'Linen Shirt',
+                    'Bermuda Shorts',
+                    'Summer Jogger',
+                    'Cotton T-Shirt',
+                    'Summer Vest',
+                ],
+
+                'Women Summer Wear' => [
+                    'Summer Dress',
+                    'Maxi Dress',
+                    'Tank Top',
+                    'Summer Kurti',
+                    'Palazzo',
+                    'Sun Dress',
+                ],
+
+                'Kids Summer Wear' => [
+                    'Kids T-Shirt',
+                    'Kids Shorts',
+                    'Summer Frock',
+                    'Summer Top',
+                ],
+
+                'Summer Accessories' => [
+                    'Sunglasses',
+                    'Sun Hat',
+                    'Beach Sandals',
+                    'Flip Flops',
+                ],
+            ],
+        ];
+
+        $inactiveDepartments = ['Islamic Fashion'];
+        $sortOrder = 1;
+
+        foreach ($categories as $departmentName => $departmentCategories) {
+
+            $departmentData = [
+                'name' => $departmentName,
+                'icon' => $rootIcons[$departmentName] ?? null,
+                'sort_order' => $sortOrder++,
+            ];
+
+            if (in_array($departmentName, $inactiveDepartments)) {
+                $departmentData['is_active'] = false;
+            }
+
+            $department = Category::updateOrCreate(
+                ['slug' => Str::slug($departmentName)],
+                $departmentData
+            );
+
+            foreach ($departmentCategories as $categoryName => $subCategories) {
+
+                $category = Category::updateOrCreate(
+                    ['slug' => Str::slug($departmentName . '-' . $categoryName)],
+                    [
+                        'parent_id' => $department->id,
+                        'name' => $categoryName,
+                        'icon' => $categoryIcons[$categoryName] ?? null,
+                    ]
+                );
+
+                foreach ($subCategories as $subCategoryName) {
+
+                    Category::updateOrCreate(
+                        [
+                            'slug' => Str::slug(
+                                $departmentName . '-' .
+                                    $categoryName . '-' .
+                                    $subCategoryName
+                            )
+                        ],
+                        [
+                            'parent_id' => $category->id,
+                            'name' => $subCategoryName,
+                            'icon' => null,
+                        ]
+                    );
+                }
+            }
+        }
+    }
+
     /**
      * Run the database seeds.
      */
-    public function run(): void
+    public function runOld(): void
     {
         // Clear existing categories to avoid duplicates
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');

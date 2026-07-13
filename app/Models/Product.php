@@ -19,40 +19,6 @@ class Product extends Model
 
     protected $guarded = ['id'];
 
-    // protected $fillable = [
-    //     'name',
-    //     'slug',
-    //     'sku',
-    //     'image',
-    //     'short_description',
-    //     'description',
-    //     'price',
-    //     'compare_price',
-    //     'cost_price',
-    //     'category_id',
-    //     'subcategory_id',
-    //     'brand',
-    //     'material',
-    //     'fit_type',
-    //     'pattern',
-    //     'occasion',
-    //     'stock_in',
-    //     'low_stock_threshold',
-    //     'weight',
-    //     'is_active',
-    //     'is_featured',
-    //     'is_new_arrival',
-    //     'is_best_seller',
-    //     'is_on_sale',
-    //     'average_rating',
-    //     'review_count',
-    //     'view_count',
-    //     'sold_count',
-    //     'meta_title',
-    //     'meta_description',
-    //     'tags',
-    // ];
-
     protected $casts = [
         'price' => 'decimal:2',
         'compare_price' => 'decimal:2',
@@ -79,6 +45,21 @@ class Product extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function subcategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class,'subcategory_id');
+    }
+
+    public function subsubcategory(): BelongsTo
+    {
+        return $this->belongsTo(Category::class,'sub_subcategory_id');
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     public function images(): HasMany
@@ -118,6 +99,19 @@ class Product extends Model
     public function approvedReviews(): HasMany
     {
         return $this->hasMany(Review::class)->where('is_approved', true);
+    }
+
+    public function updateRatingStats()
+    {
+        $this->review_count = $this->reviews()
+            ->where('is_approved', true)
+            ->count();
+
+        $this->average_rating = $this->reviews()
+            ->where('is_approved', true)
+            ->avg('rating') ?? 0;
+
+        $this->save();
     }
 
     public function wishlists(): HasMany
@@ -239,14 +233,32 @@ class Product extends Model
     public function totalStock(): Attribute
     {
         $stock = $this->stock_in - $this->stock_out;
-        
-        foreach ($this->variants as $variant) {
-            $stock += $variant->stock_in - $variant->stock_out;
-        }
 
         return Attribute::make(
             get: function () use ($stock) {
                 return $stock;
+            }
+        );
+    }
+
+    public function totalStockIn(): Attribute
+    {
+        $stockIn = $this->stock_in;
+
+        return Attribute::make(
+            get: function () use ($stockIn) {
+                return $stockIn;
+            }
+        );
+    }
+
+    public function totalStockOut(): Attribute
+    {
+        $stockOut = $this->stock_out;
+
+        return Attribute::make(
+            get: function () use ($stockOut) {
+                return $stockOut;
             }
         );
     }

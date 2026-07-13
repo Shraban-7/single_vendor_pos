@@ -81,6 +81,10 @@ class CartManager {
     }
 
     async updateQuantity(itemId, quantity) {
+        if (quantity < 1) {
+            return false;
+        }
+
         try {
             const response = await fetch(`${this.apiUrl}/update/${itemId}`, {
                 method: "PUT",
@@ -93,24 +97,26 @@ class CartManager {
 
             if (data.success) {
                 this.updateCartCount(data.cart.items_count);
-                this.loadCart(); // Reload full cart
+                this.loadCart();
                 return true;
             } else {
-                if (window.showError) {
-                    window.showError(data.message || "Failed to update cart");
-                }
+                window.showError?.(data.message || "Failed to update cart");
                 return false;
             }
+
         } catch (error) {
             console.error("Failed to update quantity:", error);
-            if (window.showError) {
-                window.showError("Failed to update cart");
-            }
+            window.showError?.("Failed to update cart");
             return false;
         }
     }
 
-    async removeItem(itemId) {
+    async removeItem(itemId, button = null) {
+        if (button) {
+            button.disabled = true;
+            button.classList.add("opacity-50", "pointer-events-none");
+        }
+
         try {
             const response = await fetch(`${this.apiUrl}/remove/${itemId}`, {
                 method: "DELETE",
@@ -121,26 +127,29 @@ class CartManager {
             const data = await response.json();
 
             if (data.success) {
-                if (window.showSuccess) {
-                    window.showSuccess(
-                        data.message || "Item removed from cart",
-                    );
-                }
+                window.showSuccess?.(data.message || "Item removed from cart");
+
                 this.updateCartCount(data.cart.items_count);
-                this.loadCart(); // Reload full cart
+
+                // safer cart reload
+                this.loadCart();
+
                 return true;
             } else {
-                if (window.showError) {
-                    window.showError(data.message || "Failed to remove item");
-                }
+                window.showError?.(data.message || "Failed to remove item");
                 return false;
             }
+
         } catch (error) {
             console.error("Failed to remove item:", error);
-            if (window.showError) {
-                window.showError("Failed to remove item");
-            }
+            window.showError?.("Failed to remove item");
             return false;
+
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.classList.remove("opacity-50", "pointer-events-none");
+            }
         }
     }
 
@@ -239,9 +248,17 @@ class CartManager {
         const badges = document.querySelectorAll(
             "#cartCountBadge, #cartItemCount, #headerCartCount",
         );
+
         badges.forEach((badge) => {
             if (badge) {
                 badge.textContent = count;
+
+                // Hide badge when cart is empty
+                if (count <= 0) {
+                    badge.classList.add("hidden");
+                } else {
+                    badge.classList.remove("hidden");
+                }
             }
         });
     }
@@ -281,7 +298,9 @@ class CartManager {
                     <p class="text-xs text-gray-500 mt-1">Size: ${item.size} | Color: ${item.color}</p>
                     <div class="flex items-center justify-between mt-3">
                         <div class="flex items-center border border-gray-200 rounded-lg bg-white overflow-hidden">
-                            <button onclick="window.cartManager.decreaseQuantity(${item.id}, ${item.quantity})" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition">
+                            <button onclick="window.cartManager.decreaseQuantity(${item.id}, ${item.quantity})"
+                                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition
+                                ${item.quantity <= 1 ? 'opacity-40 pointer-events-none' : ''}">
                                 <i class="fas fa-minus text-xs"></i>
                             </button>
                             <span class="w-12 text-center font-semibold text-gray-700">${item.quantity}</span>
@@ -289,10 +308,11 @@ class CartManager {
                                 <i class="fas fa-plus text-xs"></i>
                             </button>
                         </div>
-                        <span class="text-brand-blue font-bold">৳${item.total_price.toLocaleString()}</span>
+                        <span class="text-primary font-bold">৳${item.total_price.toLocaleString()}</span>
                     </div>
                 </div>
-                <button onclick="window.cartManager.removeItem(${item.id})" class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white shadow flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition opacity-0 group-hover:opacity-100">
+                <button onclick="window.cartManager.removeItem(${item.id}, this)"
+                    class="absolute top-3 right-3 w-7 h-7 rounded-full bg-red-500 shadow flex items-center justify-center text-white transition">
                     <i class="fas fa-trash-alt text-xs"></i>
                 </button>
             </div>
@@ -307,7 +327,7 @@ class CartManager {
                 </div>
                 <h3 class="text-lg font-semibold text-gray-700 mb-2">Your cart is empty</h3>
                 <p class="text-sm text-gray-500 mb-6">Add some products to get started!</p>
-                <button onclick="closeCartDrawer()" class="px-6 py-2 bg-brand-blue text-white rounded-lg hover:bg-blue-600 transition">
+                <button onclick="closeCartDrawer()" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition">
                     Continue Shopping
                 </button>
             </div>

@@ -6,112 +6,101 @@ use App\Enums\FitType;
 use App\Enums\Occasion;
 use App\Enums\Pattern;
 use App\Models\Category;
-use App\Models\Color;
 use App\Models\Product;
-use App\Models\ProductVariant;
-use App\Models\Size;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
-    private $brands = [
-        'men' => ['Aarong', 'Panjabi', 'Sailor', 'Gentle Park', 'Yellow', 'Cats Eye', 'Ecstasy', 'Easy', 'Richman', 'Deshal'],
-        'women' => ['Aarong', 'Kay Kraft', 'Rang Bangladesh', 'Bishworang', 'Anjans', 'Lubnan', 'Westecs', 'Infinity', 'Zara', 'Richman'],
-        'kids' => ['Aarong Kids', 'Kids Fashion', 'Yellow Kids', 'Cute Collection', 'Happy Kids'],
-        'accessories' => ['Bata', 'Lotto', 'Apex', 'Bay', 'Fashion Point'],
-        'footwear' => ['Bata', 'Apex', 'Lotto', 'Sprint', 'Bay'],
-    ];
-
     private $materials = [
-        'tshirt' => ['100% Cotton', 'Cotton Blend', 'Polyester Blend', 'Premium Cotton'],
-        'shirt' => ['Cotton', '100% Cotton', 'Cotton Twill', 'Denim', 'Linen Blend'],
-        'pants' => ['Denim', 'Cotton Twill', 'Chino Cotton', 'Polyester Blend'],
-        'panjabi' => ['Cotton', 'Premium Cotton', 'Silk', 'Semi Silk', 'Voile'],
-        'saree' => ['Cotton', 'Silk', 'Georgette', 'Jamdani Cotton', 'Katan Silk'],
-        'salwar' => ['Cotton', 'Lawn Cotton', 'Georgette', 'Silk Blend'],
-        'kurti' => ['Cotton', 'Rayon', 'Georgette', 'Cotton Blend'],
+        't-shirt' => ['100% Cotton', 'Cotton Blend', 'Premium Combed Cotton'],
+        'shirt' => ['Cotton', 'Cotton Twill', 'Denim', 'Linen', 'Oxford Cotton'],
+        'pant' => ['Denim', 'Cotton Twill', 'Chino Cotton', 'Gabardine'],
+        'panjabi' => ['Cotton', 'Premium Cotton', 'Silk', 'Semi Silk', 'Khadi', 'Jamdani', 'Linen'],
+        'saree' => ['Cotton', 'Silk', 'Georgette', 'Jamdani', 'Katan', 'Banarasi', 'Tangail Cotton', 'Rajshahi Silk'],
+        'salwar' => ['Cotton', 'Lawn Cotton', 'Georgette', 'Silk Blend', 'Khadi'],
+        'kurti' => ['Cotton', 'Rayon', 'Georgette', 'Linen'],
+        'winter' => ['Fleece', 'Wool', 'Cotton Blend', 'Cashmere Blend', 'Leather'],
+        'bag' => ['Genuine Leather', 'PU Leather', 'Canvas', 'Nylon'],
+        'summer' => ['Pure Cotton', 'Linen', 'Cotton Blend', 'Rayon', 'Georgette', 'Viscose'],
     ];
 
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Get all categories
-        $categories = Category::with('children.children')->get();
+        Product::query()->delete();
 
-        foreach ($categories as $category) {
-            // Create products for main categories with children
-            if ($category->children->isNotEmpty()) {
-                foreach ($category->children as $subCategory) {
-                    // For subcategories with children (like T-Shirts -> Round Neck)
-                    if ($subCategory->children->isNotEmpty()) {
-                        foreach ($subCategory->children as $subSubCategory) {
-                            $this->createProductsForCategory($subSubCategory, 3); // 3 products per sub-subcategory
-                        }
-                    } else {
-                        // For subcategories without children
-                        $this->createProductsForCategory($subCategory, 5); // 5 products per subcategory
-                    }
-                }
-            }
+        // Get all leaf categories (categories without children)
+        $leafCategories = Category::doesntHave('children')->get();
+
+        foreach ($leafCategories as $category) {
+            $this->createProductsForCategory($category, 4); // 4 products per leaf category
         }
     }
 
-    /**
-     * Create products for a specific category
-     */
     private function createProductsForCategory(Category $category, int $count): void
     {
-        $categoryName = strtolower($category->name);
-        $parentName = $category->parent ? strtolower($category->parent->name) : '';
-        $grandParentName = $category->parent && $category->parent->parent ? strtolower($category->parent->parent->name) : '';
-
         for ($i = 1; $i <= $count; $i++) {
             $productData = $this->generateProductData($category, $i);
-
+            unset($productData['_full_path']);
             $product = Product::create($productData);
-
-            // Create variants for the product
-            $this->createProductVariants($product, $categoryName, $grandParentName);
         }
     }
 
-    /**
-     * Generate product data based on category
-     */
     private function generateProductData(Category $category, int $index): array
     {
+        // Walk the ancestor chain so category_id / subcategory_id / sub_subcategory_id
+        // are filled correctly no matter how deep this leaf category sits.
+        $chain = [$category];
+        $cursor = $category;
+        while ($cursor->parent) {
+            $cursor = $cursor->parent;
+            $chain[] = $cursor;
+        }
+        $chain = array_reverse($chain); // [top, mid, ..., leaf]
+
+        $categoryId = $chain[0]->id ?? null;
+        $subcategoryId = $chain[1]->id ?? null;
+        $subSubcategoryId = $chain[2]->id ?? null;
+
         $categoryName = strtolower($category->name);
         $parentName = $category->parent ? strtolower($category->parent->name) : '';
         $grandParentName = $category->parent && $category->parent->parent ? strtolower($category->parent->parent->name) : '';
 
-        $productName = $this->getProductName($categoryName, $parentName, $grandParentName, $index);
-        $pricing = $this->getPricing($categoryName, $parentName, $grandParentName);
-        $brand = $this->getBrand($grandParentName ?: $parentName ?: $categoryName);
-        $material = $this->getMaterial($parentName ?: $categoryName);
+        $fullPath = $categoryName . ' ' . $parentName . ' ' . $grandParentName;
+
+        $material = $this->getMaterial($fullPath);
+
+        // Bangladeshi Standard Product Name
+        $productPrefixes = ['Premium', 'Exclusive', 'Classic', 'Designer', 'Authentic', 'Trendy', 'Stylish', 'Traditional'];
+        $prefix = $productPrefixes[array_rand($productPrefixes)];
+        $productName = $prefix . ' ' . $category->name;
+
+        $pricing = $this->getPricing($fullPath);
 
         $isOnSale = rand(0, 100) < 30; // 30% chance of being on sale
         $isFeatured = rand(0, 100) < 20; // 20% chance of being featured
         $isNewArrival = rand(0, 100) < 25; // 25% chance of being new arrival
-        $isBestSeller = rand(0, 100) < 15; // 15% chance of being best seller
+        $isBestSeller = rand(0, 100) < 15;
+
+        $slugBase = Str::slug($productName . '-' . uniqid());
 
         return [
             'name' => $productName,
-            'slug' => Str::slug($productName . '-' . uniqid()),
-            'sku' => strtoupper(substr($categoryName, 0, 3)) . rand(1000, 9999),
-            'short_description' => $this->getShortDescription($categoryName, $brand, $material),
-            'description' => $this->getDescription($productName, $material, $brand),
+            'slug' => $slugBase,
+            'sku' => strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', 'bd'), 0, 3)) . '-' . strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $categoryName), 0, 3)) . rand(1000, 9999),
+            'image' => 'demo-products/' . Str::slug($category->name) . '.png',
+            'short_description' => "High-quality {$category->name} in Bangladesh. {$material} fabric, comfortable and stylish.",
+            'description' => "Get the best {$category->name} in Bangladesh. Made with premium {$material}. Perfect for fashion-conscious individuals. We ensure the best quality and standard sizing for the Bangladeshi market.",
             'price' => $pricing['price'],
             'compare_price' => $isOnSale ? $pricing['compare_price'] : null,
             'cost_price' => $pricing['cost_price'],
-            'category_id' => $category->id,
-            'brand' => $brand,
+            'category_id' => $categoryId,
+            'subcategory_id' => $subcategoryId,
+            'sub_subcategory_id' => $subSubcategoryId,
             'material' => $material,
-            'fit_type' => $this->getFitType($categoryName, $parentName),
+            'fit_type' => $this->getFitType($fullPath),
             'pattern' => $this->getPattern(),
-            'occasion' => $this->getOccasion($categoryName, $parentName),
+            'occasion' => $this->getOccasion($fullPath),
             'stock_in' => rand(50, 200),
             'stock_out' => rand(0, 20),
             'low_stock_threshold' => 10,
@@ -124,514 +113,110 @@ class ProductSeeder extends Seeder
             'average_rating' => rand(35, 50) / 10, // 3.5 to 5.0
             'review_count' => rand(5, 100),
             'view_count' => rand(50, 1000),
-            'meta_title' => $productName . ' - Buy Online in Bangladesh',
-            'meta_description' => "Shop {$productName} from {$brand}. {$this->getShortDescription($categoryName,$brand,$material)}",
-            'tags' => json_encode($this->getTags($categoryName, $parentName, $brand)),
+            'meta_title' => $productName . ' - Buy Online in BD',
+            'meta_description' => "Shop {$productName} in Bangladesh. Best price guaranteed.",
+            'tags' => json_encode([$category->name, 'Bangladesh', 'Fashion', 'Online Shopping BD']),
+            // internal-only key, stripped before Product::create()
+            '_full_path' => $fullPath,
         ];
     }
 
-    /**
-     * Get product name based on category
-     */
-    private function getProductName(string $category, string $parent, string $grandParent, int $index): string
+    private function getMaterial(string $fullPath): string
     {
-        $names = [
-            // Men's T-Shirts
-            'round neck' => [
-                'Premium Cotton Round Neck T-Shirt',
-                'Classic Solid Round Neck Tee',
-                'Vintage Print Round Neck T-Shirt',
-                'Slim Fit Round Neck T-Shirt',
-            ],
-            'v-neck' => [
-                'Stylish V-Neck Cotton T-Shirt',
-                'Classic V-Neck Solid Tee',
-                'Premium V-Neck T-Shirt',
-            ],
-            'polo' => [
-                'Classic Pique Polo Shirt',
-                'Premium Cotton Polo T-Shirt',
-                'Striped Polo Shirt',
-            ],
-            'henley' => [
-                'Long Sleeve Henley T-Shirt',
-                'Buttoned Henley Casual Tee',
-            ],
+        if (str_contains($fullPath, 't-shirt') || str_contains($fullPath, 'tshirt')) return $this->getRandom($this->materials['t-shirt']);
+        if (str_contains($fullPath, 'shirt')) return $this->getRandom($this->materials['shirt']);
+        if (str_contains($fullPath, 'pant') || str_contains($fullPath, 'jeans')) return $this->getRandom($this->materials['pant']);
+        if (str_contains($fullPath, 'panjabi')) return $this->getRandom($this->materials['panjabi']);
+        if (str_contains($fullPath, 'saree')) return $this->getRandom($this->materials['saree']);
+        if (str_contains($fullPath, 'salwar')) return $this->getRandom($this->materials['salwar']);
+        if (str_contains($fullPath, 'kurti')) return $this->getRandom($this->materials['kurti']);
+        if (str_contains($fullPath, 'winter') || str_contains($fullPath, 'hoodie') || str_contains($fullPath, 'jacket')) return $this->getRandom($this->materials['winter']);
+        if (str_contains($fullPath, 'bag') || str_contains($fullPath, 'wallet')) return $this->getRandom($this->materials['bag']);
+        if (str_contains($fullPath, 'summer') || str_contains($fullPath, 'sun') || str_contains($fullPath, 'sunglass')) return $this->getRandom($this->materials['summer']);
 
-            // Men's Shirts
-            'casual shirts' => [
-                'Cotton Casual Shirt',
-                'Slim Fit Casual Shirt',
-                'Checked Casual Shirt',
-                'Printed Casual Shirt',
-                'Oxford Cotton Casual Shirt',
-            ],
-            'formal shirts' => [
-                'Formal Cotton Shirt',
-                'Slim Fit Formal Shirt',
-                'Regular Fit Formal Shirt',
-                'White Formal Shirt',
-                'Blue Formal Shirt',
-            ],
-            'denim shirts' => [
-                'Classic Denim Shirt',
-                'Light Blue Denim Shirt',
-                'Dark Denim Casual Shirt',
-            ],
-
-            // Men's Pants
-            'jeans' => [
-                'Slim Fit Stretch Jeans',
-                'Regular Fit Blue Jeans',
-                'Black Denim Jeans',
-                'Comfort Fit Jeans',
-                'Ripped Slim Fit Jeans',
-            ],
-            'chinos' => [
-                'Slim Fit Chino Pants',
-                'Stretch Chino Trousers',
-                'Classic Fit Chino Pants',
-                'Casual Chino Pants',
-            ],
-            'formal pants' => [
-                'Formal Dress Pants',
-                'Slim Fit Formal Trousers',
-                'Regular Fit Formal Pants',
-                'Black Formal Trousers',
-            ],
-            'joggers' => [
-                'Comfort Fit Jogger Pants',
-                'Athletic Joggers',
-                'Slim Fit Joggers',
-            ],
-
-            // Men's Panjabi
-            'cotton panjabi' => [
-                'Premium Cotton Panjabi',
-                'Hand Block Printed Panjabi',
-                'Solid Color Cotton Panjabi',
-                'Traditional Cotton Panjabi',
-            ],
-            'silk panjabi' => [
-                'Premium Silk Panjabi',
-                'Designer Silk Panjabi',
-                'Festive Silk Panjabi',
-            ],
-            'embroidered panjabi' => [
-                'Hand Embroidered Panjabi',
-                'Festive Embroidered Panjabi',
-                'Designer Embroidered Panjabi',
-            ],
-
-            // Women's Saree
-            'cotton saree' => [
-                'Handloom Cotton Saree',
-                'Tant Cotton Saree',
-                'Pure Cotton Saree',
-                'Block Printed Cotton Saree',
-            ],
-            'silk saree' => [
-                'Pure Silk Saree',
-                'Designer Silk Saree',
-                'Banarasi Silk Saree',
-                'Party Wear Silk Saree',
-            ],
-            'jamdani' => [
-                'Traditional Jamdani Saree',
-                'Handwoven Jamdani Saree',
-                'Designer Jamdani Saree',
-            ],
-            'katan' => [
-                'Pure Katan Silk Saree',
-                'Designer Katan Saree',
-                'Festive Katan Saree',
-            ],
-
-            // Women's Salwar Kameez
-            'unstitched' => [
-                'Unstitched Lawn Three Piece',
-                'Cotton Unstitched Salwar Set',
-                'Designer Unstitched Three Piece',
-                'Premium Unstitched Fabric Set',
-            ],
-            'ready-made' => [
-                'Ready Made Salwar Kameez',
-                'Cotton Salwar Suit',
-                'Designer Salwar Kameez',
-                'Party Wear Salwar Set',
-            ],
-            'designer' => [
-                'Designer Embroidered Salwar',
-                'Premium Designer Three Piece',
-                'Festive Designer Salwar Kameez',
-            ],
-
-            // Women's Kurti
-            'short kurti' => [
-                'Cotton Short Kurti',
-                'Printed Short Kurti',
-                'Designer Short Kurti',
-            ],
-            'long kurti' => [
-                'Long Cotton Kurti',
-                'Designer Long Kurti',
-                'Printed Long Kurti',
-                'Casual Long Kurti',
-            ],
-            'a-line kurti' => [
-                'A-Line Cotton Kurti',
-                'Flared A-Line Kurti',
-                'Designer A-Line Kurti',
-            ],
-
-            // Kids
-            't-shirts' => [
-                'Kids Cotton T-Shirt',
-                'Printed Kids Tee',
-                'Cartoon Print T-Shirt',
-                'Colorful Kids T-Shirt',
-            ],
-            'shirts' => [
-                'Kids Casual Shirt',
-                'Checked Kids Shirt',
-                'Cotton Kids Shirt',
-            ],
-            'pants' => [
-                'Kids Casual Pants',
-                'Kids Jeans',
-                'Comfortable Kids Trousers',
-            ],
-            'panjabi' => [
-                'Kids Cotton Panjabi',
-                'Designer Kids Panjabi',
-            ],
-            'frocks' => [
-                'Girls Party Frock',
-                'Cotton Frock for Girls',
-                'Designer Girls Frock',
-                'Printed Girls Frock',
-            ],
-
-            // Accessories
-            'watches' => [
-                'Classic Analog Watch',
-                'Digital Sports Watch',
-                'Leather Strap Watch',
-                'Metal Band Watch',
-            ],
-            'bags' => [
-                'Leather Messenger Bag',
-                'Canvas Backpack',
-                'Office Laptop Bag',
-                'Casual Sling Bag',
-            ],
-            'belts' => [
-                'Genuine Leather Belt',
-                'Casual Canvas Belt',
-                'Formal Leather Belt',
-            ],
-            'wallets' => [
-                'Leather Bi-Fold Wallet',
-                'Genuine Leather Wallet',
-                'RFID Protection Wallet',
-            ],
-
-            // Footwear
-            'sneakers' => [
-                'Casual Canvas Sneakers',
-                'Sports Running Sneakers',
-                'White Canvas Sneakers',
-                'Comfortable Casual Sneakers',
-            ],
-            'sandals' => [
-                'Comfortable Summer Sandals',
-                'Casual Leather Sandals',
-                'Open Toe Sandals',
-            ],
-            'formal shoes' => [
-                'Formal Leather Shoes',
-                'Oxford Formal Shoes',
-                'Black Formal Shoes',
-            ],
-        ];
-
-        $key = $category;
-        if (!isset($names[$key])) {
-            // Fallback names
-            return ucwords($category) . " Style " . ['Classic', 'Premium', 'Designer', 'Modern', 'Trendy'][($index - 1) % 5];
-        }
-
-        $nameList = $names[$key];
-        return $nameList[($index - 1) % count($nameList)];
+        return 'Standard Material';
     }
 
-    /**
-     * Get pricing based on category (BD market prices in BDT)
-     */
-    private function getPricing(string $category, string $parent, string $grandParent): array
+    private function getRandom(array $array)
     {
-        $priceRanges = [
-            // Men
-            'round neck' => ['min' => 350, 'max' => 800],
-            'v-neck' => ['min' => 400, 'max' => 850],
-            'polo' => ['min' => 600, 'max' => 1500],
-            'henley' => ['min' => 500, 'max' => 1200],
-            'casual shirts' => ['min' => 800, 'max' => 2500],
-            'formal shirts' => ['min' => 1200, 'max' => 3500],
-            'denim shirts' => ['min' => 1500, 'max' => 3000],
-            'jeans' => ['min' => 1200, 'max' => 3500],
-            'chinos' => ['min' => 1500, 'max' => 3000],
-            'formal pants' => ['min' => 1500, 'max' => 4000],
-            'joggers' => ['min' => 800, 'max' => 2000],
-            'cotton panjabi' => ['min' => 1200, 'max' => 3000],
-            'silk panjabi' => ['min' => 2500, 'max' => 8000],
-            'embroidered panjabi' => ['min' => 2000, 'max' => 6000],
+        return $array[array_rand($array)];
+    }
 
-            // Women
-            'cotton saree' => ['min' => 1500, 'max' => 5000],
-            'silk saree' => ['min' => 3000, 'max' => 15000],
-            'jamdani' => ['min' => 5000, 'max' => 25000],
-            'katan' => ['min' => 4000, 'max' => 20000],
-            'unstitched' => ['min' => 800, 'max' => 3500],
-            'ready-made' => ['min' => 1500, 'max' => 5000],
-            'designer' => ['min' => 3000, 'max' => 8000],
-            'short kurti' => ['min' => 600, 'max' => 1800],
-            'long kurti' => ['min' => 800, 'max' => 2500],
-            'a-line kurti' => ['min' => 700, 'max' => 2000],
+    private function getPricing(string $fullPath): array
+    {
+        // General Bangladeshi Pricing in BDT
+        $min = 500;
+        $max = 3000;
 
-            // Kids
-            't-shirts' => ['min' => 250, 'max' => 600],
-            'shirts' => ['min' => 400, 'max' => 1200],
-            'pants' => ['min' => 500, 'max' => 1500],
-            'panjabi' => ['min' => 800, 'max' => 2000],
-            'frocks' => ['min' => 500, 'max' => 1800],
+        if (str_contains($fullPath, 't-shirt') || str_contains($fullPath, 'tshirt')) { $min = 300; $max = 1200; }
+        elseif (str_contains($fullPath, 'shirt')) { $min = 800; $max = 3500; }
+        elseif (str_contains($fullPath, 'pant') || str_contains($fullPath, 'jeans')) { $min = 1000; $max = 4000; }
+        elseif (str_contains($fullPath, 'panjabi')) { $min = 1200; $max = 8000; }
+        elseif (str_contains($fullPath, 'saree')) { $min = 1500; $max = 25000; }
+        elseif (str_contains($fullPath, 'salwar')) { $min = 1200; $max = 8000; }
+        elseif (str_contains($fullPath, 'kurti')) { $min = 800; $max = 3500; }
+        elseif (str_contains($fullPath, 'winter') || str_contains($fullPath, 'jacket')) { $min = 1500; $max = 6000; }
+        elseif (str_contains($fullPath, 'shoe') || str_contains($fullPath, 'sneaker')) { $min = 1500; $max = 8000; }
+        elseif (str_contains($fullPath, 'sandal')) { $min = 500; $max = 2500; }
+        elseif (str_contains($fullPath, 'bag') || str_contains($fullPath, 'backpack')) { $min = 1000; $max = 5000; }
+        elseif (str_contains($fullPath, 'wallet') || str_contains($fullPath, 'belt')) { $min = 400; $max = 2000; }
+        elseif (str_contains($fullPath, 'kid')) { $min = 300; $max = 2000; }
+        elseif (str_contains($fullPath, 'summer') || str_contains($fullPath, 'sun') || str_contains($fullPath, 'sunglass')) { $min = 400; $max = 2500; }
+        elseif (str_contains($fullPath, 'islamic') || str_contains($fullPath, 'jubba') || str_contains($fullPath, 'abaya')) { $min = 1500; $max = 6000; }
 
-            // Accessories & Footwear
-            'watches' => ['min' => 800, 'max' => 5000],
-            'bags' => ['min' => 600, 'max' => 3500],
-            'belts' => ['min' => 300, 'max' => 1200],
-            'wallets' => ['min' => 400, 'max' => 1800],
-            'sneakers' => ['min' => 1200, 'max' => 4000],
-            'sandals' => ['min' => 500, 'max' => 2000],
-            'formal shoes' => ['min' => 1500, 'max' => 5000],
-        ];
+        $price = rand($min, $max);
+        // Round to nearest 50
+        $price = round($price / 50) * 50;
 
-        $range = $priceRanges[$category] ?? $priceRanges[$parent] ?? ['min' => 500, 'max' => 2000];
+        $costPrice = $price * rand(50, 70) / 100; // 30-50% margin
+        // Round cost price to nearest 50
+        $costPrice = round($costPrice / 50) * 50;
 
-        $price = rand($range['min'], $range['max']);
-        $costPrice = $price * 0.6; // 40% margin
-        $comparePrice = $price * rand(115, 140) / 100; // 15-40% discount
+        $comparePrice = $price * rand(115, 150) / 100; // 15-50% "was" price
+        // Round compare price to nearest 50
+        $comparePrice = round($comparePrice / 50) * 50;
 
         return [
             'price' => $price,
-            'cost_price' => round($costPrice, 2),
-            'compare_price' => round($comparePrice, 2),
+            'cost_price' => $costPrice,
+            'compare_price' => $comparePrice,
         ];
     }
 
-    /**
-     * Get brand based on category
-     */
-    private function getBrand(string $category): string
+    private function getFitType(string $fullPath): ?string
     {
-        $categoryKey = 'men';
-
-        if (str_contains($category, 'women') || str_contains($category, 'saree') || str_contains($category, 'salwar') || str_contains($category, 'kurti')) {
-            $categoryKey = 'women';
-        } elseif (str_contains($category, 'kids') || str_contains($category, 'boys') || str_contains($category, 'girls') || str_contains($category, 'baby')) {
-            $categoryKey = 'kids';
-        } elseif (str_contains($category, 'accessories') || str_contains($category, 'watch') || str_contains($category, 'bag') || str_contains($category, 'belt') || str_contains($category, 'wallet')) {
-            $categoryKey = 'accessories';
-        } elseif (str_contains($category, 'footwear') || str_contains($category, 'shoe') || str_contains($category, 'sandal') || str_contains($category, 'sneaker')) {
-            $categoryKey = 'footwear';
-        }
-
-        $brands = $this->brands[$categoryKey] ?? $this->brands['men'];
-        return $brands[array_rand($brands)];
-    }
-
-    /**
-     * Get material based on category
-     */
-    private function getMaterial(string $category): string
-    {
-        $materialKey = null;
-
-        if (str_contains($category, 't-shirt') || str_contains($category, 'tshirt') || str_contains($category, 'tee')) {
-            $materialKey = 'tshirt';
-        } elseif (str_contains($category, 'shirt')) {
-            $materialKey = 'shirt';
-        } elseif (str_contains($category, 'pants') || str_contains($category, 'jeans') || str_contains($category, 'chinos') || str_contains($category, 'joggers')) {
-            $materialKey = 'pants';
-        } elseif (str_contains($category, 'panjabi')) {
-            $materialKey = 'panjabi';
-        } elseif (str_contains($category, 'saree')) {
-            $materialKey = 'saree';
-        } elseif (str_contains($category, 'salwar')) {
-            $materialKey = 'salwar';
-        } elseif (str_contains($category, 'kurti')) {
-            $materialKey = 'kurti';
-        }
-
-        if ($materialKey && isset($this->materials[$materialKey])) {
-            return $this->materials[$materialKey][array_rand($this->materials[$materialKey])];
-        }
-
-        return 'Cotton';
-    }
-
-    /**
-     * Get fit type
-     */
-    private function getFitType(string $category, string $parent): ?string
-    {
-        $wearCategories = ['shirt', 't-shirt', 'tshirt', 'polo', 'henley', 'panjabi', 'pants', 'jeans', 'chinos'];
-
+        $wearCategories = ['shirt', 't-shirt', 'tshirt', 'panjabi', 'pant', 'jeans', 'kurti', 'salwar', 'short', 'dress', 'top', 'vest', 'frock', 'jogger', 'palazzo'];
         foreach ($wearCategories as $wear) {
-            if (str_contains($category, $wear) || str_contains($parent, $wear)) {
+            if (str_contains($fullPath, $wear)) {
                 $fitTypes = [FitType::SLIM->value, FitType::REGULAR->value, FitType::LOOSE->value, FitType::RELAXED->value];
                 return $fitTypes[array_rand($fitTypes)];
             }
         }
-
         return null;
     }
 
-    /**
-     * Get pattern
-     */
-    private function getPattern(): string
+    private function getPattern(): ?string
     {
         $patterns = Pattern::values();
+        if (empty($patterns)) return null;
         return $patterns[array_rand($patterns)];
     }
 
-    /**
-     * Get occasion
-     */
-    private function getOccasion(string $category, string $parent): string
+    private function getOccasion(string $fullPath): ?string
     {
-        if (str_contains($category, 'formal') || str_contains($parent, 'formal')) {
-            return rand(0, 1) ? Occasion::FORMAL->value : Occasion::OFFICE->value;
-        } elseif (str_contains($category, 'party') || str_contains($category, 'designer')) {
-            return Occasion::PARTY->value;
-        } elseif (str_contains($category, 'wedding') || str_contains($category, 'festive') || str_contains($category, 'silk') || str_contains($category, 'embroidered')) {
-            return rand(0, 1) ? Occasion::WEDDING->value : Occasion::FESTIVE->value;
-        } elseif (str_contains($category, 'sports') || str_contains($category, 'joggers') || str_contains($category, 'athletic')) {
-            return Occasion::SPORTS->value;
-        } else {
-            return rand(0, 1) ? Occasion::CASUAL->value : Occasion::EVERYDAY->value;
-        }
+        $values = Occasion::values();
+        if (empty($values)) return null;
+
+        if (str_contains($fullPath, 'formal') && in_array(Occasion::FORMAL->value, $values)) return Occasion::FORMAL->value;
+        if ((str_contains($fullPath, 'party') || str_contains($fullPath, 'saree') || str_contains($fullPath, 'silk')) && in_array(Occasion::PARTY->value, $values)) return Occasion::PARTY->value;
+        if ((str_contains($fullPath, 'wedding') || str_contains($fullPath, 'katan') || str_contains($fullPath, 'banarasi')) && in_array(Occasion::WEDDING->value, $values)) return Occasion::WEDDING->value;
+        if ((str_contains($fullPath, 'sports') || str_contains($fullPath, 'jogger') || str_contains($fullPath, 'sneaker')) && in_array(Occasion::SPORTS->value, $values)) return Occasion::SPORTS->value;
+
+        $fallback = in_array(Occasion::EVERYDAY->value ?? null, $values) ? Occasion::EVERYDAY->value : $values[0];
+        $casual = in_array(Occasion::CASUAL->value ?? null, $values) ? Occasion::CASUAL->value : $fallback;
+
+        return rand(0, 1) ? $casual : $fallback;
     }
 
-    /**
-     * Get short description
-     */
-    private function getShortDescription(string $category, string $brand, string $material): string
-    {
-        $descriptions = [
-            "Premium quality {$material} {$category} from {$brand}. Comfortable fit and stylish design.",
-            "High-quality {$category} made with {$material}. Perfect for everyday wear.",
-            "Stylish {$category} crafted from premium {$material}. Ideal for all occasions.",
-            "Comfortable and durable {$category} in {$material}. Great value for money.",
-            "{$brand} presents this premium {$category} in finest {$material}.",
-        ];
 
-        return $descriptions[array_rand($descriptions)];
-    }
-
-    /**
-     * Get detailed description
-     */
-    private function getDescription(string $name, string $material, string $brand): string
-    {
-        return "Introducing the {$name} from {$brand}, a perfect blend of style and comfort. " .
-            "Crafted from premium {$material}, this product ensures durability and a comfortable fit throughout the day. " .
-            "The modern design makes it suitable for various occasions, whether you're heading to the office, meeting friends, or enjoying a casual day out. " .
-            "\n\nKey Features:\n" .
-            "- Premium {$material} fabric\n" .
-            "- Comfortable and breathable\n" .
-            "- Easy to care and maintain\n" .
-            "- Perfect fit for all body types\n" .
-            "- Color-fast and long-lasting\n" .
-            "\n\nCare Instructions:\n" .
-            "Machine wash cold with like colors. Do not bleach. Tumble dry low. Warm iron if needed.";
-    }
-
-    /**
-     * Get tags for search
-     */
-    private function getTags(string $category, string $parent, string $brand): array
-    {
-        $tags = [$category, $brand];
-
-        if ($parent) {
-            $tags[] = $parent;
-        }
-
-        $commonTags = ['fashion', 'clothing', 'online shopping', 'bangladesh'];
-
-        return array_merge($tags, array_slice($commonTags, 0, 2));
-    }
-
-    /**
-     * Create product variants with sizes and colors
-     */
-    private function createProductVariants(Product $product, string $category, string $grandParent): void
-    {
-        // Get appropriate sizes based on category
-        $sizes = $this->getSizesForCategory($category, $grandParent);
-        $colors = $this->getColorsForProduct();
-
-        // Ensure we have at least some sizes and colors
-        if ($sizes->isEmpty() || $colors->isEmpty()) {
-            return;
-        }
-
-        // Create variants for each size and color combination
-        foreach ($sizes as $size) {
-            foreach ($colors as $color) {
-                ProductVariant::create([
-                    'product_id' => $product->id,
-                    'size_id' => $size->id,
-                    'color_id' => $color->id,
-                    'sku' => $product->sku . '-S' . $size->id . 'C' . $color->id,
-                    'price' => null, // Use product base price
-                    'stock_in' => rand(10, 50),
-                    'stock_out' => rand(0, 5),
-                    'is_active' => true,
-                ]);
-            }
-        }
-    }
-
-    /**
-     * Get sizes appropriate for category
-     */
-    private function getSizesForCategory(string $category, string $grandParent): \Illuminate\Support\Collection
-    {
-        // Determine size type based on category
-        if (str_contains($category, 'kids') || str_contains($grandParent, 'kids')) {
-            // Kids sizes
-            return Size::whereIn('code', ['2y', '4y', '6y', '8y', '10y', '12y'])->get();
-        } elseif (str_contains($category, 'baby')) {
-            // Baby sizes
-            return Size::whereIn('code', ['0-6m', '6-12m', '12-18m', '18-24m'])->get();
-        } elseif (str_contains($category, 'shoe') || str_contains($category, 'footwear') || str_contains($category, 'sneaker') || str_contains($category, 'sandal')) {
-            // Shoe sizes
-            return Size::whereIn('code', ['39', '40-shoe', '41', '42-shoe', '43', '44'])->get();
-        } else {
-            // Standard clothing sizes
-            return Size::whereIn('code', ['s', 'm', 'l', 'xl', 'xxl'])->get();
-        }
-    }
-
-    /**
-     * Get random colors for product (3-5 colors)
-     */
-    private function getColorsForProduct(): \Illuminate\Support\Collection
-    {
-        $colorCount = rand(3, 5);
-        return Color::inRandomOrder()->take($colorCount)->get();
-    }
 }

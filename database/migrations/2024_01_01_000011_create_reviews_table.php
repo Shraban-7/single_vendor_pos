@@ -13,9 +13,9 @@ return new class extends Migration
     {
         Schema::create('reviews', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('product_id')->constrained()->onDelete('cascade');
-            $table->foreignId('order_id')->nullable()->constrained()->onDelete('set null'); // Verified purchase
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->unsignedBigInteger('product_id');
+            $table->unsignedBigInteger('order_id')->nullable(); // Verified purchase
             $table->tinyInteger('rating')->unsigned(); // 1-5
             $table->string('title')->nullable();
             $table->text('comment')->nullable();
@@ -32,7 +32,7 @@ return new class extends Migration
         // Review images
         Schema::create('review_images', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('review_id')->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('review_id');
             $table->string('image_path');
             $table->timestamps();
         });

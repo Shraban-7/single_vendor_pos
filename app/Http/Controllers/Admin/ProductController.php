@@ -6,10 +6,12 @@ use App\Enums\FitType;
 use App\Enums\Occasion;
 use App\Enums\Pattern;
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Color;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Setting;
 use App\Models\Size;
 use App\Models\StockLog;
 use App\Services\ImageOptimizerService;
@@ -22,24 +24,24 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'images']);
+        $query = Product::with(['category', 'images', 'brand']);
 
-        // Search by name or SKU
         if ($request->filled('search')) {
             $search = $request->search;
+
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('sku', 'like', "%{$search}%")
-                    ->orWhere('brand', 'like', "%{$search}%");
+                    ->orWhereHas('brand', function ($b) use ($search) {
+                        $b->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
-        // Filter by category
         if ($request->filled('category')) {
             $query->where('category_id', $request->category);
         }
 
-        // Filter by status
         if ($request->filled('status')) {
             switch ($request->status) {
                 case 'active':
@@ -61,7 +63,6 @@ class ProductController extends Controller
             }
         }
 
-        // Filter by price range
         if ($request->filled('min_price')) {
             $query->where('price', '>=', $request->min_price);
         }
@@ -69,7 +70,6 @@ class ProductController extends Controller
             $query->where('price', '<=', $request->max_price);
         }
 
-        // Sort
         $sortBy = $request->get('sort', 'latest');
         switch ($sortBy) {
             case 'name_asc':
@@ -95,35 +95,51 @@ class ProductController extends Controller
         $products = $query->paginate(15)->appends($request->query());
 
         $categories = Category::active()->orderBy('name')->get();
+        $brands = Brand::active()->orderBy('name')->get();
 
-        return view('admin.products.index', compact('products', 'categories'));
+        return view('admin.products.index', compact('products', 'categories', 'brands'));
     }
 
     private function getCategories()
     {
-        $categories = Category::category()->active()->orderBy('name')->with('children')->get();
+        $categories = Category::category()
+            ->active()
+            ->orderBy('name')
+            ->with([
+                'children' => function ($query) {
+                    $query->orderBy('name');
+                },
+                'children.children' => function ($query) {
+                    $query->orderBy('name');
+                }
+            ])
+            ->get();
 
-        $data = [];
-
-        foreach ($categories as $category) {
-            $data[] = [
+        return $categories->map(function ($category) {
+            return [
                 'id' => $category->id,
                 'name' => $category->name,
                 'children' => $category->children->map(function ($child) {
                     return [
                         'id' => $child->id,
                         'name' => $child->name,
+                        'children' => $child->children->map(function ($subChild) {
+                            return [
+                                'id' => $subChild->id,
+                                'name' => $subChild->name,
+                            ];
+                        })->values(),
                     ];
-                }),
+                })->values(),
             ];
-        }
-
-        return $data;
+        })->values();
     }
+
 
     public function create()
     {
         $categories = $this->getCategories();
+        $brands = Brand::active()->orderBy('name')->get();
         $sizes = Size::orderBy('sort_order')->get();
         $colors = Color::orderBy('name')->get();
         $fitTypes = FitType::cases();
@@ -132,6 +148,7 @@ class ProductController extends Controller
 
         return view('admin.products.create', compact(
             'categories',
+            'brands',
             'sizes',
             'colors',
             'fitTypes',
@@ -152,7 +169,8 @@ class ProductController extends Controller
             'cost_price' => 'nullable|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'nullable|exists:categories,id',
-            'brand' => 'nullable|string|max:255',
+            'sub_subcategory_id' => 'nullable|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'material' => 'nullable|string|max:255',
             'fit_type' => 'nullable|string|in:' . implode(',', FitType::values()),
             'pattern' => 'nullable|string|in:' . implode(',', Pattern::values()),
@@ -180,6 +198,7 @@ class ProductController extends Controller
         $imageService = new ImageOptimizerService;
 
         try {
+            $validated['name'] = strtoupper($request->name);
             $validated['slug'] = Str::slug($validated['name']);
 
             $originalSlug = $validated['slug'];
@@ -221,6 +240,27 @@ class ProductController extends Controller
                     ]);
                 }
             }
+
+            if ($product->stock_in > 0) {
+                StockLog::create([
+                    'product_id' => $product->id,
+                    'product_variant_id' => null,
+                    'user_id' => Auth::id(),
+                    'type' => 'in',
+                    'quantity' => $product->stock_in,
+                    'stock_before' => 0,
+                    'stock_after' => $product->stock_in,
+                    'note' => $validated['note'] ?? null,
+                ]);
+
+                activity_log(
+                    action: 'updated',
+                    model: $product,
+                    description: 'Product stock updated ',
+                );
+            }
+
+
             DB::commit();
 
             if ($request->ajax() || $request->wantsJson()) {
@@ -255,6 +295,7 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = $this->getCategories();
+        $brands = Brand::active()->orderBy('name')->get();
         $sizes = Size::orderBy('sort_order')->get();
         $colors = Color::orderBy('name')->get();
         $fitTypes = FitType::cases();
@@ -265,6 +306,7 @@ class ProductController extends Controller
 
         return view('admin.products.edit', compact(
             'product',
+            'brands',
             'categories',
             'sizes',
             'colors',
@@ -286,12 +328,12 @@ class ProductController extends Controller
             'cost_price' => 'nullable|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'nullable|exists:categories,id',
-            'brand' => 'nullable|string|max:255',
+            'sub_subcategory_id' => 'nullable|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
             'material' => 'nullable|string|max:255',
             'fit_type' => 'nullable|string|in:' . implode(',', FitType::values()),
             'pattern' => 'nullable|string|in:' . implode(',', Pattern::values()),
             'occasion' => 'nullable|string|in:' . implode(',', Occasion::values()),
-            'stock_in' => 'required|integer|min:0',
             'low_stock_threshold' => 'nullable|integer|min:0',
             'weight' => 'nullable|numeric|min:0',
             'is_active' => 'boolean',
@@ -323,6 +365,7 @@ class ProductController extends Controller
         DB::beginTransaction();
 
         try {
+            $validated['name'] = strtoupper($request->name);
             if ($validated['name'] !== $product->name) {
                 $validated['slug'] = Str::slug($validated['name']);
 
@@ -374,8 +417,15 @@ class ProductController extends Controller
             if ($request->hasFile('images')) {
                 // Check if total images (existing - deleted + new) <= 5
                 $currentImageCount = $product->images()->count();
-                $deletedCount = $request->has('delete_images') ? count($request->delete_images) : 0;
-                $newCount = count($request->file('images'));
+
+                $deleteImageIds = $request->filled('delete_images')
+                    ? json_decode($request->delete_images, true)
+                    : [];
+
+                $deletedCount = is_array($deleteImageIds) ? count($deleteImageIds) : 0;
+
+                $newImages = $request->file('images') ?? [];
+                $newCount = is_array($newImages) ? count($newImages) : 0;
 
                 if (($currentImageCount - $deletedCount + $newCount) <= 5) {
                     foreach ($request->file('images') as $image) {
@@ -385,47 +435,104 @@ class ProductController extends Controller
                         ]);
                     }
                 } else {
-                    // Optionally handle error, throw exception, or skip excess images
                 }
             }
 
-            if ($request->has('delete_variants')) {
-                $product->variants()->whereIn('id', $request->delete_variants)->delete();
-            }
+            $variants = $request->variants ?? [];
 
-            if ($request->has('variants')) {
+            $variantIds = [];
+            $combinations = [];
+            $skus = [];
 
-                $variantIds = [];
+            foreach ($variants as $variantData) {
 
-                foreach ($request->variants as $variantData) {
-                    if (empty($variantData['size_id']) && empty($variantData['color_id'])) {
-                        continue;
+                if (empty($variantData['size_id']) && empty($variantData['color_id'])) {
+                    continue;
+                }
+
+                $sizeId = $variantData['size_id'] ?? null;
+                $colorId = $variantData['color_id'] ?? null;
+
+                $combinationKey = $sizeId . '-' . $colorId;
+
+                if (in_array($combinationKey, $combinations)) {
+                    throw new \Exception('Duplicate variant found.');
+                }
+
+                $combinations[] = $combinationKey;
+
+                $variantSku = $variantData['sku'] ?? ProductVariant::generate_sku();
+
+                if (in_array($variantSku, $skus)) {
+                    throw new \Exception('Duplicate variant SKU found: ' . $variantSku);
+                }
+
+                $skus[] = $variantSku;
+
+                $skuExists = ProductVariant::query()
+                    ->where('sku', $variantSku)
+                    ->when(
+                        !empty($variantData['id']),
+                        fn($q) => $q->where('id', '!=', $variantData['id'])
+                    )
+                    ->exists();
+
+                if ($skuExists) {
+                    throw new \Exception('Variant SKU already exists: ' . $variantSku);
+                }
+
+                $variantData['product_id'] = $product->id;
+                $variantData['stock_in'] = $variantData['stock_in'] ?? 0;
+                $variantData['price'] = $variantData['price'] ?? $product->price;
+                $variantData['sku'] = $variantSku;
+
+                if (!empty($variantData['id'])) {
+
+                    $variant = $product->variants()->find($variantData['id']);
+
+                    if ($variant) {
+
+                        $variantData['stock_in'] = $variantData['stock_in'] == 0
+                            ? $variant->stock_in
+                            : $variantData['stock_in'];
+
+                        $variant->update($variantData);
+
+                        $variantIds[] = $variant->id;
                     }
 
-                    if (!empty($variantData['id'])) {
-                        $variantIds[] = $variantData['id'];
-                    }
+                } else {
 
-                    $variantData['product_id'] = $product->id;
-                    $variantData['stock_in'] = $variantData['stock_in'] ?? 0;
-                    $variantData['price'] = $variantData['price'] ?? $product->price;
-                    $variantData['sku'] = $variantData['sku'] ?? ProductVariant::generate_sku();
+                    $newVariant = $product->variants()->create($variantData);
 
-                    if (!empty($variantData['id'])) {
-                        $variant = $product->variants()->find($variantData['id']);
-                        if ($variant) {
-                            $variantData['stock_in'] = $variantData['stock_in'] == 0 ? $variant->stock_in : $variantData['stock_in'];
-                            $variant->update($variantData);
-                        }
-                    } else {
-                        $product->variants()->create($variantData);
-                    }
-
-                    if (count($variantIds) > 0) {
-                        $product->variants()->whereNotIn('id', $variantIds)->delete();
-                    }
+                    $variantIds[] = $newVariant->id;
                 }
             }
+
+            if (!empty($variantIds)) {
+
+                $product->variants()
+                    ->whereNotIn('id', $variantIds)
+                    ->delete();
+
+            } else {
+
+                $product->variants()->delete();
+            }
+
+            if (!empty($variantIds)) {
+                $product->variants()
+                    ->whereNotIn('id', $variantIds)
+                    ->delete();
+            } else {
+                $product->variants()->delete();
+            }
+
+            activity_log(
+                action: 'updated',
+                model: $product,
+                description: 'Product updated ',
+            );
 
             DB::commit();
 
@@ -461,10 +568,27 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         try {
+            if ($product->orderItems()->exists()) {
+                return redirect()
+                    ->back()
+                    ->with('error', 'This product cannot be deleted because it is associated with orders.');
+            }
 
             foreach ($product->images as $image) {
                 delete_file($image->image_path);
             }
+
+            $product->variants()->delete();
+
+            activity_log(
+                action: 'deleted',
+                model: $product,
+                description: 'Product deleted ',
+            );
+
+            $product->sku = $product->sku . '_deleted';
+
+            $product->save();
 
             $product->delete();
 
@@ -525,6 +649,7 @@ class ProductController extends Controller
                 $stockBefore = $variant->currentStock;
                 $stockAfter = $stockBefore + $validated['quantity'];
                 $variant->increment('stock_in', $validated['quantity']);
+                $variant->product->increment('stock_in', $validated['quantity']);
 
                 StockLog::create([
                     'product_id' => $variant->product_id,
@@ -536,6 +661,12 @@ class ProductController extends Controller
                     'stock_after' => $stockAfter,
                     'note' => $validated['note'] ?? null,
                 ]);
+
+                activity_log(
+                    action: 'updated',
+                    model: $variant,
+                    description: 'Product stock updated ',
+                );
             } else {
                 $product = Product::findOrFail($validated['product_id']);
                 $stockBefore = $product->currentStock;
@@ -552,6 +683,12 @@ class ProductController extends Controller
                     'stock_after' => $stockAfter,
                     'note' => $validated['note'] ?? null,
                 ]);
+
+                activity_log(
+                    action: 'updated',
+                    model: $product,
+                    description: 'Product stock updated ',
+                );
             }
 
             DB::commit();
@@ -594,24 +731,25 @@ class ProductController extends Controller
             ]);
 
             if (empty($validated['product_id']) && empty($validated['variant_id'])) {
-                throw new \Exception('Either product or variant must be specified');
+                throw new \Exception('Product or variant is required');
             }
 
             DB::beginTransaction();
 
-            $stockBefore = 0;
-            $stockAfter = 0;
+            if (!empty($validated['variant_id'])) {
+                $variant = ProductVariant::lockForUpdate()
+                    ->findOrFail($validated['variant_id']);
 
-            if (isset($validated['variant_id'])) {
-                $variant = ProductVariant::findOrFail($validated['variant_id']);
                 $stockBefore = $variant->currentStock;
 
                 if ($stockBefore < $validated['quantity']) {
-                    throw new \Exception('Cannot remove more stock than available');
+                    throw new \Exception('Insufficient stock for this variant');
                 }
 
+                $variant->increment('stock_out', $validated['quantity']);
+                $variant->product->increment('stock_out', $validated['quantity']);
+
                 $stockAfter = $stockBefore - $validated['quantity'];
-                $variant->decrement('stock_in', $validated['quantity']);
 
                 StockLog::create([
                     'product_id' => $variant->product_id,
@@ -623,16 +761,21 @@ class ProductController extends Controller
                     'stock_after' => $stockAfter,
                     'note' => $validated['note'] ?? null,
                 ]);
+
             } else {
-                $product = Product::findOrFail($validated['product_id']);
+
+                $product = Product::lockForUpdate()
+                    ->findOrFail($validated['product_id']);
+
                 $stockBefore = $product->currentStock;
 
                 if ($stockBefore < $validated['quantity']) {
-                    throw new \Exception('Cannot remove more stock than available');
+                    throw new \Exception('Insufficient stock for this product');
                 }
 
+                $product->increment('stock_out', $validated['quantity']);
+
                 $stockAfter = $stockBefore - $validated['quantity'];
-                $product->decrement('stock_in', $validated['quantity']);
 
                 StockLog::create([
                     'product_id' => $product->id,
@@ -656,22 +799,109 @@ class ProductController extends Controller
                 ]);
             }
 
-            return redirect()
-                ->back()
-                ->with('success', 'Stock removed successfully!');
+            return back()->with('success', 'Stock removed successfully!');
+
         } catch (\Exception $e) {
+
             DB::rollBack();
 
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to remove stock: ' . $e->getTraceAsString()
+                    'message' => $e->getMessage(),
                 ], 422);
             }
 
-            return redirect()
-                ->back()
-                ->with('error', 'Failed to remove stock: ' . $e->getMessage());
+            return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function printBarcode(Request $request)
+    {
+        $products = Product::with(['variants.size', 'variants.color'])
+            ->get();
+
+        $siteName = Setting::where('key', 'site_name')->value('value');
+
+        return view('admin.barcodes.index', compact('products', 'siteName'));
+    }
+
+    public function printBarcodeLabels(Request $request)
+    {
+        $request->validate([
+            'sku' => 'required',
+            'quantity' => 'required|numeric'
+        ]);
+
+        $variant = ProductVariant::where('sku', $request->sku)->first();
+
+        $siteName = Setting::where('key', 'site_name')->value('value');
+
+        if ($variant) {
+            $price = $variant->finalPrice;
+
+            $data = [
+                'sellerName' => $siteName,
+                'productName' => $variant->product->name,
+                'variantName' => $variant->variantName,
+                'sku' => $variant->sku,
+                'price' => money($price),
+                'quantity' => $request->quantity,
+            ];
+
+            return view('admin.barcodes.print_new', compact('data'));
+        }
+
+        $product = Product::where('sku', $request->sku)->first();
+        if ($product) {
+            $data = [
+                'sellerName' => $siteName,
+                'productName' => $product->name,
+                'variantName' => '',
+                'sku' => $product->sku,
+                'price' => money($product->selling_price),
+                'quantity' => $request->quantity,
+            ];
+
+            return view('admin.barcodes.print_new', compact('data'));
+        }
+
+        return redirect()->route('admin.products.printBarcode')->with('error', 'Product not found!');
+    }
+
+    public function updateCategory()
+    {
+        $products = Product::whereNull('category_id')
+            ->select(
+                'id',
+                'name',
+                'image',
+                'category_id',
+                'subcategory_id',
+                'sub_subcategory_id'
+            )
+            ->latest()
+            ->get();
+
+        $categories = Category::whereNull('parent_id')
+            ->with('children.children')
+            ->get();
+
+        return view('products.update_category', compact('products', 'categories'));
+    }
+
+    public function setCategory($product_id, Request $request)
+    {
+        $categoryId = $request->input('category_id');
+        $subcategory_id = $request->input('subcategory_id');
+        $sub_subcategory_id = $request->input('sub_subcategory_id');
+
+        $product = Product::findOrFail($product_id);
+        $product->category_id = $categoryId;
+        $product->subcategory_id = $subcategory_id;
+        $product->sub_subcategory_id = $sub_subcategory_id;
+        $product->save();
+
+        return redirect()->back()->with('success', 'Product category updated successfully.');
     }
 }

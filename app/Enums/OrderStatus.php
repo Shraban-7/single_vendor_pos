@@ -4,12 +4,15 @@ namespace App\Enums;
 
 enum OrderStatus: string
 {
+    case DRAFT = 'draft';
+
     case PENDING = 'pending';
     case CONFIRMED = 'confirmed';
     case PROCESSING = 'processing';
     case SHIPPED = 'shipped';
     case OUT_FOR_DELIVERY = 'out_for_delivery';
     case DELIVERED = 'delivered';
+
     case CANCELLED = 'cancelled';
     case RETURNED = 'returned';
     case REFUNDED = 'refunded';
@@ -17,6 +20,7 @@ enum OrderStatus: string
     public function label(): string
     {
         return match ($this) {
+            self::DRAFT => 'Draft',
             self::PENDING => 'Pending',
             self::CONFIRMED => 'Confirmed',
             self::PROCESSING => 'Processing',
@@ -32,6 +36,7 @@ enum OrderStatus: string
     public function color(): string
     {
         return match ($this) {
+            self::DRAFT => 'gray',
             self::PENDING => 'yellow',
             self::CONFIRMED => 'blue',
             self::PROCESSING => 'indigo',
@@ -47,6 +52,7 @@ enum OrderStatus: string
     public function icon(): string
     {
         return match ($this) {
+            self::DRAFT => 'fa-file-alt',
             self::PENDING => 'fa-clock',
             self::CONFIRMED => 'fa-check-circle',
             self::PROCESSING => 'fa-cog',
@@ -62,6 +68,7 @@ enum OrderStatus: string
     public function isCancellable(): bool
     {
         return in_array($this, [
+            self::DRAFT,
             self::PENDING,
             self::CONFIRMED,
             self::PROCESSING,
@@ -86,6 +93,7 @@ enum OrderStatus: string
     public static function activeStatuses(): array
     {
         return [
+            self::DRAFT,
             self::PENDING,
             self::CONFIRMED,
             self::PROCESSING,

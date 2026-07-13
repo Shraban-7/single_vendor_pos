@@ -42,11 +42,15 @@ class CartItem extends Model
     // Computed Attributes
     public function getUnitPriceAttribute(): float
     {
-        if ($this->variant) {
-            return (float) $this->variant->final_price;
+        if (!$this->item_unit_price) {
+            if ($this->variant) {
+                return (float) $this->variant->final_price;
+            }
+    
+            return (float) $this->product->price;
         }
 
-        return (float) $this->product->price;
+        return (float) $this->item_unit_price;
     }
 
     public function getTotalPriceAttribute(): float

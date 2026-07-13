@@ -101,7 +101,7 @@ class CartController extends Controller
             DB::beginTransaction();
 
             $cart = $this->getOrCreateCart();
-            $product = Product::with('variants')->findOrFail($request->product_id);
+            $product = Product::findOrFail($request->product_id);
 
             // Check if product has variants and variant is required but not provided
             if ($product->variants->count() > 0 && !$request->product_variant_id) {

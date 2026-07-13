@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,13 +12,39 @@ use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $customers = User::where('role', UserRole::CUSTOMER->value)
-            ->latest()
-            ->paginate(10);
+        // ================= WEB USERS =================
+        $webQuery = User::where('role', UserRole::CUSTOMER->value);
 
-        return view('admin.customers.index', compact('customers'));
+        if ($request->filled('web_search')) {
+            $search = $request->web_search;
+
+            $webQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                    ->orWhere('phone', 'like', "%$search%");
+            });
+        }
+
+        $webUsers = $webQuery->latest()->paginate(10)->appends($request->all());
+
+
+        // ================= POS USERS =================
+        $posQuery = Customer::query();
+
+        if ($request->filled('pos_search')) {
+            $search = $request->pos_search;
+
+            $posQuery->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                    ->orWhere('phone', 'like', "%$search%");
+            });
+        }
+
+        $posUsers = $posQuery->latest()->paginate(10)->appends($request->all());
+
+
+        return view('admin.customers.index', compact('webUsers', 'posUsers'));
     }
 
     public function update(Request $request, $id)

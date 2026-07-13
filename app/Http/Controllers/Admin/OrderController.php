@@ -6,6 +6,7 @@ use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
+use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +18,7 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $query = Order::with(['user', 'items'])
+            ->where('is_pos', 0)
             ->orderByDesc('created_at');
 
         // Filter by status
@@ -52,16 +54,16 @@ class OrderController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        $orders = $query->paginate(20)->withQueryString();
+        $orders = $query->paginate(20)->appends($request->all());
 
         // Get counts for filters
         $statusCounts = [
-            'all' => Order::count(),
-            'pending' => Order::where('status', OrderStatus::PENDING)->count(),
-            'confirmed' => Order::where('status', OrderStatus::CONFIRMED)->count(),
-            'shipped' => Order::where('status', OrderStatus::SHIPPED)->count(),
-            'delivered' => Order::where('status', OrderStatus::DELIVERED)->count(),
-            'cancelled' => Order::where('status', OrderStatus::CANCELLED)->count(),
+            'all' => Order::where('is_pos', 0)->count(),
+            'pending' => Order::where('is_pos', 0)->where('status', OrderStatus::PENDING)->count(),
+            'confirmed' => Order::where('is_pos', 0)->where('status', OrderStatus::CONFIRMED)->count(),
+            'shipped' => Order::where('is_pos', 0)->where('status', OrderStatus::SHIPPED)->count(),
+            'delivered' => Order::where('is_pos', 0)->where('status', OrderStatus::DELIVERED)->count(),
+            'cancelled' => Order::where('is_pos', 0)->where('status', OrderStatus::CANCELLED)->count(),
         ];
 
         return view('admin.orders.index', compact('orders', 'statusCounts'));
@@ -70,16 +72,25 @@ class OrderController extends Controller
     /**
      * Display the specified order.
      */
-    public function show($id)
+    public function show(Request $request, $order_number)
     {
         $order = Order::with([
             'user',
             'items.product',
             'coupon',
             'statusHistories'
-        ])->findOrFail($id);
+        ])->where('order_number',$order_number)->first();
 
-        return view('admin.orders.show', compact('order'));
+        $source = $request->source;
+
+        $refunds =SaleReturn::where('sale_id', $order->id)
+            ->selectRaw('refund_method, SUM(refund_amount) as total')
+            ->groupBy('refund_method')
+            ->pluck('total', 'refund_method');
+
+        $totalRefund = $refunds->sum();
+
+        return view('admin.orders.show', compact('order', 'source','refunds','totalRefund'));
     }
 
     /**
@@ -97,7 +108,9 @@ class OrderController extends Controller
         $newStatus = OrderStatus::from($request->status);
 
         // Update order status
-        $order->update(['status' => $newStatus]);
+        $order->update([
+            'status' => $newStatus,
+        ]);
 
         // Set timestamps based on status
         match ($newStatus) {
@@ -170,14 +183,23 @@ class OrderController extends Controller
     /**
      * Delete an order.
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $order = Order::findOrFail($id);
 
-        // Soft delete the order
+        $order->items()->delete();
+
         $order->delete();
 
         toast_success('Order deleted successfully!');
+
         return redirect()->route('admin.orders.index');
+    }
+
+    public function invoice($orderNumber)
+    {
+        $order = Order::where('order_number', $orderNumber)->with('customer', 'items')->first();
+
+        return view('admin.orders.invoice', compact('order'));
     }
 }

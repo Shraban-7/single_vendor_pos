@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    public function loginView()
+    {
+        return view('auth.login');
+    }
+
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -58,6 +63,14 @@ class AuthController extends Controller
                 'last_seen' => now(),
             ]);
 
+            $userType = $user->role === UserRole::CUSTOMER ? 'Customer' : 'Admin';
+
+            activity_log(
+                action: 'login',
+                model: Auth::user(),
+                description: "Logged in as $userType"
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'Login successful! Welcome back.',
@@ -76,6 +89,11 @@ class AuthController extends Controller
             'success' => false,
             'message' => 'Invalid phone number or password.',
         ], 401);
+    }
+
+    public function registerView()
+    {
+        return view('auth.register');
     }
 
     public function register(Request $request)
@@ -149,6 +167,12 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        activity_log(
+            action: 'logout',
+            model: Auth::user(),
+            description: "Logged out"
+        );
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

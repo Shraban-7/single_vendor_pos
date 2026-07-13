@@ -66,5 +66,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'update_last_seen' => \App\Http\Middleware\UpdateLastSeen::class,
         'admin' => \App\Http\Middleware\AdminAuth::class,
+        'read_only' => \App\Http\Middleware\ReadOnlyMode::class,
     ];
 }

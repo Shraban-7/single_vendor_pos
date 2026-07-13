@@ -27,8 +27,16 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        \Debugbar::disable();
+
         //Paginator::useBootstrap();
         Paginator::useTailwind();
+
+        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
+            'product' => \App\Models\Product::class,
+            'category' => \App\Models\Category::class,
+            'banner' => \App\Models\Banner::class,
+        ]);
 
         // Share categories with all views
         View::composer('*', function ($view) {
@@ -47,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
                 return Category::with(['children' => function ($query) {
                     $query->with('children')->active()->ordered();
                 }])
+                    ->where('show_in_menu', true)
                     ->active()
                     ->parents()
                     ->ordered()

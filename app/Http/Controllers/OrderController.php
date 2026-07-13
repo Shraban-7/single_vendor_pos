@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\SaleReturn;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -25,10 +26,16 @@ class OrderController extends Controller
 
         $order->load('items.product');
 
-        return view('orders.show', compact('order'));
+        $refunds =SaleReturn::where('sale_id', $order->id)
+            ->selectRaw('refund_method, SUM(refund_amount) as total')
+            ->groupBy('refund_method')
+            ->pluck('total', 'refund_method');
+
+        $totalRefund = $refunds->sum();
+
+        return view('orders.show', compact('order','refunds','totalRefund'));
     }
 
-    // Public order tracking (no login required)
     public function trackOrder(Request $request)
     {
         if ($request->has('order_number') || $request->has('phone')) {
@@ -65,5 +72,12 @@ class OrderController extends Controller
             return view('orders.track', compact('order'));
         }
         return view('orders.track');
+    }
+
+    public function invoice($orderNumber)
+    {
+        $order = Order::where('order_number', $orderNumber)->with('customer', 'items')->first();
+
+        return view('admin.orders.invoice', compact('order'));
     }
 }

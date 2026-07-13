@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('addresses', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->string('name'); // Recipient name
             $table->string('phone');
             $table->string('email')->nullable();

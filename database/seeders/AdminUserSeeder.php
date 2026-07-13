@@ -16,12 +16,12 @@ class AdminUserSeeder extends Seeder
     {
         // Create Super Admin
         User::updateOrCreate(
-            ['email' => 'admin@spinnerfashion.com.bd'],
+            ['email' => 'admin@slashfashion.com.bd'],
             [
                 'name' => 'Super Admin',
-                'email' => 'admin@spinnerfashion.com.bd',
+                'email' => 'admin@slashfashion.com.bd',
                 'phone' => '01700000000',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('slf@dm123#'),
                 'role' => UserRole::ADMIN,
                 'is_active' => true,
                 'phone_verified_at' => now(),
@@ -30,12 +30,12 @@ class AdminUserSeeder extends Seeder
 
         // Create Manager
         User::updateOrCreate(
-            ['email' => 'manager@spinnerfashion.com.bd'],
+            ['email' => 'manager@slashfashion.com.bd'],
             [
                 'name' => 'Store Manager',
-                'email' => 'manager@spinnerfashion.com.bd',
+                'email' => 'manager@slashfashion.com.bd',
                 'phone' => '01700000001',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('slf@dm123#'),
                 'role' => UserRole::MANAGER,
                 'is_active' => true,
                 'phone_verified_at' => now(),
@@ -44,12 +44,12 @@ class AdminUserSeeder extends Seeder
 
         // Create Staff
         User::updateOrCreate(
-            ['email' => 'staff@spinnerfashion.com.bd'],
+            ['email' => 'staff@slashfashion.com.bd'],
             [
                 'name' => 'Staff Member',
-                'email' => 'staff@spinnerfashion.com.bd',
+                'email' => 'staff@slashfashion.com.bd',
                 'phone' => '01700000002',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('slf@dm123#'),
                 'role' => UserRole::STAFF,
                 'is_active' => true,
                 'phone_verified_at' => now(),
