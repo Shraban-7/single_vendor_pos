@@ -99,6 +99,11 @@ $user = auth()->user();
                     <i data-lucide="wallet" class="w-4 h-4 text-slate-400"></i>
                     <span class="font-heading flex-1">Expenses</span>
                 </a>
+                <a href="{{ route('admin.purchases.index') }}"
+                    class="sidebar-link flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 rounded-xl transition {{ request()->routeIs('admin.purchases.*') ? 'bg-slate-800 text-white font-semibold' : 'hover:bg-slate-800/50 hover:text-white' }}">
+                    <i data-lucide="shopping-cart" class="w-4 h-4 text-slate-400"></i>
+                    <span class="font-heading flex-1">Purchases</span>
+                </a>
 
                 <button type="button" @click="openReports = !openReports"
                     class="w-full sidebar-link flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-300 rounded-xl transition hover:bg-slate-800/50 hover:text-white {{ request()->routeIs('admin.reports.*') ? 'bg-slate-800 text-white font-semibold' : '' }}">

@@ -10,10 +10,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            DistrictSeeder::class,
             SettingSeeder::class,
             AdminUserSeeder::class,
-            CouponSeeder::class,
+            SupplierSeeder::class,
         ]);
 
         if (app()->environment('local')) {

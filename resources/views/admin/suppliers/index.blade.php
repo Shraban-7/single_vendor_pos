@@ -51,7 +51,7 @@
             </select>
         </div>
         <button type="submit" class="h-9 px-4 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition">Filter</button>
-        <a href="{{ route('admin.suppliers.index') }}" class="h-9 px-4 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">Clear</a>
+        <a href="{{ route('admin.suppliers.index') }}" class="inline-flex items-center justify-center h-9 px-4 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">Clear</a>
     </form>
 </div>
 
@@ -133,7 +133,7 @@
     </div>
     @if($suppliers->hasPages())
         <div class="px-4 py-3 border-t bg-slate-50/50 border-slate-100">
-            {{ $suppliers->links('vendor.pagination.light') }}
+            {{ $suppliers->links() }}
         </div>
     @endif
 </div>

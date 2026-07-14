@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\PaymentType;
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
+use App\Models\Purchase;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -181,52 +184,52 @@ class SupplierController extends Controller
         return redirect()->route('admin.suppliers.index')->with('success', 'Supplier deleted successfully!');
     }
 
-    // public function makePayment(Request $request, $id)
-    // {
-    //     $supplier = Supplier::where('user_id', Auth::id())->findOrFail($id);
+    public function makePayment(Request $request, $id)
+    {
+        $supplier = Supplier::where('user_id', Auth::id())->findOrFail($id);
 
-    //     $validated = $request->validate([
-    //         'amount' => 'required|numeric|min:0.01',
-    //         'purchase_id' => 'nullable|exists:purchases,id',
-    //         'payment_method' => 'required|string',
-    //         'notes' => 'nullable|string|max:255',
-    //     ]);
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'purchase_id' => 'nullable|exists:purchases,id',
+            'payment_method' => 'required|string',
+            'notes' => 'nullable|string|max:255',
+        ]);
 
-    //     $amount = (float) $validated['amount'];
-    //     $purchaseId = $validated['purchase_id'];
+        $amount = (float) $validated['amount'];
+        $purchaseId = $validated['purchase_id'];
 
-    //     if ($purchaseId) {
-    //         $purchase = Purchase::where('id', $purchaseId)->where('supplier_id', $id)->first();
-    //         if (!$purchase) {
-    //             return back()->with('error', 'Purchase not found for this supplier.');
-    //         }
+        if ($purchaseId) {
+            $purchase = Purchase::where('id', $purchaseId)->where('supplier_id', $id)->first();
+            if (!$purchase) {
+                return back()->with('error', 'Purchase not found for this supplier.');
+            }
 
-    //         if ($amount > $purchase->due_amount) {
-    //             return back()->with('error', 'Payment amount exceeds the due amount for this purchase.');
-    //         }
+            if ($amount > $purchase->due_amount) {
+                return back()->with('error', 'Payment amount exceeds the due amount for this purchase.');
+            }
 
-    //         $purchase->paid_amount += $amount;
-    //         $purchase->due_amount -= $amount;
-    //         $purchase->save();
-    //     }
+            $purchase->paid_amount += $amount;
+            $purchase->due_amount -= $amount;
+            $purchase->save();
+        }
 
-    //     Payment::create([
-    //         'user_id' => Auth::id(),
-    //         'payment_number' => Payment::generatePaymentNumber(),
-    //         'payment_type' => $purchaseId ? PaymentType::PURCHASE : PaymentType::OTHER,
-    //         'reference_type' => $purchaseId ? Purchase::class : null,
-    //         'reference_id' => $purchaseId,
-    //         'supplier_id' => $id,
-    //         'amount' => $amount,
-    //         'payment_date' => now(),
-    //         'payment_method' => $validated['payment_method'],
-    //         'notes' => $validated['notes'],
-    //     ]);
+        Payment::create([
+            'user_id' => Auth::id(),
+            'payment_number' => Payment::generatePaymentNumber(),
+            'payment_type' => $purchaseId ? PaymentType::PURCHASE : PaymentType::OTHER,
+            'reference_type' => $purchaseId ? Purchase::class : null,
+            'reference_id' => $purchaseId,
+            'supplier_id' => $id,
+            'amount' => $amount,
+            'payment_date' => now(),
+            'payment_method' => $validated['payment_method'],
+            'notes' => $validated['notes'],
+        ]);
 
-    //     $supplier->current_balance -= $amount;
-    //     $supplier->total_paid += $amount;
-    //     $supplier->save();
+        $supplier->current_balance -= $amount;
+        $supplier->total_paid += $amount;
+        $supplier->save();
 
-    //     return back()->with('success', 'Payment made successfully!');
-    // }
+        return back()->with('success', 'Payment made successfully!');
+    }
 }

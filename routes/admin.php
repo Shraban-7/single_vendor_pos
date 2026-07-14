@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\HomeSectionController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PosController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\SaleReturnController;
@@ -97,21 +98,6 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
         Route::post('/{id}/make-payment', [SupplierController::class, 'makePayment'])->name('make-payment');
     });
 
-    Route::prefix('banners')->as('banners.')->group(function () {
-        Route::get('/', [BannerController::class, 'index'])->name('index');
-        Route::post('/store', [BannerController::class, 'store'])->name('store');
-        Route::put('/{banner}/update', [BannerController::class, 'update'])->name('update');
-        Route::delete('/{banner}/delete', [BannerController::class, 'delete'])->name('delete');
-    });
-
-    Route::prefix('static-pages')->as('static_pages.')->group(function () {
-        Route::get('/', [StaticPageController::class, 'index'])->name('index');
-        Route::get('/create', [StaticPageController::class, 'create'])->name('create');
-        Route::post('/store', [StaticPageController::class, 'store'])->name('store');
-        Route::get('/{id}/edit', [StaticPageController::class, 'edit'])->name('edit');
-        Route::put('/{id}/update', [StaticPageController::class, 'update'])->name('update');
-        Route::delete('/{id}/delete', [StaticPageController::class, 'destroy'])->name('delete');
-    });
 
     Route::prefix('pos')->as('pos.')->group(function () {
         Route::get('/', [PosController::class, 'index'])->name('index');
@@ -141,6 +127,17 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
             Route::get('/', [PosController::class, 'posSales'])->name('index');
             Route::get('/{order_number}', [PosController::class, 'saleShow'])->name('show');
             Route::delete('/{id}', [PosController::class, 'saleDelete'])->name('destroy');
+    });
+
+    Route::prefix('purchases')->name('purchases.')->group(function () {
+        Route::get('/', [PurchaseController::class, 'index'])->name('index');
+        Route::get('/create', [PurchaseController::class, 'create'])->name('create');
+        Route::post('/', [PurchaseController::class, 'store'])->name('store');
+        Route::get('/{id}', [PurchaseController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [PurchaseController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [PurchaseController::class, 'update'])->name('update');
+        Route::delete('/{id}', [PurchaseController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/payment', [PurchaseController::class, 'makePayment'])->name('make-payment');
     });
 
 
