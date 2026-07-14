@@ -40,28 +40,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Share categories with all views
         View::composer('*', function ($view) {
-            $categories = cache()->remember('categories_menu', 3600, function () {
-                return Category::with(['children' => function ($query) {
-                    $query->with('children')->active()->ordered();
-                }])
-                    ->active()
-                    ->parents()
-                    ->featured()
-                    ->ordered()
-                    ->get();
-            });
-
-            $allCategories = cache()->remember('all_categories_menu', 3600, function () {
-                return Category::with(['children' => function ($query) {
-                    $query->with('children')->active()->ordered();
-                }])
-                    ->where('show_in_menu', true)
-                    ->active()
-                    ->parents()
-                    ->ordered()
-                    ->get();
-            });
-
             $settings = cache()->remember('site_settings', 3600, function () {
                 return \App\Models\Setting::select('value', 'key')->pluck('value', 'key');
             });
@@ -70,8 +48,6 @@ class AppServiceProvider extends ServiceProvider
 
             View::share('siteName', $siteName);
 
-            $view->with('menuCategories', $categories);
-            $view->with('allMenuCategories', $allCategories);
             $view->with('settings', $settings);
         });
     }

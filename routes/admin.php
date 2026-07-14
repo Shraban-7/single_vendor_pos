@@ -29,7 +29,7 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
         Route::post('/store', [ProductController::class, 'store'])->name('store');
         Route::get('/{product}/edit', [ProductController::class, 'edit'])->name('edit');
         Route::put('/{product}/update', [ProductController::class, 'update'])->name('update');
-        Route::delete('/{product}/delete', [ProductController::class, 'destroy'])->name('delete');
+        Route::delete('/{product}/destroy', [ProductController::class, 'destroy'])->name('destroy');
 
         // Stock Management
         Route::get('/{product}/manage-stock', [ProductController::class, 'manageStock'])->name('manage-stock');

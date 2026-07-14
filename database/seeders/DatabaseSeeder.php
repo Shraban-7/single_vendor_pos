@@ -11,7 +11,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             DistrictSeeder::class,
-            CategorySeeder::class,
             SettingSeeder::class,
             AdminUserSeeder::class,
             CouponSeeder::class,

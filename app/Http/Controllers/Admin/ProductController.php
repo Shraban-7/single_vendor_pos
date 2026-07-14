@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\FitType;
-use App\Enums\Occasion;
-use App\Enums\Pattern;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\StockLog;
+use App\Models\Unit;
 use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,14 +18,14 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'images']);
+        $query = Product::with(['category', 'unit']);
 
         if ($request->filled('search')) {
             $search = $request->search;
-
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhere('barcode', 'like', "%{$search}%");
             });
         }
 
@@ -43,24 +41,21 @@ class ProductController extends Controller
                 case 'inactive':
                     $query->where('is_active', false);
                     break;
-                case 'featured':
-                    $query->where('is_featured', true);
-                    break;
                 case 'low_stock':
-                    $query->whereColumn('stock_in', '<=', 'low_stock_threshold')
-                        ->where('stock_in', '>', 0);
+                    $query->whereColumn('stock_quantity', '<=', 'stock_alert_quantity')
+                        ->where('stock_quantity', '>', 0);
                     break;
                 case 'out_of_stock':
-                    $query->where('stock_in', '<=', 0);
+                    $query->where('stock_quantity', '<=', 0);
                     break;
             }
         }
 
         if ($request->filled('min_price')) {
-            $query->where('price', '>=', $request->min_price);
+            $query->where('selling_price', '>=', $request->min_price);
         }
         if ($request->filled('max_price')) {
-            $query->where('price', '<=', $request->max_price);
+            $query->where('selling_price', '<=', $request->max_price);
         }
 
         $sortBy = $request->get('sort', 'latest');
@@ -72,10 +67,10 @@ class ProductController extends Controller
                 $query->orderBy('name', 'desc');
                 break;
             case 'price_asc':
-                $query->orderBy('price', 'asc');
+                $query->orderBy('selling_price', 'asc');
                 break;
             case 'price_desc':
-                $query->orderBy('price', 'desc');
+                $query->orderBy('selling_price', 'desc');
                 break;
             case 'oldest':
                 $query->oldest('id');
@@ -93,134 +88,74 @@ class ProductController extends Controller
 
     private function getCategories()
     {
-        $categories = Category::category()
-            ->active()
+        return Category::active()
+            ->select('id', 'name')
             ->orderBy('name')
-            ->with([
-                'children' => function ($query) {
-                    $query->orderBy('name');
-                },
-                'children.children' => function ($query) {
-                    $query->orderBy('name');
-                }
-            ])
-            ->get();
+            ->get()
+            ->toArray();
+    }
 
-        return $categories->map(function ($category) {
-            return [
-                'id' => $category->id,
-                'name' => $category->name,
-                'children' => $category->children->map(function ($child) {
-                    return [
-                        'id' => $child->id,
-                        'name' => $child->name,
-                        'children' => $child->children->map(function ($subChild) {
-                            return [
-                                'id' => $subChild->id,
-                                'name' => $subChild->name,
-                            ];
-                        })->values(),
-                    ];
-                })->values(),
-            ];
-        })->values();
+    private function getUnits()
+    {
+        return Unit::orderBy('name')->get();
     }
 
     public function create()
     {
         $categories = $this->getCategories();
-        $fitTypes = FitType::cases();
-        $patterns = Pattern::cases();
-        $occasions = Occasion::cases();
+        $units = $this->getUnits();
 
-        return view('admin.products.create', compact(
-            'categories',
-            'fitTypes',
-            'patterns',
-            'occasions'
-        ));
+        return view('admin.products.create', compact('categories', 'units'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|max:255|unique:products,sku',
-            'short_description' => 'nullable|string',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'compare_price' => 'nullable|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
-            'subcategory_id' => 'nullable|exists:categories,id',
-            'sub_subcategory_id' => 'nullable|exists:categories,id',
-            'material' => 'nullable|string|max:255',
-            'fit_type' => 'nullable|string|in:' . implode(',', FitType::values()),
-            'pattern' => 'nullable|string|in:' . implode(',', Pattern::values()),
-            'occasion' => 'nullable|string|in:' . implode(',', Occasion::values()),
-            'stock_in' => 'required|integer|min:0',
-            'low_stock_threshold' => 'nullable|integer|min:0',
-            'weight' => 'nullable|numeric|min:0',
-            'is_active' => 'boolean',
-            'is_featured' => 'boolean',
-            'is_new_arrival' => 'boolean',
-            'is_best_seller' => 'boolean',
-            'is_on_sale' => 'boolean',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'tags' => 'nullable|string',
+            'unit_id' => 'nullable|exists:units,id',
+            'sku' => 'nullable|string|max:100|unique:products,sku',
+            'barcode' => 'nullable|string|max:100|unique:products,barcode',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'cost_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
+            'wholesale_price' => 'nullable|numeric|min:0',
+            'stock_in' => 'required|numeric|min:0',
+            'stock_alert_quantity' => 'nullable|numeric|min:0',
+            'vat_rate' => 'nullable|numeric|min:0|max:100',
+            'is_active' => 'nullable|boolean',
+            'is_returnable' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
-            'images' => 'nullable|array|max:5',
-            'images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
         ]);
 
         DB::beginTransaction();
         $imgPath = null;
-        $galleryPaths = [];
-
         $imageService = new ImageOptimizerService;
 
         try {
             $validated['name'] = strtoupper($request->name);
-            $validated['slug'] = Str::slug($validated['name']);
+            $validated['user_id'] = Auth::id();
 
-            $originalSlug = $validated['slug'];
-            $counter = 1;
-            while (Product::where('slug', $validated['slug'])->exists()) {
-                $validated['slug'] = $originalSlug . '-' . $counter;
-                $counter++;
-            }
+            // Handle boolean checkboxes
+            $validated['is_active'] = $request->has('is_active');
+            $validated['is_returnable'] = $request->has('is_returnable');
 
             if (empty($validated['sku'])) {
-                $validated['sku'] = Product::generate_sku();
+                $validated['sku'] = method_exists(Product::class, 'generate_sku')
+                    ? Product::generate_sku()
+                    : 'SKU-' . strtoupper(Str::random(8));
             }
-
-            if (!empty($validated['tags'])) {
-                $validated['tags'] = array_map('trim', explode(',', $validated['tags']));
-            }
-
-            $validated['is_active'] = $request->has('is_active');
-            $validated['is_featured'] = $request->has('is_featured');
-            $validated['is_new_arrival'] = $request->has('is_new_arrival');
-            $validated['is_best_seller'] = $request->has('is_best_seller');
-            $validated['is_on_sale'] = $request->has('is_on_sale');
 
             if ($request->hasFile('image')) {
                 $validated['image'] = $imageService->uploadAndOptimize($request->file('image'), 'products/thumbnails');
+                $imgPath = $validated['image'];
             }
+
+            // Initialize stock tracking fields
+            $validated['stock_quantity'] = (float) $validated['stock_in'];
+            $validated['stock_out'] = 0.00;
 
             $product = Product::create($validated);
-
-            if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
-                    $path = $imageService->uploadAndOptimize($image, 'products');
-                    $galleryPaths[] = $path;
-
-                    $product->images()->create([
-                        'image_path' => $path,
-                    ]);
-                }
-            }
 
             if ($product->stock_in > 0) {
                 StockLog::create([
@@ -231,13 +166,19 @@ class ProductController extends Controller
                     'quantity' => $product->stock_in,
                     'stock_before' => 0,
                     'stock_after' => $product->stock_in,
-                    'note' => $validated['note'] ?? null,
+                    'note' => $request->note ?? 'Initial stock',
                 ]);
 
                 activity_log(
-                    action: 'updated',
+                    action: 'created',
                     model: $product,
-                    description: 'Product stock updated ',
+                    description: 'Product created with initial stock',
+                );
+            } else {
+                activity_log(
+                    action: 'created',
+                    model: $product,
+                    description: 'Product created',
                 );
             }
 
@@ -248,13 +189,12 @@ class ProductController extends Controller
                     'success' => true,
                     'message' => 'Product created successfully!',
                     'redirect' => route('admin.products.index'),
-                    'product' => $product->load('images')
                 ]);
             }
 
-            return redirect()
-                ->route('admin.products.index')
+            return redirect()->route('admin.products.index')
                 ->with('success', 'Product created successfully!');
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -262,12 +202,7 @@ class ProductController extends Controller
                 delete_file($imgPath);
             }
 
-            foreach ($galleryPaths as $path) {
-                delete_file($path);
-            }
-            return redirect()
-                ->back()
-                ->withInput()
+            return redirect()->back()->withInput()
                 ->with('error', 'Failed to create product: ' . $e->getMessage());
         }
     }
@@ -275,134 +210,54 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = $this->getCategories();
-        $fitTypes = FitType::cases();
-        $patterns = Pattern::cases();
-        $occasions = Occasion::cases();
+        $units = $this->getUnits();
 
-        $product->load(['images']);
+        $product->load(['category', 'unit']); 
 
-        return view('admin.products.edit', compact(
-            'product',
-            'categories',
-            'fitTypes',
-            'patterns',
-            'occasions'
-        ));
+        return view('admin.products.edit', compact('product', 'categories', 'units'));
     }
 
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|max:255|unique:products,sku,' . $product->id,
-            'short_description' => 'nullable|string',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'compare_price' => 'nullable|numeric|min:0',
-            'cost_price' => 'nullable|numeric|min:0',
             'category_id' => 'required|exists:categories,id',
-            'subcategory_id' => 'nullable|exists:categories,id',
-            'sub_subcategory_id' => 'nullable|exists:categories,id',
-            'material' => 'nullable|string|max:255',
-            'fit_type' => 'nullable|string|in:' . implode(',', FitType::values()),
-            'pattern' => 'nullable|string|in:' . implode(',', Pattern::values()),
-            'occasion' => 'nullable|string|in:' . implode(',', Occasion::values()),
-            'low_stock_threshold' => 'nullable|integer|min:0',
-            'weight' => 'nullable|numeric|min:0',
-            'is_active' => 'boolean',
-            'is_featured' => 'boolean',
-            'is_new_arrival' => 'boolean',
-            'is_best_seller' => 'boolean',
-            'is_on_sale' => 'boolean',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'tags' => 'nullable|string',
+            'unit_id' => 'nullable|exists:units,id',
+            'sku' => 'nullable|string|max:100|unique:products,sku,' . $product->id,
+            'barcode' => 'nullable|string|max:100|unique:products,barcode,' . $product->id,
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'cost_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
+            'wholesale_price' => 'nullable|numeric|min:0',
+            'stock_alert_quantity' => 'nullable|numeric|min:0',
+            'vat_rate' => 'nullable|numeric|min:0|max:100',
+            'is_active' => 'nullable|boolean',
+            'is_returnable' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
-            'images' => 'nullable|array|max:5',
-            'images.*' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:5120',
-            'delete_images' => 'nullable|string',
-            'delete_images.*' => 'exists:product_images,id',
         ]);
 
         $imageService = new ImageOptimizerService;
-
         DB::beginTransaction();
 
         try {
             $validated['name'] = strtoupper($request->name);
-            if ($validated['name'] !== $product->name) {
-                $validated['slug'] = Str::slug($validated['name']);
-
-                $originalSlug = $validated['slug'];
-                $counter = 1;
-                while (Product::where('slug', $validated['slug'])->where('id', '!=', $product->id)->exists()) {
-                    $validated['slug'] = $originalSlug . '-' . $counter;
-                    $counter++;
-                }
-            }
-
-            if (!empty($validated['tags'])) {
-                $validated['tags'] = array_map('trim', explode(',', $validated['tags']));
-            }
 
             $validated['is_active'] = $request->has('is_active');
-            $validated['is_featured'] = $request->has('is_featured');
-            $validated['is_new_arrival'] = $request->has('is_new_arrival');
-            $validated['is_best_seller'] = $request->has('is_best_seller');
-            $validated['is_on_sale'] = $request->has('is_on_sale');
+            $validated['is_returnable'] = $request->has('is_returnable');
 
             if ($request->hasFile('image')) {
                 if ($product->image) {
                     delete_file($product->image);
                 }
-
                 $validated['image'] = $imageService->uploadAndOptimize($request->file('image'), 'products/thumbnails');
             }
 
             $product->update($validated);
 
-            if ($request->filled('delete_images')) {
-                $deleteImageIds = json_decode($request->delete_images, true);
-                if (is_array($deleteImageIds)) {
-                    foreach ($deleteImageIds as $imageId) {
-                        $image = $product->images()->find($imageId);
-                        if ($image) {
-                            try {
-                                delete_file($image->image_path);
-                                $image->delete();
-                            } catch (\Exception $e) {
-                                // Log error or ignore if delete fails
-                            }
-                        }
-                    }
-                }
-            }
-
-            if ($request->hasFile('images')) {
-                $currentImageCount = $product->images()->count();
-
-                $deleteImageIds = $request->filled('delete_images')
-                    ? json_decode($request->delete_images, true)
-                    : [];
-
-                $deletedCount = is_array($deleteImageIds) ? count($deleteImageIds) : 0;
-                $newImages = $request->file('images') ?? [];
-                $newCount = is_array($newImages) ? count($newImages) : 0;
-
-                if (($currentImageCount - $deletedCount + $newCount) <= 5) {
-                    foreach ($request->file('images') as $image) {
-                        $path = $imageService->uploadAndOptimize($image, 'products');
-                        $product->images()->create([
-                            'image_path' => $path,
-                        ]);
-                    }
-                }
-            }
-
             activity_log(
                 action: 'updated',
                 model: $product,
-                description: 'Product updated ',
+                description: 'Product updated',
             );
 
             DB::commit();
@@ -412,13 +267,11 @@ class ProductController extends Controller
                     'success' => true,
                     'message' => 'Product updated successfully!',
                     'redirect' => route('admin.products.index'),
-                    'product' => $product->load('images')
                 ]);
             }
 
-            return redirect()
-                ->back()
-                ->with('success', 'Product updated successfully!');
+            return redirect()->back()->with('success', 'Product updated successfully!');
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -429,9 +282,7 @@ class ProductController extends Controller
                 ], 422);
             }
 
-            return redirect()
-                ->back()
-                ->withInput()
+            return redirect()->back()->withInput()
                 ->with('error', 'Failed to update product: ' . $e->getMessage());
         }
     }
@@ -439,45 +290,49 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         try {
-            if ($product->orderItems()->exists()) {
-                return redirect()
-                    ->back()
+            // Safely check if the relation exists before querying
+            if (method_exists($product, 'orderItems') && $product->orderItems()->exists()) {
+                return redirect()->back()
                     ->with('error', 'This product cannot be deleted because it is associated with orders.');
             }
 
-            foreach ($product->images as $image) {
-                delete_file($image->image_path);
+            if ($product->image) {
+                delete_file($product->image);
+            }
+
+            // Clean up gallery images if the relation exists in your app
+            if (method_exists($product, 'images')) {
+                foreach ($product->images as $image) {
+                    delete_file($image->image_path);
+                }
             }
 
             activity_log(
                 action: 'deleted',
                 model: $product,
-                description: 'Product deleted ',
+                description: 'Product deleted',
             );
 
-            $product->sku = $product->sku . '_deleted';
-            $product->save();
             $product->delete();
 
-            return redirect()
-                ->route('admin.products.index')
+            return redirect()->route('admin.products.index')
                 ->with('success', 'Product deleted successfully!');
+
         } catch (\Exception $e) {
-            return redirect()
-                ->back()
+            return redirect()->back()
                 ->with('error', 'Failed to delete product: ' . $e->getMessage());
         }
     }
 
     public function manageStock(Product $product)
     {
-        $product->load(['category']);
+        $product->load(['category', 'unit']);
         return view('admin.products.manage-stock', compact('product'));
     }
 
     public function stockHistory(Product $product)
     {
-        $product->load(['category']);
+        $product->load(['category', 'unit']);
 
         $stockLogs = StockLog::where('product_id', $product->id)
             ->with(['user', 'product'])
@@ -492,23 +347,27 @@ class ProductController extends Controller
         try {
             $validated = $request->validate([
                 'product_id' => 'required|exists:products,id',
-                'quantity' => 'required|integer|min:1',
+                'quantity' => 'required|numeric|min:0.01',
                 'note' => 'nullable|string|max:500',
             ]);
 
             DB::beginTransaction();
 
-            $product = Product::findOrFail($validated['product_id']);
-            $stockBefore = $product->currentStock;
-            $stockAfter = $stockBefore + $validated['quantity'];
-            $product->increment('stock_in', $validated['quantity']);
+            $product = Product::lockForUpdate()->findOrFail($validated['product_id']);
+            $stockBefore = (float) $product->stock_quantity;
+            $quantity = (float) $validated['quantity'];
+            $stockAfter = $stockBefore + $quantity;
+
+            $product->stock_in = (float) $product->stock_in + $quantity;
+            $product->stock_quantity = $stockAfter;
+            $product->save();
 
             StockLog::create([
                 'product_id' => $product->id,
                 'product_variant_id' => null,
                 'user_id' => Auth::id(),
                 'type' => 'in',
-                'quantity' => $validated['quantity'],
+                'quantity' => $quantity,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
                 'note' => $validated['note'] ?? null,
@@ -517,7 +376,7 @@ class ProductController extends Controller
             activity_log(
                 action: 'updated',
                 model: $product,
-                description: 'Product stock updated ',
+                description: 'Product stock added',
             );
 
             DB::commit();
@@ -530,9 +389,8 @@ class ProductController extends Controller
                 ]);
             }
 
-            return redirect()
-                ->back()
-                ->with('success', 'Stock added successfully!');
+            return redirect()->back()->with('success', 'Stock added successfully!');
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -543,9 +401,7 @@ class ProductController extends Controller
                 ], 422);
             }
 
-            return redirect()
-                ->back()
-                ->with('error', 'Failed to add stock: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to add stock: ' . $e->getMessage());
         }
     }
 
@@ -554,32 +410,41 @@ class ProductController extends Controller
         try {
             $validated = $request->validate([
                 'product_id' => 'required|exists:products,id',
-                'quantity' => 'required|integer|min:1',
+                'quantity' => 'required|numeric|min:0.01',
                 'note' => 'nullable|string|max:500',
             ]);
 
             DB::beginTransaction();
 
             $product = Product::lockForUpdate()->findOrFail($validated['product_id']);
-            $stockBefore = $product->currentStock;
+            $stockBefore = (float) $product->stock_quantity;
+            $quantity = (float) $validated['quantity'];
 
-            if ($stockBefore < $validated['quantity']) {
+            if ($stockBefore < $quantity) {
                 throw new \Exception('Insufficient stock for this product');
             }
 
-            $product->increment('stock_out', $validated['quantity']);
-            $stockAfter = $stockBefore - $validated['quantity'];
+            $product->stock_out = (float) $product->stock_out + $quantity;
+            $stockAfter = $stockBefore - $quantity;
+            $product->stock_quantity = $stockAfter;
+            $product->save();
 
             StockLog::create([
                 'product_id' => $product->id,
                 'product_variant_id' => null,
                 'user_id' => Auth::id(),
                 'type' => 'out',
-                'quantity' => $validated['quantity'],
+                'quantity' => $quantity,
                 'stock_before' => $stockBefore,
                 'stock_after' => $stockAfter,
                 'note' => $validated['note'] ?? null,
             ]);
+
+            activity_log(
+                action: 'updated',
+                model: $product,
+                description: 'Product stock removed',
+            );
 
             DB::commit();
 
@@ -592,6 +457,7 @@ class ProductController extends Controller
             }
 
             return back()->with('success', 'Stock removed successfully!');
+
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -637,20 +503,14 @@ class ProductController extends Controller
             return view('admin.barcodes.print_new', compact('data'));
         }
 
-        return redirect()->route('admin.products.printBarcode')->with('error', 'Product not found!');
+        return redirect()->route('admin.products.printBarcode')
+            ->with('error', 'Product not found!');
     }
 
     public function updateCategory()
     {
         $products = Product::whereNull('category_id')
-            ->select(
-                'id',
-                'name',
-                'image',
-                'category_id',
-                'subcategory_id',
-                'sub_subcategory_id'
-            )
+            ->select('id', 'name', 'image', 'category_id')
             ->latest()
             ->get();
 
@@ -664,13 +524,9 @@ class ProductController extends Controller
     public function setCategory($product_id, Request $request)
     {
         $categoryId = $request->input('category_id');
-        $subcategory_id = $request->input('subcategory_id');
-        $sub_subcategory_id = $request->input('sub_subcategory_id');
 
         $product = Product::findOrFail($product_id);
         $product->category_id = $categoryId;
-        $product->subcategory_id = $subcategory_id;
-        $product->sub_subcategory_id = $sub_subcategory_id;
         $product->save();
 
         return redirect()->back()->with('success', 'Product category updated successfully.');

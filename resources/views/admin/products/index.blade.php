@@ -27,7 +27,7 @@
             <div class="sm:col-span-3">
                 <div class="relative">
                     <input type="text" name="search" id="search" value="{{ request('search') }}"
-                        placeholder="Search name, SKU, brand..."
+                        placeholder="Search name, SKU, barcode..."
                         class="w-full pl-8 pr-3 text-xs transition border rounded-lg h-9 border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50 focus:bg-white">
                     <i data-lucide="search" class="absolute w-3.5 h-3.5 -translate-y-1/2 left-2.5 top-1/2 text-slate-400"></i>
                 </div>
@@ -51,7 +51,6 @@
                     <option value="">All Statuses</option>
                     <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                     <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    <option value="featured" {{ request('status') == 'featured' ? 'selected' : '' }}>Featured</option>
                     <option value="low_stock" {{ request('status') == 'low_stock' ? 'selected' : '' }}>Low Stock</option>
                     <option value="out_of_stock" {{ request('status') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
                 </select>
@@ -78,7 +77,7 @@
             </div>
 
             {{-- Action Controls --}}
-            <div class="flex gap-1 sm:col-span-1">
+            <div class="flex gap-1 sm:col-span-2">
                 <button type="submit" class="flex items-center justify-center flex-1 text-xs text-white transition rounded-lg shadow-sm h-9 bg-slate-800 hover:bg-slate-900" title="Filter Selection">
                     <i data-lucide="filter" class="w-3.5 h-3.5"></i>
                 </button>
@@ -115,37 +114,47 @@
                                 <img src="{{ $product->thumbnail }}" alt="thumb" class="flex-shrink-0 object-cover border rounded-md w-9 h-9 border-slate-100 bg-slate-50">
                                 <div class="min-w-0">
                                     <span class="font-semibold text-slate-800 text-sm block truncate max-w-[220px]">{{ $product->name }}</span>
-                                    @if($product->brand)
-                                        <span class="text-[10px] text-slate-400 block mt-0.5">{{ $product->brand }}</span>
-                                    @endif
                                 </div>
                             </div>
                         </td>
-                        {{-- SKU --}}
+
+                        {{-- SKU / Barcode --}}
                         <td class="px-4 py-2.5 whitespace-nowrap text-slate-600 font-mono text-[11px]">
                             {{ $product->sku ?? '—' }}
+                            @if($product->barcode)
+                                <br><span class="text-[10px] text-slate-400">{{ $product->barcode }}</span>
+                            @endif
                         </td>
+
                         {{-- Category label --}}
                         <td class="px-4 py-2.5 whitespace-nowrap text-slate-700 font-medium">
                             {{ $product->category?->name ?? 'Unassigned' }}
                         </td>
+
                         {{-- Price parameters --}}
                         <td class="px-4 py-2.5 whitespace-nowrap">
-                            <span class="block text-sm font-bold text-slate-900">{{ money($product->price) }}</span>
-                            @if($product->compare_price && $product->compare_price > $product->price)
-                                <span class="text-[10px] text-slate-400 line-through block mt-0.5">{{ money($product->compare_price) }}</span>
+                            <span class="block text-sm font-bold text-slate-900">{{ money($product->selling_price) }}</span>
+                            @if($product->wholesale_price)
+                                <span class="text-[10px] text-slate-400 block mt-0.5">Wholesale: {{ money($product->wholesale_price) }}</span>
                             @endif
                         </td>
+
                         {{-- Dynamic Stock Metrics --}}
                         <td class="px-4 py-2.5 whitespace-nowrap">
-                            @if($product->stock_in <= 0)
+                            @php
+                                $stockQty = (float) $product->stock_quantity;
+                                $alertQty = (float) ($product->stock_alert_quantity ?? 0);
+                            @endphp
+
+                            @if($stockQty <= 0)
                                 <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-rose-50 text-rose-700 border border-rose-100/70">Out of Stock</span>
-                            @elseif($product->stock_in <= $product->low_stock_threshold)
-                                <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-700 border border-amber-200/60">Low ({{ $product->stock_in }})</span>
+                            @elseif($stockQty <= $alertQty)
+                                <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-700 border border-amber-200/60">Low ({{ $stockQty }})</span>
                             @else
-                                <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-50 text-emerald-700 border border-emerald-100">In Stock ({{ $product->stock_in }})</span>
+                                <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-50 text-emerald-700 border border-emerald-100">In Stock ({{ $stockQty }})</span>
                             @endif
                         </td>
+
                         {{-- Functional Visibility Toggles --}}
                         <td class="px-4 py-2.5 whitespace-nowrap">
                             <div class="flex items-center gap-1">
@@ -155,11 +164,12 @@
                                     <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 text-slate-500 border border-slate-200/80">Inactive</span>
                                 @endif
 
-                                @if($product->is_featured)
-                                    <span class="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">★ Star</span>
+                                @if($product->is_returnable)
+                                    <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">Returnable</span>
                                 @endif
                             </div>
                         </td>
+
                         {{-- Actions strip --}}
                         <td class="px-4 py-2.5 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-0.5">
@@ -169,7 +179,7 @@
                                 <a href="{{ route('admin.products.edit', $product) }}" class="p-1 transition rounded text-slate-400 hover:text-emerald-600 hover:bg-slate-100" title="Edit Catalog Entry">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
                                 </a>
-                                <button onclick="confirmDelete({{ $product->id }})" class="p-1 transition rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100" title="Delete Product">
+                                <button onclick="confirmDelete(this)" data-url="{{ route('admin.products.destroy', $product) }}" class="p-1 transition rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100" title="Delete Product">
                                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                                 </button>
                             </div>
@@ -198,7 +208,7 @@
         <div class="px-4 py-3 border-t bg-slate-50/50 border-slate-100">
             <div class="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between text-slate-600">
                 <div>
-                    Showing <span class="font-semibold text-slate-800">{{ $products->firstItem() }}</span> to <span class="font-semibold text-slate-800">{{ $products->lastItem() }}</span> of <span class="font-semibold text-slate-800">{{ $products->total() }}</span> variants
+                    Showing <span class="font-semibold text-slate-800">{{ $products->firstItem() }}</span> to <span class="font-semibold text-slate-800">{{ $products->lastItem() }}</span> of <span class="font-semibold text-slate-800">{{ $products->total() }}</span> products
                 </div>
                 <div class="font-medium">
                     {{ $products->links() }}
@@ -210,11 +220,11 @@
 
 @push('scripts')
 <script>
-    function confirmDelete(productId) {
+    function confirmDelete(button) {
         if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = `/admin/products/${productId}/delete`;
+            form.action = button.dataset.url;
 
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
             const csrfInput = document.createElement('input');

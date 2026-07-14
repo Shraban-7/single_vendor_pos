@@ -2,221 +2,138 @@
 
 namespace Database\Seeders;
 
-use App\Enums\FitType;
-use App\Enums\Occasion;
-use App\Enums\Pattern;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Unit;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
-    private $materials = [
-        't-shirt' => ['100% Cotton', 'Cotton Blend', 'Premium Combed Cotton'],
-        'shirt' => ['Cotton', 'Cotton Twill', 'Denim', 'Linen', 'Oxford Cotton'],
-        'pant' => ['Denim', 'Cotton Twill', 'Chino Cotton', 'Gabardine'],
-        'panjabi' => ['Cotton', 'Premium Cotton', 'Silk', 'Semi Silk', 'Khadi', 'Jamdani', 'Linen'],
-        'saree' => ['Cotton', 'Silk', 'Georgette', 'Jamdani', 'Katan', 'Banarasi', 'Tangail Cotton', 'Rajshahi Silk'],
-        'salwar' => ['Cotton', 'Lawn Cotton', 'Georgette', 'Silk Blend', 'Khadi'],
-        'kurti' => ['Cotton', 'Rayon', 'Georgette', 'Linen'],
-        'winter' => ['Fleece', 'Wool', 'Cotton Blend', 'Cashmere Blend', 'Leather'],
-        'bag' => ['Genuine Leather', 'PU Leather', 'Canvas', 'Nylon'],
-        'summer' => ['Pure Cotton', 'Linen', 'Cotton Blend', 'Rayon', 'Georgette', 'Viscose'],
-    ];
-
     public function run(): void
     {
-        Product::query()->delete();
-
-        // Get all leaf categories (categories without children)
-        $leafCategories = Category::doesntHave('children')->get();
-
-        foreach ($leafCategories as $category) {
-            $this->createProductsForCategory($category, 4); // 4 products per leaf category
-        }
-    }
-
-    private function createProductsForCategory(Category $category, int $count): void
-    {
-        for ($i = 1; $i <= $count; $i++) {
-            $productData = $this->generateProductData($category, $i);
-            unset($productData['_full_path']);
-            $product = Product::create($productData);
-        }
-    }
-
-    private function generateProductData(Category $category, int $index): array
-    {
-        // Walk the ancestor chain so category_id / subcategory_id / sub_subcategory_id
-        // are filled correctly no matter how deep this leaf category sits.
-        $chain = [$category];
-        $cursor = $category;
-        while ($cursor->parent) {
-            $cursor = $cursor->parent;
-            $chain[] = $cursor;
-        }
-        $chain = array_reverse($chain); // [top, mid, ..., leaf]
-
-        $categoryId = $chain[0]->id ?? null;
-        $subcategoryId = $chain[1]->id ?? null;
-        $subSubcategoryId = $chain[2]->id ?? null;
-
-        $categoryName = strtolower($category->name);
-        $parentName = $category->parent ? strtolower($category->parent->name) : '';
-        $grandParentName = $category->parent && $category->parent->parent ? strtolower($category->parent->parent->name) : '';
-
-        $fullPath = $categoryName . ' ' . $parentName . ' ' . $grandParentName;
-
-        $material = $this->getMaterial($fullPath);
-
-        // Bangladeshi Standard Product Name
-        $productPrefixes = ['Premium', 'Exclusive', 'Classic', 'Designer', 'Authentic', 'Trendy', 'Stylish', 'Traditional'];
-        $prefix = $productPrefixes[array_rand($productPrefixes)];
-        $productName = $prefix . ' ' . $category->name;
-
-        $pricing = $this->getPricing($fullPath);
-
-        $isOnSale = rand(0, 100) < 30; // 30% chance of being on sale
-        $isFeatured = rand(0, 100) < 20; // 20% chance of being featured
-        $isNewArrival = rand(0, 100) < 25; // 25% chance of being new arrival
-        $isBestSeller = rand(0, 100) < 15;
-
-        $slugBase = Str::slug($productName . '-' . uniqid());
-
-        return [
-            'name' => $productName,
-            'slug' => $slugBase,
-            'sku' => strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', 'bd'), 0, 3)) . '-' . strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $categoryName), 0, 3)) . rand(1000, 9999),
-            'image' => 'demo-products/' . Str::slug($category->name) . '.png',
-            'short_description' => "High-quality {$category->name} in Bangladesh. {$material} fabric, comfortable and stylish.",
-            'description' => "Get the best {$category->name} in Bangladesh. Made with premium {$material}. Perfect for fashion-conscious individuals. We ensure the best quality and standard sizing for the Bangladeshi market.",
-            'price' => $pricing['price'],
-            'compare_price' => $isOnSale ? $pricing['compare_price'] : null,
-            'cost_price' => $pricing['cost_price'],
-            'category_id' => $categoryId,
-            'subcategory_id' => $subcategoryId,
-            'sub_subcategory_id' => $subSubcategoryId,
-            'material' => $material,
-            'fit_type' => $this->getFitType($fullPath),
-            'pattern' => $this->getPattern(),
-            'occasion' => $this->getOccasion($fullPath),
-            'stock_in' => rand(50, 200),
-            'stock_out' => rand(0, 20),
-            'low_stock_threshold' => 10,
-            'weight' => rand(200, 800),
-            'is_active' => true,
-            'is_featured' => $isFeatured,
-            'is_new_arrival' => $isNewArrival,
-            'is_best_seller' => $isBestSeller,
-            'is_on_sale' => $isOnSale,
-            'average_rating' => rand(35, 50) / 10, // 3.5 to 5.0
-            'review_count' => rand(5, 100),
-            'view_count' => rand(50, 1000),
-            'meta_title' => $productName . ' - Buy Online in BD',
-            'meta_description' => "Shop {$productName} in Bangladesh. Best price guaranteed.",
-            'tags' => json_encode([$category->name, 'Bangladesh', 'Fashion', 'Online Shopping BD']),
-            // internal-only key, stripped before Product::create()
-            '_full_path' => $fullPath,
+        // 1. Seed Product Units
+        $units = [
+            ['name' => 'Piece', 'name_bn' => 'পিস', 'short_name' => 'pc', 'short_name_bn' => 'পিস', 'type' => 'quantity'],
+            ['name' => 'Kilogram', 'name_bn' => 'কেজি', 'short_name' => 'kg', 'short_name_bn' => 'কেজি', 'type' => 'weight'],
+            ['name' => 'Liter', 'name_bn' => 'লিটার', 'short_name' => 'L', 'short_name_bn' => 'লিটার', 'type' => 'volume'],
+            ['name' => 'Box', 'name_bn' => 'বক্স', 'short_name' => 'box', 'short_name_bn' => 'বক্স', 'type' => 'quantity'],
+            ['name' => 'Packet', 'name_bn' => 'প্যাকেট', 'short_name' => 'pkt', 'short_name_bn' => 'প্যাকেট', 'type' => 'quantity'],
         ];
-    }
 
-    private function getMaterial(string $fullPath): string
-    {
-        if (str_contains($fullPath, 't-shirt') || str_contains($fullPath, 'tshirt')) return $this->getRandom($this->materials['t-shirt']);
-        if (str_contains($fullPath, 'shirt')) return $this->getRandom($this->materials['shirt']);
-        if (str_contains($fullPath, 'pant') || str_contains($fullPath, 'jeans')) return $this->getRandom($this->materials['pant']);
-        if (str_contains($fullPath, 'panjabi')) return $this->getRandom($this->materials['panjabi']);
-        if (str_contains($fullPath, 'saree')) return $this->getRandom($this->materials['saree']);
-        if (str_contains($fullPath, 'salwar')) return $this->getRandom($this->materials['salwar']);
-        if (str_contains($fullPath, 'kurti')) return $this->getRandom($this->materials['kurti']);
-        if (str_contains($fullPath, 'winter') || str_contains($fullPath, 'hoodie') || str_contains($fullPath, 'jacket')) return $this->getRandom($this->materials['winter']);
-        if (str_contains($fullPath, 'bag') || str_contains($fullPath, 'wallet')) return $this->getRandom($this->materials['bag']);
-        if (str_contains($fullPath, 'summer') || str_contains($fullPath, 'sun') || str_contains($fullPath, 'sunglass')) return $this->getRandom($this->materials['summer']);
+        $unitIds = [];
+        foreach ($units as $unit) {
+            $createdUnit = Unit::updateOrCreate(
+                ['name' => $unit['name']],
+                $unit
+            );
+            $unitIds[] = $createdUnit->id;
+        }
 
-        return 'Standard Material';
-    }
-
-    private function getRandom(array $array)
-    {
-        return $array[array_rand($array)];
-    }
-
-    private function getPricing(string $fullPath): array
-    {
-        // General Bangladeshi Pricing in BDT
-        $min = 500;
-        $max = 3000;
-
-        if (str_contains($fullPath, 't-shirt') || str_contains($fullPath, 'tshirt')) { $min = 300; $max = 1200; }
-        elseif (str_contains($fullPath, 'shirt')) { $min = 800; $max = 3500; }
-        elseif (str_contains($fullPath, 'pant') || str_contains($fullPath, 'jeans')) { $min = 1000; $max = 4000; }
-        elseif (str_contains($fullPath, 'panjabi')) { $min = 1200; $max = 8000; }
-        elseif (str_contains($fullPath, 'saree')) { $min = 1500; $max = 25000; }
-        elseif (str_contains($fullPath, 'salwar')) { $min = 1200; $max = 8000; }
-        elseif (str_contains($fullPath, 'kurti')) { $min = 800; $max = 3500; }
-        elseif (str_contains($fullPath, 'winter') || str_contains($fullPath, 'jacket')) { $min = 1500; $max = 6000; }
-        elseif (str_contains($fullPath, 'shoe') || str_contains($fullPath, 'sneaker')) { $min = 1500; $max = 8000; }
-        elseif (str_contains($fullPath, 'sandal')) { $min = 500; $max = 2500; }
-        elseif (str_contains($fullPath, 'bag') || str_contains($fullPath, 'backpack')) { $min = 1000; $max = 5000; }
-        elseif (str_contains($fullPath, 'wallet') || str_contains($fullPath, 'belt')) { $min = 400; $max = 2000; }
-        elseif (str_contains($fullPath, 'kid')) { $min = 300; $max = 2000; }
-        elseif (str_contains($fullPath, 'summer') || str_contains($fullPath, 'sun') || str_contains($fullPath, 'sunglass')) { $min = 400; $max = 2500; }
-        elseif (str_contains($fullPath, 'islamic') || str_contains($fullPath, 'jubba') || str_contains($fullPath, 'abaya')) { $min = 1500; $max = 6000; }
-
-        $price = rand($min, $max);
-        // Round to nearest 50
-        $price = round($price / 50) * 50;
-
-        $costPrice = $price * rand(50, 70) / 100; // 30-50% margin
-        // Round cost price to nearest 50
-        $costPrice = round($costPrice / 50) * 50;
-
-        $comparePrice = $price * rand(115, 150) / 100; // 15-50% "was" price
-        // Round compare price to nearest 50
-        $comparePrice = round($comparePrice / 50) * 50;
-
-        return [
-            'price' => $price,
-            'cost_price' => $costPrice,
-            'compare_price' => $comparePrice,
+        // 2. Seed Product Categories (global - no user_id, no duplicates)
+        $categoriesData = [
+            ['name' => 'Food Items', 'name_bn' => 'খাদ্যপণ্য', 'icon' => 'shopping-basket', 'color' => '#FF5733'],
+            ['name' => 'Electronics', 'name_bn' => 'ইলেকট্রনিক্স', 'icon' => 'plug', 'color' => '#33FF57'],
+            ['name' => 'Cosmetics & Beauty', 'name_bn' => 'কসমেটিকস ও বিউটি', 'icon' => 'sparkles', 'color' => '#3357FF'],
+            ['name' => 'Clothing & Fashion', 'name_bn' => 'পোশাক ও ফ্যাশন', 'icon' => 'shirt', 'color' => '#F333FF'],
+            ['name' => 'Beverages', 'name_bn' => 'পানীয়', 'icon' => 'cup-soda', 'color' => '#17A2B8'],
+            ['name' => 'Footwear', 'name_bn' => 'জুতা ও পাদুকা', 'icon' => 'shoe', 'color' => '#795548'],
+            ['name' => 'Mobile & Accessories', 'name_bn' => 'মোবাইল ও আনুষাঙ্গিক', 'icon' => 'smartphone', 'color' => '#2196F3'],
+            ['name' => 'Computer & IT', 'name_bn' => 'কম্পিউটার ও আইটি', 'icon' => 'laptop', 'color' => '#3F51B5'],
+            ['name' => 'Home Appliances', 'name_bn' => 'গৃহস্থালী যন্ত্রপাতি', 'icon' => 'tv', 'color' => '#009688'],
+            ['name' => 'Medicine & Pharmacy', 'name_bn' => 'ঔষধ ও ফার্মেসি', 'icon' => 'pill', 'color' => '#4CAF50'],
+            ['name' => 'Health & Wellness', 'name_bn' => 'স্বাস্থ্য ও সুস্থতা', 'icon' => 'heart', 'color' => '#F44336'],
+            ['name' => 'Baby & Kids Products', 'name_bn' => 'শিশুপণ্য', 'icon' => 'baby', 'color' => '#E91E63'],
+            ['name' => 'Stationery & Books', 'name_bn' => 'স্টেশনারি ও বই', 'icon' => 'book', 'color' => '#673AB7'],
+            ['name' => 'Sports & Fitness', 'name_bn' => 'খেলাধুলা ও ফিটনেস', 'icon' => 'dumbbell', 'color' => '#FF5722'],
+            ['name' => 'Toys & Games', 'name_bn' => 'খেলনা ও গেম', 'icon' => 'puzzle', 'color' => '#9C27B0'],
+            ['name' => 'Furniture', 'name_bn' => 'আসবাবপত্র', 'icon' => 'couch', 'color' => '#8D6E63'],
+            ['name' => 'Home & Kitchen', 'name_bn' => 'গৃহস্থালী ও রান্নাঘর', 'icon' => 'utensils', 'color' => '#FF5722'],
+            ['name' => 'Hardware & Tools', 'name_bn' => 'হার্ডওয়্যার ও সরঞ্জাম', 'icon' => 'wrench', 'color' => '#607D8B'],
+            ['name' => 'Electrical & Plumbing', 'name_bn' => 'বৈদ্যুতিক ও প্লাম্বিং', 'icon' => 'zap', 'color' => '#FFC107'],
+            ['name' => 'Auto Parts & Accessories', 'name_bn' => 'গাড়ির যন্ত্রাংশ ও আনুষাঙ্গিক', 'icon' => 'car', 'color' => '#333333'],
+            ['name' => 'Agricultural Supplies', 'name_bn' => 'কৃষি সরঞ্জাম', 'icon' => 'tractor', 'color' => '#4CAF50'],
+            ['name' => 'Pet Supplies', 'name_bn' => 'পোষাপ্রাণীর সরঞ্জাম', 'icon' => 'paw-print', 'color' => '#795548'],
+            ['name' => 'Jewelry & Accessories', 'name_bn' => 'অলঙ্কার ও আনুষাঙ্গিক', 'icon' => 'gem', 'color' => '#FFD700'],
+            ['name' => 'Bags & Luggage', 'name_bn' => 'ব্যাগ ও লাগেজ', 'icon' => 'backpack', 'color' => '#9C27B0'],
+            ['name' => 'Gifts & Flowers', 'name_bn' => 'উপহার ও ফুল', 'icon' => 'gift', 'color' => '#E91E63'],
+            ['name' => 'Optical & Eyewear', 'name_bn' => 'চশমা ও চক্ষু সামগ্রী', 'icon' => 'glasses', 'color' => '#607D8B'],
+            ['name' => 'Watches', 'name_bn' => 'ঘড়ি', 'icon' => 'clock', 'color' => '#607D8B'],
+            ['name' => 'General Store', 'name_bn' => 'জেনারেল স্টোর', 'icon' => 'store', 'color' => '#333333'],
         ];
-    }
 
-    private function getFitType(string $fullPath): ?string
-    {
-        $wearCategories = ['shirt', 't-shirt', 'tshirt', 'panjabi', 'pant', 'jeans', 'kurti', 'salwar', 'short', 'dress', 'top', 'vest', 'frock', 'jogger', 'palazzo'];
-        foreach ($wearCategories as $wear) {
-            if (str_contains($fullPath, $wear)) {
-                $fitTypes = [FitType::SLIM->value, FitType::REGULAR->value, FitType::LOOSE->value, FitType::RELAXED->value];
-                return $fitTypes[array_rand($fitTypes)];
+        $categoryIds = [];
+        foreach ($categoriesData as $cat) {
+            $createdCategory = Category::updateOrCreate(
+                ['name' => $cat['name']],
+                [
+                    'name_bn' => $cat['name_bn'],
+                    'slug' => Str::slug($cat['name']),
+                    'icon' => $cat['icon'],
+                    'color' => $cat['color'],
+                    'is_active' => true,
+                ]
+            );
+            $categoryIds[] = $createdCategory->id;
+        }
+
+        // 3. Seed products for each user (using global categories)
+        $productsData = [
+            // Groceries
+            ['name' => 'মিনিকেট চাল', 'category_index' => 0, 'cost' => 65.00, 'sell' => 72.00, 'stock' => 50.00, 'alert' => 10.00, 'unit_index' => 1],
+            ['name' => 'মসুর ডাল', 'category_index' => 0, 'cost' => 110.00, 'sell' => 125.00, 'stock' => 30.00, 'alert' => 5.00, 'unit_index' => 1],
+            ['name' => 'সয়াবিন তেল ৫ লিটার', 'category_index' => 0, 'cost' => 810.00, 'sell' => 845.00, 'stock' => 15.00, 'alert' => 3.00, 'unit_index' => 2],
+            ['name' => 'চিনি', 'category_index' => 0, 'cost' => 130.00, 'sell' => 140.00, 'stock' => 40.00, 'alert' => 10.00, 'unit_index' => 1],
+            ['name' => 'দেশী পেঁয়াজ', 'category_index' => 0, 'cost' => 75.00, 'sell' => 85.00, 'stock' => 100.00, 'alert' => 20.00, 'unit_index' => 1],
+            ['name' => 'ডায়মন্ড আলু', 'category_index' => 0, 'cost' => 32.00, 'sell' => 40.00, 'stock' => 120.00, 'alert' => 25.00, 'unit_index' => 1],
+            ['name' => 'লাল আটা ২ কেজি', 'category_index' => 0, 'cost' => 115.00, 'sell' => 130.00, 'stock' => 25.00, 'alert' => 5.00, 'unit_index' => 4],
+            ['name' => 'ডিপ্লোমা গুড়ো দুধ ১ কেজি', 'category_index' => 0, 'cost' => 820.00, 'sell' => 860.00, 'stock' => 10.00, 'alert' => 2.00, 'unit_index' => 4],
+            ['name' => 'মোল্লা সল্ট লবন', 'category_index' => 0, 'cost' => 38.00, 'sell' => 42.00, 'stock' => 60.00, 'alert' => 15.00, 'unit_index' => 4],
+            ['name' => 'রাধুনী হলুদের গুড়া', 'category_index' => 0, 'cost' => 45.00, 'sell' => 50.00, 'stock' => 50.00, 'alert' => 10.00, 'unit_index' => 4],
+            // Electronics
+            ['name' => 'ফিলিপস এলইডি বাল্ব ২০ ওয়াট', 'category_index' => 1, 'cost' => 280.00, 'sell' => 350.00, 'stock' => 20.00, 'alert' => 5.00, 'unit_index' => 0],
+            ['name' => 'ডিফেন্ডার চার্জার ফ্যান', 'category_index' => 1, 'cost' => 3800.00, 'sell' => 4500.00, 'stock' => 8.00, 'alert' => 2.00, 'unit_index' => 0],
+            ['name' => 'স্যামসাং টাইপ-সি চার্জার', 'category_index' => 1, 'cost' => 450.00, 'sell' => 600.00, 'stock' => 15.00, 'alert' => 3.00, 'unit_index' => 0],
+            ['name' => 'ক্লিক ৫-ঘাট মাল্টিপ্লাগ', 'category_index' => 1, 'cost' => 320.00, 'sell' => 420.00, 'stock' => 12.00, 'alert' => 3.00, 'unit_index' => 0],
+            // Cosmetics
+            ['name' => 'প্যারাসুট নারকেল তেল ২০০ মিলি', 'category_index' => 2, 'cost' => 140.00, 'sell' => 165.00, 'stock' => 30.00, 'alert' => 6.00, 'unit_index' => 0],
+            ['name' => 'লাক্স গায়ে মাখার সাবান', 'category_index' => 2, 'cost' => 68.00, 'sell' => 75.00, 'stock' => 80.00, 'alert' => 20.00, 'unit_index' => 0],
+            ['name' => 'সানসিল্ক শ্যাম্পু মিনি প্যাক', 'category_index' => 2, 'cost' => 180.00, 'sell' => 200.00, 'stock' => 100.00, 'alert' => 25.00, 'unit_index' => 4],
+            ['name' => 'কোলগেট টুথপেস্ট ১৫০ গ্রাম', 'category_index' => 2, 'cost' => 135.00, 'sell' => 150.00, 'stock' => 40.00, 'alert' => 10.00, 'unit_index' => 0],
+            // Clothing
+            ['name' => 'এটিএম সুতি লুঙ্গি', 'category_index' => 3, 'cost' => 350.00, 'sell' => 450.00, 'stock' => 25.00, 'alert' => 5.00, 'unit_index' => 0],
+            ['name' => 'জয়পুরী সুতি থ্রি-পিস', 'category_index' => 3, 'cost' => 850.00, 'sell' => 1150.00, 'stock' => 15.00, 'alert' => 3.00, 'unit_index' => 0],
+        ];
+
+        $users = User::where('role','admin')->get();
+
+        foreach ($users as $user) {
+            // Seed products for this user
+            foreach ($productsData as $index => $prod) {
+                $paddedCount = str_pad($index + 1, 3, '0', STR_PAD_LEFT);
+                $sku = 'PROD-' . $user->id . '-' . $paddedCount;
+                $barcode = '880' . str_pad($user->id, 3, '0', STR_PAD_LEFT) . $paddedCount . rand(100, 999);
+
+                Product::create([
+                    'user_id' => $user->id,
+                    'category_id' => $categoryIds[$prod['category_index']],
+                    'unit_id' => $unitIds[$prod['unit_index']],
+                    'sku' => $sku,
+                    'barcode' => $barcode,
+                    'name' => $prod['name'],
+                    'description' => $prod['name'] . ' - সিস্টেম কর্তৃক তৈরি ডেমো প্রোডাক্ট।',
+                    'cost_price' => $prod['cost'],
+                    'selling_price' => $prod['sell'],
+                    'stock_in' => $prod['stock'],
+                    'stock_out' => 0.00,
+                    'stock_quantity' => $prod['stock'],
+                    'stock_alert_quantity' => $prod['alert'],
+                    'vat_rate' => 0.00,
+                    'is_active' => true,
+                    'is_returnable' => true,
+                ]);
             }
         }
-        return null;
     }
-
-    private function getPattern(): ?string
-    {
-        $patterns = Pattern::values();
-        if (empty($patterns)) return null;
-        return $patterns[array_rand($patterns)];
-    }
-
-    private function getOccasion(string $fullPath): ?string
-    {
-        $values = Occasion::values();
-        if (empty($values)) return null;
-
-        if (str_contains($fullPath, 'formal') && in_array(Occasion::FORMAL->value, $values)) return Occasion::FORMAL->value;
-        if ((str_contains($fullPath, 'party') || str_contains($fullPath, 'saree') || str_contains($fullPath, 'silk')) && in_array(Occasion::PARTY->value, $values)) return Occasion::PARTY->value;
-        if ((str_contains($fullPath, 'wedding') || str_contains($fullPath, 'katan') || str_contains($fullPath, 'banarasi')) && in_array(Occasion::WEDDING->value, $values)) return Occasion::WEDDING->value;
-        if ((str_contains($fullPath, 'sports') || str_contains($fullPath, 'jogger') || str_contains($fullPath, 'sneaker')) && in_array(Occasion::SPORTS->value, $values)) return Occasion::SPORTS->value;
-
-        $fallback = in_array(Occasion::EVERYDAY->value ?? null, $values) ? Occasion::EVERYDAY->value : $values[0];
-        $casual = in_array(Occasion::CASUAL->value ?? null, $values) ? Occasion::CASUAL->value : $fallback;
-
-        return rand(0, 1) ? $casual : $fallback;
-    }
-
-
 }

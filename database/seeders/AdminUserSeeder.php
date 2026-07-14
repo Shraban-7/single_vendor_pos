@@ -21,7 +21,7 @@ class AdminUserSeeder extends Seeder
                 'name' => 'Super Admin',
                 'email' => 'admin@slashfashion.com.bd',
                 'phone' => '01700000000',
-                'password' => Hash::make('slf@dm123#'),
+                'password' => Hash::make('password'),
                 'role' => UserRole::ADMIN,
                 'is_active' => true,
                 'phone_verified_at' => now(),
