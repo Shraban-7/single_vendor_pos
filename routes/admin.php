@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CashRegisterController;
@@ -8,16 +9,16 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\HomeSectionController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PosController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\SaleReturnController;
-use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StaticPageController;
-use App\Http\Controllers\Admin\HomeSectionController;
-use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\SupplierController;
 use Illuminate\Support\Facades\Route;
 // , 'read_only'
 Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(function () {
@@ -72,19 +73,6 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
         Route::delete('/{category}', [CategoryController::class, 'delete'])->name('delete');
     });
 
-    Route::prefix('brands')->as('brands.')->group(function () {
-        Route::get('/', [BrandController::class, 'index'])->name('index');
-        Route::post('/store', [BrandController::class, 'store'])->name('store');
-        Route::put('/{brand}/update', [BrandController::class, 'update'])->name('update');
-        Route::delete('/{brand}', [BrandController::class, 'delete'])->name('delete');
-    });
-
-    Route::prefix('reviews')->as('reviews.')->group(function () {
-        Route::get('/', [ReviewController::class, 'index'])->name('index');
-        Route::post('{review}/approve', [ReviewController::class, 'approve'])->name('approve');
-        Route::post('{review}/delete', [ReviewController::class, 'destroy'])->name('destroy');
-    });
-
     Route::prefix('customers')->as('customers.')->group(function () {
         Route::get('/', [CustomerController::class, 'index'])->name('index');
         Route::put('/{customer}/update', [CustomerController::class, 'update'])->name('update');
@@ -97,6 +85,16 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
         Route::get('/{employee}/edit', [EmployeeController::class, 'edit'])->name('edit');
         Route::put('/{employee}/update', [EmployeeController::class, 'update'])->name('update');
         Route::delete('/{employee}/delete', [EmployeeController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('suppliers')->name('suppliers.')->group(function () {
+        Route::get('/', [SupplierController::class, 'index'])->name('index');
+        Route::get('/create', [SupplierController::class, 'create'])->name('create');
+        Route::post('/store', [SupplierController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [SupplierController::class, 'edit'])->name('edit');
+        Route::put('/{id}/update', [SupplierController::class, 'update'])->name('update');
+        Route::delete('/{id}/destroy', [SupplierController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/make-payment', [SupplierController::class, 'makePayment'])->name('make-payment');
     });
 
     Route::prefix('banners')->as('banners.')->group(function () {

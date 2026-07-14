@@ -85,6 +85,11 @@ $user = auth()->user();
                     <i data-lucide="user-cog" class="w-5 h-5"></i>
                     <span class="font-heading">Employees</span>
                 </a>
+                <a href="{{ route('admin.suppliers.index') }}"
+                    class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl transition {{ request()->routeIs('admin.suppliers.*') ? 'active' : '' }}">
+                    <i data-lucide="truck" class="w-5 h-5"></i>
+                    <span class="font-heading">Suppliers</span>
+                </a>
             </div>
 
             <div class="pt-4" x-data="{ openReports: {{ request()->routeIs('admin.reports.*') ? 'true' : 'false' }} }">
