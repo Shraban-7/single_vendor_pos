@@ -7,7 +7,7 @@
 <div class="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
     <div>
         <h1 class="text-xl font-bold tracking-tight text-slate-900">Categories</h1>
-        <p class="text-xs text-slate-500">Organize and structure your nested product catalog taxonomies.</p>
+        <p class="text-xs text-slate-500">Organize and structure your product catalog taxonomies.</p>
     </div>
     <div>
         <button onclick="openCreateModal()" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 text-xs font-semibold text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition">
@@ -17,35 +17,39 @@
     </div>
 </div>
 
-{{-- Data Dense Nested Structure Container --}}
+{{-- Data Dense Structure Container --}}
 <div class="space-y-3">
-    @foreach($categories as $category)
+    @forelse($categories as $category)
         <div class="overflow-hidden bg-white border shadow-sm border-slate-200 rounded-xl">
-
-            {{-- Parent Category Header Bar --}}
-            <div class="flex justify-between items-center bg-slate-50/80 px-4 py-2.5 border-b border-slate-100">
+            <div class="flex justify-between items-center px-4 py-3">
                 <div class="flex items-center min-w-0 gap-3">
                     @if($category->image)
-                        <img src="{{ asset('storage/' . $category->image) }}" alt="{{ $category->name }}" class="flex-shrink-0 object-cover w-8 h-8 bg-white border rounded border-slate-200">
+                        <img src="{{ asset('storage/' . $category->image) }}" alt="{{ $category->name }}" class="flex-shrink-0 object-cover w-10 h-10 bg-white border rounded border-slate-200">
                     @else
-                        <div class="flex items-center justify-center flex-shrink-0 w-8 h-8 text-xs border rounded bg-slate-100 border-slate-200/60 text-slate-400">
-                            <i class="{{ $category->icon ?? 'fas fa-folder' }}"></i>
+                        <div class="flex items-center justify-center flex-shrink-0 w-10 h-10 text-xs border rounded bg-slate-100 border-slate-200/60 text-slate-400">
+                            <i data-lucide="folder" class="w-5 h-5"></i>
                         </div>
                     @endif
 
-                    <div class="flex items-center min-w-0 gap-2">
-                        <span class="text-sm font-bold truncate text-slate-800">{{ $category->name }}</span>
-                        <div class="flex items-center flex-shrink-0 gap-1">
+                    <div class="flex flex-col min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-bold truncate text-slate-800">{{ $category->name }}</span>
+                            @if($category->name_bn)
+                                <span class="text-xs text-slate-500">({{ $category->name_bn }})</span>
+                            @endif
+                        </div>
+                        <div class="flex items-center gap-2 mt-0.5">
                             @if($category->is_active)
                                 <span class="px-1.5 py-0.5 text-[9px] font-medium rounded bg-emerald-50 text-emerald-700 border border-emerald-100">Active</span>
                             @else
                                 <span class="px-1.5 py-0.5 text-[9px] font-medium rounded bg-slate-100 text-slate-500 border border-slate-200/60">Inactive</span>
                             @endif
 
-                            @if($category->is_featured)
-                                <span class="px-1.5 py-0.5 text-[9px] font-medium rounded bg-indigo-50 text-indigo-700 border border-indigo-100">★ Featured</span>
+                            @if($category->color)
+                                <span class="w-3 h-3 rounded-full border border-slate-200" style="background-color: {{ $category->color }};" title="Brand Color"></span>
                             @endif
-                            <span class="text-[10px] text-slate-400 font-mono">Order: {{ $category->sort_order }}</span>
+
+                            <span class="text-[10px] text-slate-400 font-mono">Order: {{ $category->display_order }}</span>
                         </div>
                     </div>
                 </div>
@@ -53,77 +57,36 @@
                 {{-- Action Strip --}}
                 <div class="flex items-center gap-0.5">
                     <button type="button"
-                        onclick="openEditModal({{ $category->id }}, '{{ addslashes($category->name) }}', {{ $category->parent_id ?? 'null' }}, '{{ $category->icon }}', {{ $category->sort_order }}, {{ $category->is_active ? 'true' : 'false' }}, {{ $category->is_featured ? 'true' : 'false' }}, '{{ $category->image }}')"
-                        class="p-1 transition rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100" title="Edit Category">
-                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                        onclick="openEditModal({{ $category->id }}, '{{ addslashes($category->name) }}', '{{ addslashes($category->name_bn ?? '') }}', '{{ $category->icon }}', '{{ $category->color }}', {{ $category->display_order }}, {{ $category->is_active ? 'true' : 'false' }}, '{{ $category->image }}')"
+                        class="p-1.5 transition rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100" title="Edit Category">
+                        <i data-lucide="pencil" class="w-4 h-4"></i>
                     </button>
 
-                    <form action="{{ route('admin.categories.delete', $category->id) }}"
-                        method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this category?');">
+                    <form action="{{ route('admin.categories.delete', $category->id) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this category?');">
                         @csrf
                         @method('DELETE')
-                        <button class="p-1 transition rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100" title="Delete Category">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <button class="p-1.5 transition rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100" title="Delete Category">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </form>
                 </div>
             </div>
-
-            {{-- Children Subcategories Strip --}}
-            <div class="bg-white divide-y divide-slate-100">
-                @forelse($category->children as $sub)
-                    <div class="relative flex items-center justify-between px-4 py-2 pl-8 transition-colors hover:bg-slate-50/40">
-                        {{-- Structural Tree Line Accent --}}
-                        <div class="absolute top-0 bottom-0 w-3 h-5 border-b border-l left-4 border-slate-200 rounded-bl-md"></div>
-
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            @if($sub->image)
-                                <img src="{{ asset('storage/' . $sub->image) }}" alt="{{ $sub->name }}" class="flex-shrink-0 object-cover border rounded w-7 h-7 border-slate-200 bg-slate-50">
-                            @else
-                                <div class="w-7 h-7 bg-slate-50 rounded border border-slate-200/50 flex items-center justify-center flex-shrink-0 text-slate-400 text-[10px]">
-                                    <i class="{{ $sub->icon ?? 'fas fa-tag' }}"></i>
-                                </div>
-                            @endif
-
-                            <div class="flex items-center min-w-0 gap-2">
-                                <span class="text-xs font-medium truncate text-slate-700">{{ $sub->name }}</span>
-                                <div class="flex items-center flex-shrink-0 gap-1">
-                                    @if($sub->is_active)
-                                        <span class="px-1 py-0.1 text-[8px] font-medium bg-emerald-50 text-emerald-600 rounded">Active</span>
-                                    @else
-                                        <span class="px-1 py-0.1 text-[8px] font-medium bg-slate-100 text-slate-400 rounded">Inactive</span>
-                                    @endif
-                                    <span class="text-[9px] text-slate-400 font-mono">Order: {{ $sub->sort_order }}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-0.5">
-                            <button type="button"
-                                onclick="openEditModal({{ $sub->id }}, '{{ addslashes($sub->name) }}', {{ $sub->parent_id ?? 'null' }}, '{{ $sub->icon }}', {{ $sub->sort_order }}, {{ $sub->is_active ? 'true' : 'false' }}, {{ $sub->is_featured ? 'true' : 'false' }}, '{{ $sub->image }}')"
-                                class="p-1 transition rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100" title="Edit Subcategory">
-                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                            </button>
-
-                            <form action="{{ route('admin.categories.delete', $sub->id) }}"
-                                method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this subcategory?');">
-                                @csrf
-                                @method('DELETE')
-                                <button class="p-1 transition rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100" title="Delete Subcategory">
-                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                @empty
-                    <div class="px-5 py-2 pl-8 text-xs italic text-slate-400/90">
-                        No nested subcategories attached.
-                    </div>
-                @endforelse
-            </div>
-
         </div>
-    @endforeach
+    @empty
+        <div class="p-12 text-center text-slate-500 bg-white border border-slate-200 rounded-xl shadow-sm">
+            <div class="max-w-xs mx-auto flex flex-col items-center">
+                <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-50 text-slate-400 mb-3 border border-slate-100">
+                    <i data-lucide="folder-open" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-900">No categories found</h3>
+                <p class="text-xs text-slate-500 mt-0.5 mb-4">Get started by creating your first product category.</p>
+                <button onclick="openCreateModal()" class="inline-flex items-center justify-center gap-1.5 px-3 h-8 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-sm">
+                    <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                    <span>Add Category</span>
+                </button>
+            </div>
+        </div>
+    @endforelse
 </div>
 
 {{-- Add Category Modal --}}
@@ -142,18 +105,22 @@
             <form action="{{ route('admin.categories.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="space-y-3.5 text-xs">
-                    <div>
-                        <x-input name="name" type="text" label="Category Name *" placeholder="e.g. Men's Fashion" required class="text-xs h-9" />
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <x-input name="name" type="text" label="Category Name (EN) *" placeholder="e.g. Electronics" required class="text-xs h-9" />
+                        </div>
+                        <div>
+                            <x-input name="name_bn" type="text" label="Category Name (BN)" placeholder="e.g. ইলেকট্রনিক্স" class="text-xs h-9" />
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block mb-1 text-xs font-semibold text-slate-600">Parent Category</label>
-                        <select name="parent_id" class="block w-full px-2.5 h-9 text-xs rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 transition">
-                            <option value="">None (Root Category)</option>
-                            @foreach($categories as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                            @endforeach
-                        </select>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <x-input name="icon" type="text" label="Icon Class" placeholder="e.g. lucide-laptop" class="text-xs h-9" />
+                        </div>
+                        <div>
+                            <x-input name="color" type="color" label="Brand Color" value="#3b82f6" class="text-xs h-9 p-1" />
+                        </div>
                     </div>
 
                     <div>
@@ -164,23 +131,14 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <x-input name="icon" type="text" label="Icon Class" placeholder="fas fa-tag" required class="text-xs h-9" />
-                        </div>
-                        <div>
-                            <x-input name="sort_order" type="number" value="0" label="Sort Order" required class="text-xs h-9" />
-                        </div>
+                    <div>
+                        <x-input name="display_order" type="number" value="0" label="Display Order" required class="text-xs h-9" />
                     </div>
 
                     <div class="flex items-center gap-4 pt-1">
                         <label class="inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" name="is_active" checked class="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5">
                             <span class="ml-1.5 font-medium text-slate-700">Active Status</span>
-                        </label>
-                        <label class="inline-flex items-center cursor-pointer select-none">
-                            <input type="checkbox" name="is_featured" class="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5">
-                            <span class="ml-1.5 font-medium text-slate-700">Featured Placement</span>
                         </label>
                     </div>
                 </div>
@@ -216,18 +174,22 @@
                 @csrf
                 @method('PUT')
                 <div class="space-y-3.5 text-xs">
-                    <div>
-                        <x-input name="name" type="text" label="Category Name *" id="edit_name" placeholder="e.g. Men's Fashion" required class="text-xs h-9" />
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <x-input name="name" type="text" label="Category Name (EN) *" id="edit_name" placeholder="e.g. Electronics" required class="text-xs h-9" />
+                        </div>
+                        <div>
+                            <x-input name="name_bn" type="text" label="Category Name (BN)" id="edit_name_bn" placeholder="e.g. ইলেকট্রনিক্স" class="text-xs h-9" />
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block mb-1 text-xs font-semibold text-slate-600">Parent Category</label>
-                        <select id="edit_parent_id" name="parent_id" class="block w-full px-2.5 h-9 text-xs rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 transition">
-                            <option value="">None (Root Category)</option>
-                            @foreach($categories as $cat)
-                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                            @endforeach
-                        </select>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <x-input name="icon" type="text" label="Icon Class" id="edit_icon" class="text-xs h-9" />
+                        </div>
+                        <div>
+                            <x-input name="color" type="color" label="Brand Color" id="edit_color" class="text-xs h-9 p-1" />
+                        </div>
                     </div>
 
                     <div>
@@ -238,23 +200,14 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <x-input name="icon" type="text" label="Icon Class" id="edit_icon" required class="text-xs h-9" />
-                        </div>
-                        <div>
-                            <x-input name="sort_order" type="number" id="edit_sort_order" label="Sort Order" required class="text-xs h-9" />
-                        </div>
+                    <div>
+                        <x-input name="display_order" type="number" id="edit_display_order" label="Display Order" required class="text-xs h-9" />
                     </div>
 
                     <div class="flex items-center gap-4 pt-1">
                         <label class="inline-flex items-center cursor-pointer select-none">
                             <input type="checkbox" id="edit_is_active" name="is_active" class="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5">
                             <span class="ml-1.5 font-medium text-slate-700">Active Status</span>
-                        </label>
-                        <label class="inline-flex items-center cursor-pointer select-none">
-                            <input type="checkbox" id="edit_is_featured" name="is_featured" class="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5">
-                            <span class="ml-1.5 font-medium text-slate-700">Featured Placement</span>
                         </label>
                     </div>
                 </div>
@@ -283,14 +236,16 @@
         document.getElementById('createModal').classList.add('hidden');
     }
 
-    function openEditModal(id, name, parentId, icon, sortOrder, isActive, isFeatured, image) {
-        document.getElementById('editForm').action = '{{ route("admin.categories.index") }}/' + id + '/update';
+    function openEditModal(id, name, nameBn, icon, color, displayOrder, isActive, image) {
+        // Dynamically set the form action URL
+        document.getElementById('editForm').action = '{{ route("admin.categories.update", ":id") }}'.replace(':id', id);
+
         document.getElementById('edit_name').value = name;
-        document.getElementById('edit_parent_id').value = parentId || '';
+        document.getElementById('edit_name_bn').value = nameBn;
         document.getElementById('edit_icon').value = icon;
-        document.getElementById('edit_sort_order').value = sortOrder;
+        document.getElementById('edit_color').value = color || '#3b82f6';
+        document.getElementById('edit_display_order').value = displayOrder;
         document.getElementById('edit_is_active').checked = isActive;
-        document.getElementById('edit_is_featured').checked = isFeatured;
 
         const imagePreview = document.getElementById('editImagePreview');
         const imagePreviewImg = document.getElementById('edit_image_preview');
@@ -300,15 +255,6 @@
         } else {
             imagePreview.classList.add('hidden');
         }
-
-        const parentSelect = document.getElementById('edit_parent_id');
-        Array.from(parentSelect.options).forEach(option => {
-            if (option.value == id) {
-                option.style.display = 'none';
-            } else {
-                option.style.display = 'block';
-            }
-        });
 
         document.getElementById('editModal').classList.remove('hidden');
     }
