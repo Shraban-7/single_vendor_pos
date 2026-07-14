@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\StockMovementType;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
-use App\Models\StockLog;
+use App\Models\StockMovement;
 use App\Models\Unit;
 use App\Services\ImageOptimizerService;
 use Illuminate\Http\Request;
@@ -136,7 +137,6 @@ class ProductController extends Controller
             $validated['name'] = strtoupper($request->name);
             $validated['user_id'] = Auth::id();
 
-            // Handle boolean checkboxes
             $validated['is_active'] = $request->has('is_active');
             $validated['is_returnable'] = $request->has('is_returnable');
 
@@ -151,22 +151,23 @@ class ProductController extends Controller
                 $imgPath = $validated['image'];
             }
 
-            // Initialize stock tracking fields
             $validated['stock_quantity'] = (float) $validated['stock_in'];
             $validated['stock_out'] = 0.00;
 
             $product = Product::create($validated);
 
-            if ($product->stock_in > 0) {
-                StockLog::create([
-                    'product_id' => $product->id,
-                    'product_variant_id' => null,
+            if ((float) $product->stock_in > 0) {
+                StockMovement::create([
                     'user_id' => Auth::id(),
-                    'type' => 'in',
-                    'quantity' => $product->stock_in,
-                    'stock_before' => 0,
-                    'stock_after' => $product->stock_in,
-                    'note' => $request->note ?? 'Initial stock',
+                    'product_id' => $product->id,
+                    'type' => 'in', // Replace with StockMovementType::IN->value if your enum requires strict typing
+                    'reference_type' => 'product_creation',
+                    'reference_id' => $product->id,
+                    'quantity' => (float) $product->stock_in,
+                    'unit_cost' => (float) $product->cost_price,
+                    'before_quantity' => 0.00,
+                    'after_quantity' => (float) $product->stock_in,
+                    'notes' => $request->note ?? 'Initial stock',
                 ]);
 
                 activity_log(
@@ -212,7 +213,7 @@ class ProductController extends Controller
         $categories = $this->getCategories();
         $units = $this->getUnits();
 
-        $product->load(['category', 'unit']); 
+        $product->load(['category', 'unit']);
 
         return view('admin.products.edit', compact('product', 'categories', 'units'));
     }
@@ -290,7 +291,6 @@ class ProductController extends Controller
     public function destroy(Product $product)
     {
         try {
-            // Safely check if the relation exists before querying
             if (method_exists($product, 'orderItems') && $product->orderItems()->exists()) {
                 return redirect()->back()
                     ->with('error', 'This product cannot be deleted because it is associated with orders.');
@@ -300,7 +300,6 @@ class ProductController extends Controller
                 delete_file($product->image);
             }
 
-            // Clean up gallery images if the relation exists in your app
             if (method_exists($product, 'images')) {
                 foreach ($product->images as $image) {
                     delete_file($image->image_path);
@@ -334,12 +333,12 @@ class ProductController extends Controller
     {
         $product->load(['category', 'unit']);
 
-        $stockLogs = StockLog::where('product_id', $product->id)
-            ->with(['user', 'product'])
+        $stockMovements = StockMovement::where('product_id', $product->id)
+            ->with(['user'])
             ->latest()
             ->paginate(20);
 
-        return view('admin.products.stock-history', compact('product', 'stockLogs'));
+        return view('admin.products.stock-history', compact('product', 'stockMovements'));
     }
 
     public function addStock(Request $request)
@@ -362,15 +361,17 @@ class ProductController extends Controller
             $product->stock_quantity = $stockAfter;
             $product->save();
 
-            StockLog::create([
-                'product_id' => $product->id,
-                'product_variant_id' => null,
+            StockMovement::create([
                 'user_id' => Auth::id(),
-                'type' => 'in',
+                'product_id' => $product->id,
+                'type' => StockMovementType::ADJUSTMENT,
+                'reference_type' => 'manual_adjustment',
+                'reference_id' => null,
                 'quantity' => $quantity,
-                'stock_before' => $stockBefore,
-                'stock_after' => $stockAfter,
-                'note' => $validated['note'] ?? null,
+                'unit_cost' => (float) $product->cost_price,
+                'before_quantity' => $stockBefore,
+                'after_quantity' => $stockAfter,
+                'notes' => $validated['note'] ?? null,
             ]);
 
             activity_log(
@@ -429,15 +430,17 @@ class ProductController extends Controller
             $product->stock_quantity = $stockAfter;
             $product->save();
 
-            StockLog::create([
-                'product_id' => $product->id,
-                'product_variant_id' => null,
+            StockMovement::create([
                 'user_id' => Auth::id(),
-                'type' => 'out',
+                'product_id' => $product->id,
+                'type' => StockMovementType::ADJUSTMENT, // Replace with StockMovementType::OUT->value if your enum requires strict typing
+                'reference_type' => 'manual_adjustment',
+                'reference_id' => null,
                 'quantity' => $quantity,
-                'stock_before' => $stockBefore,
-                'stock_after' => $stockAfter,
-                'note' => $validated['note'] ?? null,
+                'unit_cost' => (float) $product->cost_price,
+                'before_quantity' => $stockBefore,
+                'after_quantity' => $stockAfter,
+                'notes' => $validated['note'] ?? null,
             ]);
 
             activity_log(
@@ -507,19 +510,6 @@ class ProductController extends Controller
             ->with('error', 'Product not found!');
     }
 
-    public function updateCategory()
-    {
-        $products = Product::whereNull('category_id')
-            ->select('id', 'name', 'image', 'category_id')
-            ->latest()
-            ->get();
-
-        $categories = Category::whereNull('parent_id')
-            ->with('children.children')
-            ->get();
-
-        return view('products.update_category', compact('products', 'categories'));
-    }
 
     public function setCategory($product_id, Request $request)
     {
