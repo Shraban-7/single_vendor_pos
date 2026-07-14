@@ -20,12 +20,6 @@
             <span class="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
         </button>
 
-        {{-- View Site --}}
-        <a href="{{ route('home') }}" target="_blank" class="hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition">
-            <i data-lucide="external-link" class="w-4 h-4"></i>
-            <span>View Site</span>
-        </a>
-
         {{-- User Dropdown --}}
         <div class="relative" x-data="{ open: false }">
             <button @click="open = !open" class="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-xl transition">

@@ -51,7 +51,7 @@
 
     @stack('scripts')
 
-    @include('partials.toast')
+    @include('admin.partials.toast')
 </body>
 
 </html>

@@ -81,7 +81,7 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'role' => $user->role->value,
                 ],
-                'redirect' => $user->role === UserRole::CUSTOMER ? route('home') : route('admin.dashboard'),
+                'redirect' =>  route('admin.dashboard'),
             ]);
         }
 
@@ -89,80 +89,6 @@ class AuthController extends Controller
             'success' => false,
             'message' => 'Invalid phone number or password.',
         ], 401);
-    }
-
-    public function registerView()
-    {
-        return view('auth.register');
-    }
-
-    public function register(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|size:11',
-            'password' => 'required|string|min:6|confirmed',
-            'terms' => 'required|accepted',
-        ], [
-            'phone.size' => 'Phone number must be exactly 11 digits.',
-            'password.confirmed' => 'Password confirmation does not match.',
-            'terms.accepted' => 'You must accept the terms and conditions.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
-        $phone = $request->phone;
-
-        if (User::where('phone', $phone)->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This phone number is already registered.',
-            ], 422);
-        }
-
-        try {
-            $user = User::create([
-                'name' => $request->name,
-                'phone' => $phone,
-                'password' => Hash::make($request->password),
-                'role' => UserRole::CUSTOMER,
-                'is_active' => true,
-            ]);
-
-            Auth::login($user);
-
-            $request->session()->regenerate();
-
-            $user->update([
-                'last_login_at' => now(),
-                'last_login_ip' => $request->ip(),
-                'last_seen' => now(),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Registration successful.',
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'phone' => $user->phone,
-                    'email' => $user->email,
-                    'role' => $user->role->value,
-                ],
-                'redirect' => route('home'),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
-        }
     }
 
     public function logout(Request $request)
@@ -179,6 +105,6 @@ class AuthController extends Controller
 
         session()->flash('success', 'Logged out successfully');
 
-        return redirect()->route('home');
+        return redirect()->route('login');
     }
 }

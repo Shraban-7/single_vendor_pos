@@ -20,7 +20,7 @@ use App\Http\Controllers\Admin\HomeSectionController;
 use App\Http\Controllers\Admin\NotificationController;
 use Illuminate\Support\Facades\Route;
 // , 'read_only'
-Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::prefix('products')->as('products.')->group(function () {

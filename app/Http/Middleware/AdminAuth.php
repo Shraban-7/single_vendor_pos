@@ -20,6 +20,6 @@ class AdminAuth
 
         session()->flash('warning', 'Unauthorized!');
 
-        return redirect()->route('home');
+        return redirect()->route('login');
     }
 }
