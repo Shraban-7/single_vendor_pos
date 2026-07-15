@@ -25,7 +25,7 @@
         </div>
         <div>
             <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Expenses</p>
-            <p class="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">{{ money($totalExpense) }}</p>
+            <p class="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">{{ money($totalAmount) }}</p>
         </div>
     </div>
     <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex items-center gap-3.5">
@@ -131,10 +131,6 @@
                     </td>
                     <td class="px-4 py-2.5 text-right whitespace-nowrap">
                         <div class="flex items-center justify-end gap-0.5">
-                            <button onclick="openEditModal({{ $expense->id }}, {{ $expense->category_id ?? 'null' }}, '{{ addslashes($expense->category->name ?? '') }}', '{{ $expense->amount }}', '{{ $expense->expense_date }}', '{{ addslashes($expense->description ?? '') }}')"
-                                class="p-1 transition rounded text-slate-400 hover:text-emerald-600 hover:bg-slate-100" title="Edit">
-                                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                            </button>
                             <button onclick="openDeleteModal({{ $expense->id }})"
                                 class="p-1 transition rounded text-slate-400 hover:text-rose-600 hover:bg-slate-100" title="Delete">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -198,7 +194,13 @@
             <div class="px-5 py-4 space-y-4 text-xs">
                 {{-- Category --}}
                 <div>
-                    <label class="block font-semibold text-slate-600 mb-1">Category <span class="text-rose-500">*</span></label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block font-semibold text-slate-600">Category <span class="text-rose-500">*</span></label>
+                        <button type="button" onclick="toggleNewCategory()"
+                            class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 transition">
+                            + New category
+                        </button>
+                    </div>
                     <select id="addCategoryId"
                         class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition">
                         <option value="">— Select category —</option>
@@ -206,6 +208,22 @@
                             <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                         @endforeach
                     </select>
+
+                    {{-- Inline category creation --}}
+                    <div id="newCategoryBox" class="hidden mt-2 flex items-center gap-2">
+                        <input type="text" id="newCategoryName" placeholder="Category name"
+                            class="flex-1 px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition">
+                        <button type="button" onclick="submitNewCategory()" id="newCategoryBtn"
+                            class="inline-flex items-center justify-center gap-1 px-3 h-9 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-sm">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>Add</span>
+                        </button>
+                        <button type="button" onclick="toggleNewCategory()"
+                            class="flex items-center justify-center w-9 h-9 text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition" title="Cancel">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-rose-600 mt-1 hidden" id="addCategoryErr">Please select or create a category.</p>
                 </div>
 
                 {{-- Amount --}}
@@ -247,77 +265,6 @@
     </div>
 </div>
 
-{{-- ======== EDIT MODAL ======== --}}
-<div id="editModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeEditModal()"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4">
-        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-slate-200">
-
-            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 text-amber-600 border border-amber-100">
-                        <i data-lucide="pencil" class="w-4 h-4"></i>
-                    </div>
-                    <div>
-                        <h2 class="text-sm font-bold text-slate-900">Edit Expense</h2>
-                        <p class="text-[11px] text-slate-400">Update the expense details</p>
-                    </div>
-                </div>
-                <button onclick="closeEditModal()" class="flex items-center justify-center w-8 h-8 transition rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
-                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
-                </button>
-            </div>
-
-            <div class="px-5 py-4 space-y-4 text-xs">
-                <input type="hidden" id="editExpenseId">
-
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">Category <span class="text-rose-500">*</span></label>
-                    <select id="editCategoryId"
-                        class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition">
-                        <option value="">— Select category —</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">Amount (৳) <span class="text-rose-500">*</span></label>
-                    <input type="number" id="editAmount" step="0.01" min="0" placeholder="0.00"
-                        class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition">
-                    <p class="text-[11px] text-rose-600 mt-1 hidden" id="editAmountErr">Amount is required.</p>
-                </div>
-
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">Expense Date <span class="text-rose-500">*</span></label>
-                    <input type="date" id="editExpenseDate"
-                        class="w-full px-2.5 h-9 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition">
-                    <p class="text-[11px] text-rose-600 mt-1 hidden" id="editDateErr">Date is required.</p>
-                </div>
-
-                <div>
-                    <label class="block font-semibold text-slate-600 mb-1">Description</label>
-                    <textarea id="editDescription" rows="3" placeholder="Optional notes..."
-                        class="w-full px-2.5 py-2 text-xs border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-slate-400 rounded-lg transition resize-none"></textarea>
-                </div>
-
-                <div id="editErrorBox" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg px-4 py-3"></div>
-            </div>
-
-            <div class="flex items-center justify-end gap-2 px-5 py-4 border-t border-slate-100 bg-slate-50/40">
-                <button onclick="closeEditModal()" class="px-3 h-9 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
-                    Cancel
-                </button>
-                <button onclick="submitEdit()" id="editSubmitBtn" class="inline-flex items-center justify-center gap-1.5 px-3.5 h-9 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition shadow-sm">
-                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
-                    <span>Update Expense</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 {{-- ======== DELETE MODAL ======== --}}
 <div id="deleteModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
@@ -347,6 +294,7 @@
 <script>
     const CSRF = '{{ csrf_token() }}';
     const storeUrl = '{{ route("admin.expenses.store") }}';
+    const categoryUrl = '{{ route("admin.expenses.category") }}';
     const baseUrl = '{{ url("admin/expenses") }}';
 
     function showError(msg) {
@@ -370,18 +318,89 @@
         document.getElementById('addDescription').value = '';
         document.getElementById('addAmountErr').classList.add('hidden');
         document.getElementById('addDateErr').classList.add('hidden');
+        document.getElementById('addCategoryErr').classList.add('hidden');
         document.getElementById('addErrorBox').classList.add('hidden');
+        toggleNewCategory(false);
+    }
+
+    function toggleNewCategory(forceState) {
+        const box = document.getElementById('newCategoryBox');
+        const select = document.getElementById('addCategoryId');
+        const isHidden = box.classList.contains('hidden');
+        const show = (typeof forceState === 'boolean') ? forceState : isHidden;
+        if (show) {
+            box.classList.remove('hidden');
+            select.disabled = true;
+            document.getElementById('newCategoryName').focus();
+        } else {
+            box.classList.add('hidden');
+            select.disabled = false;
+            document.getElementById('newCategoryName').value = '';
+            document.getElementById('newCategoryErr')?.classList.add('hidden');
+        }
+    }
+
+    async function submitNewCategory() {
+        const nameInput = document.getElementById('newCategoryName');
+        const name = nameInput.value.trim();
+        const btn = document.getElementById('newCategoryBtn');
+        const errEl = document.getElementById('addCategoryErr');
+
+        if (!name) { errEl.textContent = 'Category name is required.'; errEl.classList.remove('hidden'); return; }
+        errEl.classList.add('hidden');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i>';
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const formData = new FormData();
+            formData.append('_token', CSRF);
+            formData.append('name', name);
+
+            const response = await fetch(categoryUrl, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                const msg = data.errors?.name ? data.errors.name.flat().join(' ') : (data.message || 'Could not create category.');
+                throw new Error(msg);
+            }
+
+            const select = document.getElementById('addCategoryId');
+            const opt = document.createElement('option');
+            opt.value = data.category.id;
+            opt.textContent = data.category.name;
+            select.appendChild(opt);
+            select.value = data.category.id;
+            select.disabled = false;
+            toggleNewCategory(false);
+            showSuccess('Category created successfully!');
+        } catch (error) {
+            errEl.textContent = error.message;
+            errEl.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Add</span>';
+            if (window.lucide) lucide.createIcons();
+        }
     }
 
     async function submitAdd() {
         let valid = true;
         const amount = document.getElementById('addAmount').value;
         const expenseDate = document.getElementById('addExpenseDate').value;
+        const categoryId = document.getElementById('addCategoryId').value;
 
         if (!amount) { document.getElementById('addAmountErr').classList.remove('hidden'); valid = false; }
         else { document.getElementById('addAmountErr').classList.add('hidden'); }
         if (!expenseDate) { document.getElementById('addDateErr').classList.remove('hidden'); valid = false; }
         else { document.getElementById('addDateErr').classList.add('hidden'); }
+        if (!categoryId) { document.getElementById('addCategoryErr').classList.remove('hidden'); valid = false; }
+        else { document.getElementById('addCategoryErr').classList.add('hidden'); }
         if (!valid) return;
 
         const submitBtn = document.getElementById('addSubmitBtn');
@@ -393,7 +412,7 @@
         try {
             const formData = new FormData();
             formData.append('_token', CSRF);
-            formData.append('category_id', document.getElementById('addCategoryId').value);
+            formData.append('category_id', categoryId);
             formData.append('amount', amount);
             formData.append('expense_date', expenseDate);
             formData.append('description', document.getElementById('addDescription').value);
@@ -420,77 +439,6 @@
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Save Expense</span>';
-            if (window.lucide) lucide.createIcons();
-        }
-    }
-
-    // -------- EDIT MODAL --------
-    function openEditModal(id, categoryId, categoryName, amount, expenseDate, description) {
-        document.getElementById('editExpenseId').value = id;
-        document.getElementById('editAmount').value = amount;
-        document.getElementById('editExpenseDate').value = expenseDate;
-        document.getElementById('editDescription').value = description;
-        document.getElementById('editCategoryId').value = categoryId || '';
-        document.getElementById('editModal').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    }
-    function closeEditModal() {
-        document.getElementById('editModal').classList.add('hidden');
-        document.body.style.overflow = '';
-        document.getElementById('editAmountErr').classList.add('hidden');
-        document.getElementById('editDateErr').classList.add('hidden');
-        document.getElementById('editErrorBox').classList.add('hidden');
-    }
-
-    async function submitEdit() {
-        let valid = true;
-        const amount = document.getElementById('editAmount').value;
-        const expenseDate = document.getElementById('editExpenseDate').value;
-
-        if (!amount) { document.getElementById('editAmountErr').classList.remove('hidden'); valid = false; }
-        else { document.getElementById('editAmountErr').classList.add('hidden'); }
-        if (!expenseDate) { document.getElementById('editDateErr').classList.remove('hidden'); valid = false; }
-        else { document.getElementById('editDateErr').classList.add('hidden'); }
-        if (!valid) return;
-
-        const id = document.getElementById('editExpenseId').value;
-        const submitBtn = document.getElementById('editSubmitBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i><span>Updating...</span>';
-        if (window.lucide) lucide.createIcons();
-        document.getElementById('editErrorBox').classList.add('hidden');
-
-        try {
-            const formData = new FormData();
-            formData.append('_token', CSRF);
-            formData.append('_method', 'PUT');
-            formData.append('category_id', document.getElementById('editCategoryId').value);
-            formData.append('amount', amount);
-            formData.append('expense_date', expenseDate);
-            formData.append('description', document.getElementById('editDescription').value);
-
-            const response = await fetch(`${baseUrl}/${id}`, {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                const errors = data.errors;
-                const msg = errors ? Object.values(errors).flat().join(' ') : (data.message || 'Something went wrong.');
-                throw new Error(msg);
-            }
-
-            showSuccess('Expense updated successfully!');
-            closeEditModal();
-            setTimeout(() => location.reload(), 800);
-        } catch (error) {
-            showError(error.message);
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i data-lucide="save" class="w-3.5 h-3.5"></i><span>Update Expense</span>';
             if (window.lucide) lucide.createIcons();
         }
     }
@@ -545,7 +493,6 @@
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeAddModal();
-            closeEditModal();
             closeDeleteModal();
         }
     });

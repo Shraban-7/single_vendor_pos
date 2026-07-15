@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             AdminUserSeeder::class,
             SupplierSeeder::class,
+            ExpenseCategorySeeder::class,
+            ExpenseSeeder::class
         ]);
 
         if (app()->environment('local')) {

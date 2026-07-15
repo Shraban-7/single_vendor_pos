@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityLogController;
-use App\Http\Controllers\Admin\BannerController;
-use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CashRegisterController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -15,11 +13,9 @@ use App\Http\Controllers\Admin\PosController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\SaleController;
 use App\Http\Controllers\Admin\SaleReturnController;
 use App\Http\Controllers\Admin\SettingController;
-use App\Http\Controllers\Admin\StaticPageController;
 use App\Http\Controllers\Admin\SupplierController;
 use Illuminate\Support\Facades\Route;
 // , 'read_only'
@@ -68,8 +64,8 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
     Route::prefix('expenses')->as('expenses.')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');
         Route::post('/store', [ExpenseController::class, 'store'])->name('store');
-        Route::put('{expense}/', [ExpenseController::class, 'update'])->name('update');
-        Route::delete('{expense}/', [ExpenseController::class, 'destroy'])->name('delete');
+        Route::post('/category', [ExpenseController::class, 'storeCategory'])->name('category');
+        Route::delete('{expense}', [ExpenseController::class, 'destroy'])->name('delete');
     });
 
     Route::prefix('cash-register')->as('cashRegister.')->group(function () {
