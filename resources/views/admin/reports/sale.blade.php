@@ -63,7 +63,7 @@
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Orders</p>
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Sales</p>
                     <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ number_format($totalOrder) }}</p>
                 </div>
             </div>
@@ -82,7 +82,7 @@
                     <i data-lucide="chart-line" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Avg Order Value</p>
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Avg Sale Value</p>
                     <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ money($avgOrder) }}</p>
                 </div>
             </div>
@@ -154,7 +154,7 @@
                             <tr class="text-slate-600">
                                 <th class="px-3 py-2 text-left font-semibold">Category</th>
                                 <th class="px-3 py-2 text-right font-semibold">Sales</th>
-                                <th class="px-3 py-2 text-right font-semibold">Orders</th>
+                                <th class="px-3 py-2 text-right font-semibold">Sales</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -211,8 +211,8 @@
     {{-- District Pie Chart --}}
     <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
         <div class="mb-4">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Orders by District</h3>
-            <p class="text-[11px] text-slate-500 mt-0.5">Distribution of orders across regions</p>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Sales by District</h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">Distribution of sales across regions</p>
         </div>
         <div class="relative h-[280px] flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg p-3">
             <canvas id="districtPieChart"></canvas>

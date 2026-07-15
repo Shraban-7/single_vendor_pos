@@ -95,14 +95,14 @@
 
                             {{-- Originating Order Reference --}}
                             <td class="px-4 py-2.5 whitespace-nowrap">
-                                @if ($return->order != null)
-                                    @if ($return->order->is_pos)
-                                        <a href="{{ route('admin.pos.sales.show', $return->sale_id) }}"
+                                @if ($return->sale != null)
+                                    @if ($return->sale->is_pos)
+                                        <a href="{{ route('admin.sales.show', $return->sale_id) }}"
                                             class="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold">
                                             {{ $return->order_number }}
                                         </a>
                                     @else
-                                        <a href="{{ route('admin.orders.show', $return->sale_id) }}"
+                                        <a href="{{ route('admin.ecommerce-sales.show', $return->sale_id) }}"
                                             class="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold">
                                             {{ $return->order_number }}
                                         </a>
@@ -116,8 +116,8 @@
 
                             {{-- Customer Profile --}}
                             <td class="px-4 py-2.5 max-w-[150px] truncate">
-                                <span class="font-medium text-slate-800 block">{{ $return->order?->customer?->name ?? 'Walk-in Customer' }}</span>
-                                <span class="text-[10px] text-slate-400 block mt-0.5 tracking-tight">{{ $return->order?->customer?->phone ?? '—' }}</span>
+                                <span class="font-medium text-slate-800 block">{{ $return->sale?->customer?->name ?? 'Walk-in Customer' }}</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5 tracking-tight">{{ $return->sale?->customer?->phone ?? '—' }}</span>
                             </td>
 
                             {{-- Return Volume Quantity count --}}

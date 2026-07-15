@@ -4,24 +4,27 @@ class PosCartManager {
         this.csrfToken = document
             .querySelector('meta[name="csrf-token"]')
             ?.getAttribute("content");
-        this.orderNumber = this.getOrderNumberFromURL();
+        this.invoiceNumber = this.getInvoiceNumberFromURL() || window.posInvoiceNumber || null;
 
-        // 🔥 ADD THIS (for debounce)
         this.priceTimer = null;
 
         this.init();
     }
 
     init() {
-        this.loadCart(this.orderNumber);
+        if (window.initialCart) {
+            this.updateCartUI(window.initialCart);
+        }
+
+        this.loadCart(this.invoiceNumber);
 
         this.setupAddToCartListeners();
         this.setupCartActions();
     }
 
-    getOrderNumberFromURL() {
+    getInvoiceNumberFromURL() {
         const params = new URLSearchParams(window.location.search);
-        return params.get('order_number');
+        return params.get('invoice_number');
     }
 
     getHeaders() {
@@ -36,12 +39,12 @@ class PosCartManager {
     // ===============================
     // LOAD CART
     // ===============================
-    async loadCart(order_number = null) {
+    async loadCart(invoice_number = null) {
         try {
             let url = this.apiUrl;
 
-            if (order_number) {
-                url += `?order_number=${order_number}`;
+            if (invoice_number) {
+                url += `?invoice_number=${invoice_number}`;
             }
 
             const response = await fetch(url, {
@@ -75,7 +78,7 @@ class PosCartManager {
                     product_variant_id: variantId,
                     quantity: quantity,
                     is_pos: 1,
-                    order_number: this.orderNumber
+                    invoice_number: this.invoiceNumber
                 }),
             });
 
@@ -83,7 +86,7 @@ class PosCartManager {
 
             if (data.success) {
                 this.updateCartCount(data.cart.items_count);
-                this.loadCart(this.orderNumber);
+                this.loadCart(this.invoiceNumber);
                 window.showSuccess("Add to cart successfully")
             }
         } catch (error) {
@@ -100,14 +103,14 @@ class PosCartManager {
                 method: "PUT",
                 headers: this.getHeaders(),
                 credentials: "same-origin",
-                body: JSON.stringify({ quantity: quantity, order_number: this.orderNumber }),
+                body: JSON.stringify({ quantity: quantity, invoice_number: this.invoiceNumber }),
             });
 
             const data = await response.json();
 
             if (data.success) {
                 this.updateCartCount(data.cart.items_count);
-                this.loadCart(this.orderNumber);
+                this.loadCart(this.invoiceNumber);
                 window.showSuccess("Cart quantity updated successfully")
             }
         } catch (error) {
@@ -126,7 +129,7 @@ class PosCartManager {
                 credentials: "same-origin",
                 body: JSON.stringify({
                     price: price,
-                    order_number: this.orderNumber
+                    invoice_number: this.invoiceNumber
                 }),
             });
 
@@ -134,7 +137,7 @@ class PosCartManager {
 
             if (data.success) {
                 this.updateCartCount(data.cart.items_count);
-                this.loadCart(this.orderNumber);
+                this.loadCart(this.invoiceNumber);
             } else {
                 alert(data.message || "Failed to update price");
             }
@@ -153,14 +156,14 @@ class PosCartManager {
                 method: "DELETE",
                 headers: this.getHeaders(),
                 credentials: "same-origin",
-                body: JSON.stringify({ order_number: this.orderNumber }),
+                body: JSON.stringify({ invoice_number: this.invoiceNumber }),
             });
 
             const data = await response.json();
 
             if (data.success) {
                 this.updateCartCount(data.cart.items_count);
-                this.loadCart(this.orderNumber);
+                this.loadCart(this.invoiceNumber);
                 window.showSuccess("Cart item removed successfully")
             }
         } catch (error) {
@@ -177,12 +180,13 @@ class PosCartManager {
                 method: "DELETE",
                 headers: this.getHeaders(),
                 credentials: "same-origin",
+                body: JSON.stringify({ invoice_number: this.invoiceNumber }),
             });
 
             const data = await response.json();
 
             if (data.success) {
-                this.loadCart(this.orderNumber);
+                this.loadCart(this.invoiceNumber);
                 window.showSuccess("Cart cleared successfully")
             }
         } catch (error) {
@@ -227,7 +231,7 @@ class PosCartManager {
         // ===== CLEAR CART =====
         const clearBtn = document.getElementById("clearCartBtn");
 
-        if (cart.items && cart.items.length > 0 && this.orderNumber == null) {
+        if (cart.items && cart.items.length > 0 && this.invoiceNumber == null) {
             if (clearBtn) clearBtn.classList.remove("hidden");
         } else {
             if (clearBtn) clearBtn.classList.add("hidden");
@@ -241,14 +245,13 @@ class PosCartManager {
 
         let subtotal = parseFloat(cart.subtotal || 0);
 
-        // 🔥 GET DISCOUNT INPUT
         let discountValue = parseFloat($('#discountInput').val());
         let discountType = $('#discountType').val();
 
         let discount = 0;
 
         if (discountValue && discountValue > 0) {
-            if (discountType === 'percent') {
+            if (discountType === 'percentage') {
                 if (discountValue > 100) discountValue = 100;
                 discount = subtotal * (discountValue / 100);
             } else {
@@ -258,7 +261,6 @@ class PosCartManager {
 
         let total = Math.max(0, subtotal - discount);
 
-        // ===== UPDATE UI =====
         if (subtotalEl) subtotalEl.textContent = subtotal.toFixed(2);
         if (totalEl) totalEl.textContent = total.toFixed(2);
 
@@ -340,24 +342,6 @@ class PosCartManager {
                 }
             }
         });
-
-        // ===============================
-        // 🔥 ADD THIS: PRICE INPUT EVENT
-        // ===============================
-        document.addEventListener("change", (e) => {
-            if (e.target.classList.contains("item-price-input")) {
-
-                const input = e.target;
-                const id = input.dataset.id;
-                const price = parseFloat(input.value);
-
-                if (!price || price <= 0) return;
-
-                input.classList.add("bg-yellow-100");
-
-                this.updatePrice(id, price);
-            }
-        });
     }
 
     // ===============================
@@ -400,12 +384,7 @@ class PosCartManager {
 
                     <div class="flex items-center justify-end gap-1">
                         <span class="text-xs text-gray-500">৳</span>
-                        <input 
-                            type="number" 
-                            value="${item.price}" 
-                            class="w-16 text-xs border rounded text-right item-price-input"
-                            data-id="${item.id}"
-                        />
+                        <span class="text-xs font-semibold text-gray-900">${(parseFloat(item.price) || 0).toFixed(2)}</span>
                     </div>
 
                 </div>

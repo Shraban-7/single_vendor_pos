@@ -20,7 +20,7 @@
             <div class="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
                 <div>
                     <p class="text-sm text-gray-600">Order Number</p>
-                    <p class="text-lg font-semibold text-gray-900">#{{ $order->order_number }}</p>
+                    <p class="text-lg font-semibold text-gray-900">#{{ $sale->order_number }}</p>
                 </div>
                 <div class="bg-green-100 px-3 py-1 rounded-full">
                     <span class="text-sm font-medium text-green-800">Confirmed</span>
@@ -65,7 +65,7 @@
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row gap-3">
             @auth
-            <a href="{{ route('orders.index') }}" class="flex-1 bg-brand-blue text-white py-3 px-6 rounded-lg font-medium hover:bg-brand-blue-600 transition text-center">
+            <a href="{{ route('admin.ecommerce-sales.index') }}" class="flex-1 bg-brand-blue text-white py-3 px-6 rounded-lg font-medium hover:bg-brand-blue-600 transition text-center">
                 <i class="fas fa-shopping-bag mr-2"></i>View Orders
             </a>
             @else
@@ -84,7 +84,7 @@
 <script>
     let timeLeft = 3.5;
     const countdownElement = document.getElementById('countdown');
-    const redirectUrl = "<?php echo auth()->check() ? route('orders.index') : route('track-order.index', ['order_number' => $order->order_number]); ?>";
+    const redirectUrl = "<?php echo auth()->check() ? route('admin.ecommerce-sales.index') : route('track-order.index', ['order_number' => $sale->order_number]); ?>";
 
     const timer = setInterval(() => {
         timeLeft -= 0.1;

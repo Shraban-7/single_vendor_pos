@@ -1,5 +1,5 @@
 <?php
-$pendingOrdersCount = \App\Models\Order::where('status', \App\Enums\OrderStatus::PENDING)->count();
+$pendingSalesCount = \App\Models\Sale::where('status', \App\Enums\SaleStatus::PENDING)->count();
 $user = auth()->user();
 ?>
 
@@ -32,13 +32,13 @@ $user = auth()->user();
 
             <div class="pt-4">
                 <p class="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Sales</p>
-                <a href="{{ route('admin.orders.index') }}"
-                    class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl transition {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.ecommerce-sales.index') }}"
+                    class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl transition {{ request()->routeIs('admin.ecommerce-sales.*') ? 'active' : '' }}">
                     <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-                    <span class="font-heading">Orders</span>
-                    @if ($pendingOrdersCount)
+                    <span class="font-heading">Sales</span>
+                    @if ($pendingSalesCount)
                         <span
-                            class="ml-auto bg-indigo-500/15 text-indigo-300 text-xs font-bold px-2 py-1 rounded-full">{{ $pendingOrdersCount }}</span>
+                            class="ml-auto bg-indigo-500/15 text-indigo-300 text-xs font-bold px-2 py-1 rounded-full">{{ $pendingSalesCount }}</span>
                     @endif
                 </a>
 

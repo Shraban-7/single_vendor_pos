@@ -1,13 +1,13 @@
 @extends('admin.layouts.app')
 
-@section('title', 'POS Orders')
+@section('title', 'POS Sales')
 
 @section('content')
 
 {{-- Page Header --}}
 <div class="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
     <div>
-        <h1 class="text-xl font-bold tracking-tight text-slate-900">POS Orders</h1>
+        <h1 class="text-xl font-bold tracking-tight text-slate-900">POS Sales</h1>
         <p class="text-xs text-slate-500">Manage POS sales, drafts & completed orders</p>
     </div>
     <div class="flex items-center gap-2">
@@ -16,7 +16,7 @@
             <i data-lucide="printer" class="w-3.5 h-3.5"></i>
             <span class="hidden sm:inline">Print</span>
         </button>
-        <button onclick="exportPosOrders()"
+        <button onclick="exportPosSales()"
             class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition">
             <i data-lucide="download" class="w-3.5 h-3.5"></i>
             <span class="hidden sm:inline">Export</span>
@@ -26,26 +26,26 @@
 
 {{-- Compact Filter Framework --}}
 <div class="p-3.5 mb-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-    <form method="GET" action="{{ route('admin.orders.index') }}" class="space-y-2.5">
+    <form method="GET" action="{{ route('admin.sales.index') }}" class="space-y-2.5">
 
         {{-- Status Tabs --}}
         <div class="flex flex-wrap gap-1.5 pb-2.5 border-b border-slate-100">
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'all'])) }}"
+            <a href="{{ route('admin.sales.index', array_merge(request()->except('status'), ['status' => 'all'])) }}"
                 class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition
                    {{ request('status', 'all') === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 All ({{ $statusCounts['all'] ?? 0 }})
             </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'draft'])) }}"
+            <a href="{{ route('admin.sales.index', array_merge(request()->except('status'), ['status' => 'draft'])) }}"
                 class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition
                    {{ request('status') === 'draft' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}">
                 Draft ({{ $statusCounts['draft'] ?? 0 }})
             </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'delivered'])) }}"
+            <a href="{{ route('admin.sales.index', array_merge(request()->except('status'), ['status' => 'delivered'])) }}"
                 class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition
                    {{ request('status') === 'delivered' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' }}">
                 Delivered ({{ $statusCounts['delivered'] ?? 0 }})
             </a>
-            <a href="{{ route('admin.orders.index', array_merge(request()->except('status'), ['status' => 'cancelled'])) }}"
+            <a href="{{ route('admin.sales.index', array_merge(request()->except('status'), ['status' => 'cancelled'])) }}"
                 class="px-2.5 py-1 text-[11px] font-semibold rounded-md transition
                    {{ request('status') === 'cancelled' ? 'bg-rose-600 text-white' : 'bg-rose-50 text-rose-700 hover:bg-rose-100' }}">
                 Cancelled ({{ $statusCounts['cancelled'] ?? 0 }})
@@ -92,7 +92,7 @@
                 <button type="submit" class="flex items-center justify-center flex-1 text-xs text-white transition rounded-lg shadow-sm h-9 bg-slate-800 hover:bg-slate-900" title="Filter">
                     <i data-lucide="filter" class="w-3.5 h-3.5"></i>
                 </button>
-                <a href="{{ route('admin.orders.index') }}" class="flex items-center justify-center transition bg-white border rounded-lg shadow-sm w-9 h-9 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-800" title="Clear">
+                <a href="{{ route('admin.sales.index') }}" class="flex items-center justify-center transition bg-white border rounded-lg shadow-sm w-9 h-9 text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-800" title="Clear">
                     <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
                 </a>
             </div>
@@ -116,7 +116,7 @@
                 </tr>
             </thead>
             <tbody class="text-xs divide-y divide-slate-100">
-                @forelse($orders as $order)
+                @forelse($sales as $sale)
                     <tr class="transition-colors hover:bg-slate-50/60">
                         <td class="px-4 py-2">
                             <div class="flex items-center gap-2.5">
@@ -124,20 +124,20 @@
                                     <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
                                 </div>
                                 <div class="min-w-0">
-                                    <span class="font-semibold text-slate-800 text-sm block truncate max-w-[180px]">#{{ $order->order_number ?? $order->id }}</span>
-                                    <span class="text-[10px] text-slate-400 block mt-0.5">ID: {{ $order->id }}</span>
+                                    <span class="font-semibold text-slate-800 text-sm block truncate max-w-[180px]">#{{ $sale->order_number ?? $sale->id }}</span>
+                                    <span class="text-[10px] text-slate-400 block mt-0.5">ID: {{ $sale->id }}</span>
                                 </div>
                             </div>
                         </td>
                         <td class="px-4 py-2">
-                            <p class="font-medium text-slate-800">{{ $order->shipping_name ?? 'Walk-in Customer' }}</p>
-                            <p class="text-[10px] text-slate-400">{{ $order->shipping_phone ?? '-' }}</p>
+                            <p class="font-medium text-slate-800">{{ $sale->shipping_name ?? 'Walk-in Customer' }}</p>
+                            <p class="text-[10px] text-slate-400">{{ $sale->shipping_phone ?? '-' }}</p>
                         </td>
                         <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
-                            {{ $order->items->count() }} item(s)
+                            {{ $sale->items->count() }} item(s)
                         </td>
                         <td class="px-4 py-2.5 whitespace-nowrap">
-                            <span class="text-sm font-bold text-slate-900">{{ money($order->total) }}</span>
+                            <span class="text-sm font-bold text-slate-900">{{ money($sale->total) }}</span>
                         </td>
                         <td class="px-4 py-2.5 whitespace-nowrap">
                             @php
@@ -147,22 +147,22 @@
                                     'cancelled' => 'bg-rose-50 text-rose-700 border border-rose-100/70',
                                 ];
                             @endphp
-                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded {{ $statusColors[$order->status->value] ?? 'bg-slate-50 text-slate-600 border border-slate-200/80' }}">
-                                {{ $order->status->label() }}
+                            <span class="px-1.5 py-0.5 text-[10px] font-medium rounded {{ $statusColors[$sale->status->value] ?? 'bg-slate-50 text-slate-600 border border-slate-200/80' }}">
+                                {{ $sale->status->label() }}
                             </span>
                         </td>
                         <td class="px-4 py-2.5 whitespace-nowrap">
-                            <span class="font-medium text-slate-700 block">{{ $order->created_at->format('M d, Y') }}</span>
-                            <span class="text-[10px] text-slate-400 block mt-0.5">{{ $order->created_at->format('h:i A') }}</span>
+                            <span class="font-medium text-slate-700 block">{{ $sale->created_at->format('M d, Y') }}</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">{{ $sale->created_at->format('h:i A') }}</span>
                         </td>
                         <td class="px-4 py-2.5 text-right whitespace-nowrap">
                             <div class="flex items-center justify-end gap-0.5">
-                                <a href="{{ route('admin.orders.show', $order->order_number) }}"
+                                <a href="{{ route('admin.sales.show', $sale->order_number) }}"
                                     class="p-1 transition rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100"
                                     title="View">
                                     <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                 </a>
-                                <a href="{{ route('admin.pos.index', ['order_number' => $order->order_number]) }}"
+                                <a href="{{ route('admin.pos.index', ['invoice_number' => $sale->invoice_number]) }}"
                                     class="p-1 transition rounded text-slate-400 hover:text-emerald-600 hover:bg-slate-100"
                                     title="Edit">
                                     <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
@@ -177,8 +177,8 @@
                                 <div class="flex items-center justify-center w-12 h-12 mb-3 border rounded-xl bg-slate-50 text-slate-400 border-slate-100">
                                     <i data-lucide="shopping-cart" class="w-5 h-5"></i>
                                 </div>
-                                <h3 class="font-bold text-slate-900">No POS orders found</h3>
-                                <p class="text-xs text-slate-500 mt-0.5">Start selling from the POS to see orders here.</p>
+                                <h3 class="font-bold text-slate-900">No POS sales found</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">Start selling from the POS to see sales here.</p>
                                 <a href="{{ route('admin.pos.index') }}" class="inline-block mt-3 text-xs font-semibold text-indigo-600 hover:underline">Go to POS</a>
                             </div>
                         </td>
@@ -188,14 +188,14 @@
         </table>
     </div>
 
-    @if($orders->hasPages())
+    @if($sales->hasPages())
         <div class="px-4 py-3 border-t bg-slate-50/50 border-slate-100">
             <div class="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:justify-between text-slate-600">
                 <div>
-                    Showing <span class="font-semibold text-slate-800">{{ $orders->firstItem() }}</span> to <span class="font-semibold text-slate-800">{{ $orders->lastItem() }}</span> of <span class="font-semibold text-slate-800">{{ $orders->total() }}</span> orders
+                    Showing <span class="font-semibold text-slate-800">{{ $sales->firstItem() }}</span> to <span class="font-semibold text-slate-800">{{ $sales->lastItem() }}</span> of <span class="font-semibold text-slate-800">{{ $sales->total() }}</span> sales
                 </div>
                 <div class="font-medium">
-                    {{ $orders->links() }}
+                    {{ $sales->links() }}
                 </div>
             </div>
         </div>
@@ -204,8 +204,8 @@
 
 @push('scripts')
 <script>
-    function exportPosOrders() {
-        window.location.href = '{{ route("admin.orders.index") }}?export=csv&' + window.location.search.slice(1);
+                    function exportPosSales() {
+        window.location.href = '{{ route("admin.sales.index") }}?export=csv&' + window.location.search.slice(1);
     }
 
     document.querySelectorAll('#payment_status, #payment_method').forEach(element => {

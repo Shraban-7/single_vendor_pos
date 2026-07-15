@@ -49,7 +49,7 @@
                 <button type="button" @click="activeTab = 'order'"
                     :class="activeTab === 'order' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'"
                     class="px-5 py-3 text-xs font-semibold border-b-2 transition whitespace-nowrap">
-                    <i data-lucide="shopping-cart" class="w-3.5 h-3.5 inline mr-1.5"></i>Orders
+                    <i data-lucide="shopping-cart" class="w-3.5 h-3.5 inline mr-1.5"></i>Sales
                 </button>
                 <button type="button" @click="activeTab = 'sms'"
                     :class="activeTab === 'sms' ? 'border-slate-900 text-slate-900' : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'"
@@ -231,7 +231,7 @@
 
             {{-- Orders --}}
             <div x-show="activeTab === 'order'" x-transition x-cloak>
-                <h2 class="text-sm font-bold text-slate-900 mb-4">Order Settings</h2>
+                <h2 class="text-sm font-bold text-slate-900 mb-4">Sale Settings</h2>
                 <div class="space-y-4 max-w-2xl">
                     <x-input type="text" name="order_prefix" label="Order Prefix" placeholder="SF"
                         value="{{ old('order_prefix', $all_settings['order']['order_prefix']['value'] ?? '') }}" class="text-xs h-9 bg-slate-50/50 focus:bg-white" />

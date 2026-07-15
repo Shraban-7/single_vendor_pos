@@ -23,7 +23,7 @@
         <p class="text-xl font-bold text-slate-900 tabular-nums">{{ money($widgets['totalRevenue']) }}</p>
     </div>
 
-    {{-- Total Orders --}}
+    {{-- Total Sales --}}
     <div class="p-4 transition bg-white border shadow-sm rounded-2xl border-slate-100 hover:shadow-md">
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center justify-center w-10 h-10 bg-violet-500/10 text-violet-600 rounded-xl">
@@ -31,7 +31,7 @@
             </div>
             <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+8%</span>
         </div>
-        <h3 class="mb-1 text-xs font-medium text-slate-500">Total Orders</h3>
+        <h3 class="mb-1 text-xs font-medium text-slate-500">Total Sales</h3>
         <p class="text-xl font-bold text-slate-900 tabular-nums">{{ number_format($widgets['totalOrders'], 0) }}</p>
     </div>
 
@@ -47,7 +47,7 @@
         <p class="text-xl font-bold text-slate-900 tabular-nums">{{ number_format($widgets['totalCustomers'], 0) }}</p>
     </div>
 
-    {{-- Pending Orders --}}
+    {{-- Pending Sales --}}
     <div class="p-4 transition bg-white border shadow-sm rounded-2xl border-slate-100 hover:shadow-md">
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center justify-center w-10 h-10 bg-amber-500/10 text-amber-600 rounded-xl">
@@ -55,7 +55,7 @@
             </div>
             <span class="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
         </div>
-        <h3 class="mb-1 text-xs font-medium text-slate-500">Pending Orders</h3>
+        <h3 class="mb-1 text-xs font-medium text-slate-500">Pending Sales</h3>
         <p class="text-xl font-bold text-slate-900 tabular-nums">{{ number_format($widgets['pendingOrders'], 0) }}</p>
     </div>
 
@@ -99,7 +99,7 @@
                 <i data-lucide="calendar" class="w-5 h-5"></i>
             </div>
         </div>
-        <h3 class="mb-1 text-xs font-medium text-slate-500">Today's Orders</h3>
+        <h3 class="mb-1 text-xs font-medium text-slate-500">Today's Sales</h3>
         <p class="text-xl font-bold text-slate-900 tabular-nums">{{ number_format($widgets['todayOrders'], 0) }}</p>
     </div>
 
@@ -182,17 +182,17 @@
     </div>
 </div>
 
-{{-- Recent Orders and Activity --}}
+{{-- Recent Sales and Activity --}}
 <div class="grid gap-6 lg:grid-cols-3">
-    {{-- Recent Orders --}}
+    {{-- Recent Sales --}}
     <div class="overflow-hidden bg-white border shadow-sm lg:col-span-2 rounded-2xl border-slate-100">
         <div class="px-6 py-5 border-b border-slate-100">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="mb-1 text-lg font-bold text-slate-900">Recent Orders</h2>
-                    <p class="text-sm text-slate-500">Latest orders from your store</p>
+                    <h2 class="mb-1 text-lg font-bold text-slate-900">Recent Sales</h2>
+                    <p class="text-sm text-slate-500">Latest sales from your store</p>
                 </div>
-                <a href="{{ route('admin.orders.index') }}" class="text-sm font-medium text-indigo-600 transition hover:text-indigo-700">View All</a>
+                <a href="{{ route('admin.ecommerce-sales.index') }}" class="text-sm font-medium text-indigo-600 transition hover:text-indigo-700">View All</a>
             </div>
         </div>
 
@@ -200,7 +200,7 @@
             <table class="w-full">
                 <thead class="border-b bg-slate-50 border-slate-100">
                     <tr>
-                        <th class="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500">Order ID</th>
+                        <th class="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500">Sale ID</th>
                         <th class="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500">Customer</th>
                         <th class="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500">Date</th>
                         <th class="px-6 py-3 text-xs font-semibold tracking-wider text-left uppercase text-slate-500">Total</th>
@@ -240,13 +240,13 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-right whitespace-nowrap">
-                            <a href="{{ route('admin.orders.show', $order['id']) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">View</a>
+                            <a href="{{ route('admin.ecommerce-sales.show', $order['id']) }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">View</a>
                         </td>
                     </tr>
                     @empty
                     <tr>
                         <td colspan="7" class="px-6 py-4 text-sm text-center text-slate-500">
-                            No recent orders available.
+                            No recent sales available.
                         </td>
                     </tr>
                     @endforelse
@@ -272,13 +272,13 @@
                         <p class="text-xs text-slate-500">Create new product</p>
                     </div>
                 </a>
-                <a href="{{ route('admin.orders.index') }}" class="flex items-center gap-3 p-3 transition hover:bg-slate-50 rounded-xl group">
+                <a href="{{ route('admin.ecommerce-sales.index') }}" class="flex items-center gap-3 p-3 transition hover:bg-slate-50 rounded-xl group">
                     <div class="flex items-center justify-center w-10 h-10 transition rounded-lg bg-violet-100 text-violet-600 group-hover:bg-violet-600 group-hover:text-white">
                         <i data-lucide="shopping-cart" class="w-5 h-5"></i>
                     </div>
                     <div>
-                        <p class="text-sm font-semibold text-slate-900">View Orders</p>
-                        <p class="text-xs text-slate-500">Manage all orders</p>
+                        <p class="text-sm font-semibold text-slate-900">View Sales</p>
+                        <p class="text-xs text-slate-500">Manage all sales</p>
                     </div>
                 </a>
                 <a href="{{ route('admin.coupons.create') }}" class="flex items-center gap-3 p-3 transition hover:bg-slate-50 rounded-xl group">

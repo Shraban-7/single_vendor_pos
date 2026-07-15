@@ -115,7 +115,7 @@
                     <i data-lucide="shopping-cart" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Avg Orders</p>
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Avg Sales</p>
                     <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ number_format($avgOrdersPerCustomerCurrent, 1) }}</p>
                 </div>
             </div>
@@ -172,7 +172,7 @@
                         <thead class="bg-slate-50 sticky top-0 z-10">
                             <tr class="text-slate-500">
                                 <th class="px-3 py-2 text-left font-semibold">Customer</th>
-                                <th class="px-3 py-2 text-right font-semibold">Orders</th>
+                                <th class="px-3 py-2 text-right font-semibold">Sales</th>
                                 <th class="px-3 py-2 text-right font-semibold">Spent</th>
                             </tr>
                         </thead>

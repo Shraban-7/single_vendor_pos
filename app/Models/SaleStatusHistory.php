@@ -2,33 +2,33 @@
 
 namespace App\Models;
 
-use App\Enums\OrderStatus;
+use App\Enums\SaleStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class OrderStatusHistory extends Model
+class SaleStatusHistory extends Model
 {
     use HasFactory;
 
+    protected $table = 'sale_status_histories';
+
     protected $fillable = [
-        'order_id',
+        'sale_id',
         'status',
         'comment',
         'updated_by',
     ];
 
     protected $casts = [
-        'status' => OrderStatus::class,
+        'status' => SaleStatus::class,
     ];
 
-    // Relationships
-    public function order(): BelongsTo
+    public function sale(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Sale::class);
     }
 
-    // Helpers
     public function getStatusLabelAttribute(): string
     {
         return $this->status->label();

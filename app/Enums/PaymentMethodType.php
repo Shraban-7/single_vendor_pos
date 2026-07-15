@@ -9,6 +9,7 @@ enum PaymentMethodType: string
     case BANK = 'bank';
     case MOBILE_BANKING = 'mobile_banking';
     case OTHER = 'other';
+    case NONE = 'none';
 
     public function label(): string
     {
@@ -18,17 +19,7 @@ enum PaymentMethodType: string
             self::BANK => 'Bank',
             self::MOBILE_BANKING => 'Mobile Banking',
             self::OTHER => 'Other',
-        };
-    }
-
-    public function label_bn(): string
-    {
-        return match ($this) {
-            self::CASH => 'নগদ',
-            self::CARD => 'কার্ড',
-            self::BANK => 'ব্যাংক',
-            self::MOBILE_BANKING => 'মোবাইল ব্যাংকিং',
-            self::OTHER => 'অন্যান্য',
+            self::NONE => 'None',
         };
     }
 }

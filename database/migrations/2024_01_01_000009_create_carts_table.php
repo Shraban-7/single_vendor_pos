@@ -14,23 +14,20 @@ return new class extends Migration
         Schema::create('carts', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->nullable();
-            $table->string('session_id')->nullable(); // For guest carts
-            $table->unsignedBigInteger('coupon_id')->nullable();
+            $table->string('invoice_number')->nullable();
             $table->timestamps();
 
             $table->index(['user_id']);
-            $table->index(['session_id']);
         });
 
         Schema::create('cart_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('cart_id');
             $table->unsignedBigInteger('product_id');
-            $table->unsignedBigInteger('product_variant_id')->nullable();
             $table->integer('quantity')->default(1);
             $table->timestamps();
 
-            $table->unique(['cart_id', 'product_id', 'product_variant_id']);
+            $table->unique(['cart_id', 'product_id']);
         });
     }
 

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReviewController;
+use App\Http\Controllers\Admin\SaleController;
 use App\Http\Controllers\Admin\SaleReturnController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StaticPageController;
@@ -54,6 +55,8 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
         Route::get('/', [SaleReturnController::class, 'index'])->name('index');
         Route::get('/{return}', [SaleReturnController::class, 'show'])->name('show');
     });
+
+    Route::post('/sales/{id}/return', [SaleReturnController::class, 'processReturn'])->name('sales.return');
 
     Route::prefix('expenses')->as('expenses.')->group(function () {
         Route::get('/', [ExpenseController::class, 'index'])->name('index');
@@ -123,10 +126,20 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
         });
     });
 
-    Route::prefix('orders')->as('orders.')->group(function () {
+    Route::prefix('sales')->as('sales.')->group(function () {
             Route::get('/', [PosController::class, 'posSales'])->name('index');
             Route::get('/{order_number}', [PosController::class, 'saleShow'])->name('show');
             Route::delete('/{id}', [PosController::class, 'saleDelete'])->name('destroy');
+    });
+
+    Route::prefix('ecommerce-sales')->as('ecommerce-sales.')->group(function () {
+        Route::get('/', [SaleController::class, 'index'])->name('index');
+        Route::get('/{order_number}', [SaleController::class, 'show'])->name('show');
+        Route::post('/{id}/status', [SaleController::class, 'updateStatus'])->name('update-status');
+        Route::post('/{id}/tracking', [SaleController::class, 'updateTracking'])->name('update-tracking');
+        Route::post('/{id}/notes', [SaleController::class, 'updateNotes'])->name('update-notes');
+        Route::delete('/{id}', [SaleController::class, 'destroy'])->name('destroy');
+        Route::get('/{orderNumber}/invoice', [SaleController::class, 'invoice'])->name('invoice');
     });
 
     Route::prefix('purchases')->name('purchases.')->group(function () {

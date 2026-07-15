@@ -9,7 +9,7 @@
     <div>
         <h1 class="text-xl font-bold tracking-tight text-slate-900">Return #{{ $return->return_number }}</h1>
         <p class="text-xs font-medium text-slate-500 mt-0.5">
-            Originating Order: <span class="font-mono text-slate-700 font-semibold">{{ $return->order->order_number ?? 'N/A' }}</span>
+            Originating Order: <span class="font-mono text-slate-700 font-semibold">{{ $return->sale->order_number ?? 'N/A' }}</span>
         </p>
     </div>
     <div>

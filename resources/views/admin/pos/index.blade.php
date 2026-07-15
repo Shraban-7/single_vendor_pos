@@ -13,32 +13,33 @@
                 </h1>
 
                 <div class="flex items-center gap-2">
-                    @if($cashRegister)
+                    @if ($cashRegister)
                         @php
                             $data = $cashRegisterData ?? [];
-                            $opening = $data['opening_amount'] ?? $cashRegister->opening_amount ?? 0;
-                            $sales   = $data['sales_amount'] ?? 0;
+                            $opening = $data['opening_amount'] ?? ($cashRegister->opening_amount ?? 0);
+                            $sales = $data['sales_amount'] ?? 0;
                             $expense = $data['expense'] ?? 0;
                             $returns = $data['sales_returns'] ?? 0;
                             $closing = $opening + $sales - $expense - $returns;
                             $isClosed = $cashRegister->closed_at;
                         @endphp
 
-                        <button
-                            onclick="document.getElementById('closeRegisterModal').classList.remove('hidden')"
+                        <button onclick="document.getElementById('closeRegisterModal').classList.remove('hidden')"
                             class="inline-flex items-center gap-1.5 px-3 h-9 text-xs font-semibold rounded-lg shadow-sm transition
                                 {{ $isClosed
                                     ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200/60'
                                     : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60' }}">
                             <i data-lucide="{{ $isClosed ? 'rotate-cw' : 'circle-dollar-sign' }}" class="w-3.5 h-3.5"></i>
-                            @if($isClosed)
+                            @if ($isClosed)
                                 Reopen ({{ money($cashRegister->closing_amount) }})
                             @else
                                 Close ({{ money($closing) }})
                             @endif
                         </button>
                     @else
-                        <div class="px-2.5 py-1 bg-amber-50 border border-amber-200/60 rounded-lg text-[11px] text-amber-700 font-medium">Register Not Opened</div>
+                        <div
+                            class="px-2.5 py-1 bg-amber-50 border border-amber-200/60 rounded-lg text-[11px] text-amber-700 font-medium">
+                            Register Not Opened</div>
                     @endif
 
                     <button id="clearCartBtn"
@@ -67,7 +68,8 @@
                 </div>
                 <div id="ordersList" class="flex-1 overflow-y-auto p-4 space-y-2 text-xs"></div>
                 <div class="p-3 border-t border-slate-200 text-right">
-                    <button onclick="closeModal()" class="h-9 px-3.5 inline-flex items-center text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+                    <button onclick="closeModal()"
+                        class="h-9 px-3.5 inline-flex items-center text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
                         Close
                     </button>
                 </div>
@@ -80,13 +82,15 @@
                 <div class="bg-white border-b border-slate-200 p-3 shrink-0">
                     <div class="flex flex-col sm:flex-row gap-2">
                         <div class="flex-1 relative">
-                            <i data-lucide="search" class="absolute w-3.5 h-3.5 left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <i data-lucide="search"
+                                class="absolute w-3.5 h-3.5 left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input type="text" id="searchInput" placeholder="Search products by name..."
                                 class="w-full pl-8 pr-3 h-9 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50 focus:bg-white">
                         </div>
 
                         <div class="flex-1 relative">
-                            <i data-lucide="scan-barcode" class="absolute w-3.5 h-3.5 left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <i data-lucide="scan-barcode"
+                                class="absolute w-3.5 h-3.5 left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <input type="text" id="skuInput" placeholder="Scan or enter SKU..."
                                 class="w-full pl-8 pr-3 h-9 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50 focus:bg-white">
                         </div>
@@ -94,7 +98,7 @@
                         <select id="categoryFilter"
                             class="h-9 px-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
                             <option value="">All Categories</option>
-                            @foreach($categories as $category)
+                            @foreach ($categories as $category)
                                 <option value="{{ $category->id }}">{{ $category->name }}</option>
                             @endforeach
                         </select>
@@ -105,7 +109,7 @@
                 <div class="flex-1 overflow-y-auto p-4">
                     <div id="productsGrid"
                         class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2">
-                        @for($i = 0; $i < 20; $i++)
+                        @for ($i = 0; $i < 20; $i++)
                             <div class="product-skeleton animate-pulse bg-white rounded-lg border border-gray-200 p-0">
                                 <div class="h-24 bg-gray-200 rounded-t-lg"></div>
                                 <div class="p-2 space-y-2">
@@ -120,7 +124,8 @@
                     </div>
 
                     <div id="noProducts" class="hidden flex-col items-center justify-center py-16">
-                        <div class="flex items-center justify-center w-14 h-14 mb-3 border rounded-xl bg-slate-50 text-slate-400 border-slate-100">
+                        <div
+                            class="flex items-center justify-center w-14 h-14 mb-3 border rounded-xl bg-slate-50 text-slate-400 border-slate-100">
                             <i data-lucide="package-open" class="w-6 h-6"></i>
                         </div>
                         <p class="text-xs font-semibold text-slate-700">No products found</p>
@@ -132,11 +137,12 @@
             <div class="w-full sm:w-96 lg:w-105 bg-white border-l border-slate-200 flex flex-col">
                 {{-- Customer Info --}}
                 <div class="p-3 border-b border-slate-200 bg-slate-50/70 relative">
-                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Customer</label>
+                    <label
+                        class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Customer</label>
                     <div class="grid grid-cols-2 gap-1.5">
                         <div class="relative">
                             <input type="text" id="customerName" name="customer_name"
-                                value="{{ request()->order_number ? $order->customer?->name : '' }}"
+                                value="{{ request()->invoice_number ? $sale->customer?->name : '' }}"
                                 placeholder="Customer Name" autocomplete="off"
                                 class="w-full h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400">
                             <div id="customerNameDropdown"
@@ -145,13 +151,27 @@
                         </div>
                         <div class="relative">
                             <input type="text" id="customerPhone" name="customer_phone"
-                                value="{{ request()->order_number ? $order->customer?->phone : '' }}"
+                                value="{{ request()->invoice_number ? $sale->customer?->phone : '' }}"
                                 placeholder="Phone Number" autocomplete="off"
                                 class="w-full h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400">
                             <div id="customerPhoneDropdown"
                                 class="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 hidden max-h-60 overflow-y-auto">
                             </div>
                         </div>
+                    </div>
+
+                    <div class="mt-1.5">
+                        <label
+                            class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Sold By</label>
+                        <select id="employeeId" name="employee_id"
+                            class="w-full h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400">
+                            <option value="">Select Employee</option>
+                            @foreach ($employees as $employee)
+                                <option value="{{ $employee->id }}"
+                                    {{ isset($sale) && $sale->employee_id == $employee->id ? 'selected' : '' }}>
+                                    {{ $employee->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 
@@ -162,7 +182,8 @@
                     </h3>
 
                     <div id="emptyCart" class="flex flex-col items-center justify-center py-12 text-center">
-                        <div class="flex items-center justify-center w-10 h-10 mb-2.5 border rounded-lg bg-slate-50 text-slate-400 border-slate-100">
+                        <div
+                            class="flex items-center justify-center w-10 h-10 mb-2.5 border rounded-lg bg-slate-50 text-slate-400 border-slate-100">
                             <i data-lucide="shopping-cart" class="w-4 h-4"></i>
                         </div>
                         <p class="text-xs font-semibold text-slate-700">Cart is empty</p>
@@ -179,14 +200,17 @@
                         <div class="flex gap-1.5 mb-2">
                             <select id="discountType"
                                 class="h-8 px-1.5 text-[11px] border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400">
-                                <option value="fixed" {{ isset($order) && $order->discount_type == 'fixed' ? 'selected' : '' }}>৳ Fixed</option>
-                                <option value="percent" {{ isset($order) && $order->discount_type == 'percent' ? 'selected' : '' }}>%</option>
+                                <option value="fixed"
+                                    {{ isset($sale) && $sale->discount_type == 'fixed' ? 'selected' : '' }}>৳ Fixed</option>
+                                <option value="percentage"
+                                    {{ isset($sale) && $sale->discount_type == 'percentage' ? 'selected' : '' }}>%</option>
                             </select>
                             <input type="number" id="discountInput" placeholder="Enter discount"
-                                value="{{ isset($order) ? $order->discount_amount : '' }}"
+                                value="{{ isset($sale) ? $sale->discount_value : '' }}"
                                 class="flex-1 h-8 px-2 text-[11px] border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400">
                         </div>
-                        <div id="discountApplied" class="hidden flex items-center justify-between text-emerald-600 text-[11px] font-semibold">
+                        <div id="discountApplied"
+                            class="hidden flex items-center justify-between text-emerald-600 text-[11px] font-semibold">
                             <span><i data-lucide="tag" class="w-3 h-3 mr-1 inline"></i>Discount Applied</span>
                             <span class="font-semibold">-৳<span id="discountAmount">0.00</span></span>
                         </div>
@@ -212,11 +236,12 @@
                         <div class="flex-1">
                             <div class="flex justify-between mb-0.5">
                                 <label class="text-[10px] font-medium text-slate-500">Due</label>
-                                <div class="text-[11px] font-bold text-rose-600">৳<span id="dueAmount">{{ isset($order) ? $order->due : 0 }}</span></div>
+                                <div class="text-[11px] font-bold text-rose-600">৳<span
+                                        id="dueAmount">{{ isset($sale) ? $sale->due : 0 }}</span></div>
                             </div>
                             <div class="flex gap-1">
                                 <input type="number" id="paidAmount" name="paid" min="0" step="0.01"
-                                    value="{{ isset($order) ? $order->paid : '' }}"
+                                    value="{{ isset($sale) ? $sale->paid : '' }}"
                                     class="w-full h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
                                     placeholder="Enter paid amount" />
                                 <button type="button" id="fullPaidBtn"
@@ -231,13 +256,14 @@
                         <div class="w-full">
                             <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Cash Received</label>
                             <input type="number" id="cash_received" name="cash_received" min="0" step="0.01"
-                                value="{{ isset($order) ? $order->cash_received : '' }}"
+                                value="{{ isset($sale) ? $sale->cash_received : '' }}"
                                 class="w-full h-8 px-2 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-slate-400"
                                 placeholder="Cash received" />
                         </div>
                         <div class="w-full">
                             <label class="block text-[10px] font-medium text-slate-500 mb-0.5">Cash Returned</label>
-                            <input type="number" id="cash_returned" name="cash_returned" value="{{ isset($order) ? $order->cash_returned : 0 }}" readonly
+                            <input type="number" id="cash_returned" name="cash_returned"
+                                value="{{ isset($sale) ? $sale->cash_returned : 0 }}" readonly
                                 class="w-full h-8 px-2 text-xs border border-slate-200 rounded-lg bg-slate-100" />
                         </div>
                     </div>
@@ -246,35 +272,59 @@
                     <div class="mb-3">
                         <div class="grid grid-cols-5 gap-1">
                             <label class="cursor-pointer">
-                                <input type="radio" name="payment_method" value="none" class="hidden peer payment_method" {{ !$order || (isset($order) && $order->payment_method->value==='none') ? 'checked' : '' }}>
-                                <div class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-slate-600 peer-checked:bg-slate-100 peer-checked:text-slate-700 transition">None</div>
+                                <input type="radio" name="payment_method" value="none"
+                                    class="hidden peer payment_method"
+                                    {{ !isset($sale) || $sale->payment_method === 'none' ? 'checked' : '' }}>
+                                <div
+                                    class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-slate-600 peer-checked:bg-slate-100 peer-checked:text-slate-700 transition">
+                                    None</div>
                             </label>
+
                             <label class="cursor-pointer">
-                                <input type="radio" name="payment_method" value="cash" class="hidden peer payment_method" {{ isset($order) && $order->payment_method->value === 'cash' ? 'checked' : '' }}>
-                                <div class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-600 transition">Cash</div>
+                                <input type="radio" name="payment_method" value="cash"
+                                    class="hidden peer payment_method"
+                                    {{ isset($sale) && $sale->payment_method === 'cash' ? 'checked' : '' }}>
+                                <div
+                                    class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-600 transition">
+                                    Cash</div>
                             </label>
+
                             <label class="cursor-pointer">
-                                <input type="radio" name="payment_method" value="card" class="hidden peer payment_method" {{ isset($order) && $order->payment_method->value === 'card' ? 'checked' : '' }}>
-                                <div class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-600 transition">Card</div>
+                                <input type="radio" name="payment_method" value="card"
+                                    class="hidden peer payment_method"
+                                    {{ isset($sale) && $sale->payment_method === 'card' ? 'checked' : '' }}>
+                                <div
+                                    class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-indigo-600 peer-checked:bg-indigo-50 peer-checked:text-indigo-600 transition">
+                                    Card</div>
                             </label>
+
                             <label class="cursor-pointer">
-                                <input type="radio" name="payment_method" value="bkash" class="hidden peer payment_method" {{ isset($order) && $order->payment_method->value === 'bkash' ? 'checked' : '' }}>
-                                <div class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-pink-600 peer-checked:bg-pink-50 peer-checked:text-pink-600 transition font-semibold">bKash</div>
+                                <input type="radio" name="payment_method" value="bkash"
+                                    class="hidden peer payment_method"
+                                    {{ isset($sale) && $sale->payment_method === 'bkash' ? 'checked' : '' }}>
+                                <div
+                                    class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-pink-600 peer-checked:bg-pink-50 peer-checked:text-pink-600 transition font-semibold">
+                                    bKash</div>
                             </label>
+
                             <label class="cursor-pointer">
-                                <input type="radio" name="payment_method" value="nagad" class="hidden peer payment_method" {{ isset($order) && $order->payment_method->value === 'nagad' ? 'checked' : '' }}>
-                                <div class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-orange-600 peer-checked:bg-orange-50 peer-checked:text-orange-600 transition">Nagad</div>
+                                <input type="radio" name="payment_method" value="nagad"
+                                    class="hidden peer payment_method"
+                                    {{ isset($sale) && $sale->payment_method === 'nagad' ? 'checked' : '' }}>
+                                <div
+                                    class="flex flex-col items-center justify-center py-1.5 rounded-lg border border-slate-200 text-slate-500 text-[10px] peer-checked:border-orange-600 peer-checked:bg-orange-50 peer-checked:text-orange-600 transition">
+                                    Nagad</div>
                             </label>
                         </div>
                     </div>
 
                     {{-- Action Buttons --}}
                     <button id="updateOrderBtn"
-                        class="{{ isset($order) ? '' : 'hidden' }} w-full h-9 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                        class="{{ isset($sale) ? '' : 'hidden' }} w-full h-9 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                         <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Update
                     </button>
 
-                    <div class="grid grid-cols-2 gap-1.5 {{ isset($order) ? 'hidden' : '' }}">
+                    <div class="grid grid-cols-2 gap-1.5 {{ isset($sale) ? 'hidden' : '' }}">
                         <button id="holdOrderBtn" disabled
                             class="h-9 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed">
                             <i data-lucide="pause" class="w-3.5 h-3.5"></i> Hold
@@ -289,8 +339,7 @@
         </div>
 
         {{-- Variant Selection Modal --}}
-        <div id="variantModal"
-            class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div id="variantModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-xl">
                 <div class="px-4 py-3 border-b border-slate-200">
                     <div class="flex items-start justify-between">
@@ -307,18 +356,21 @@
                 <div class="p-4 overflow-y-auto max-h-[calc(90vh-140px)]">
                     <div id="modalContent">
                         <div class="mb-4">
-                            <img id="modalProductImage" src="" alt="" class="w-full h-56 object-cover rounded-lg border border-slate-200">
+                            <img id="modalProductImage" src="" alt=""
+                                class="w-full h-56 object-cover rounded-lg border border-slate-200">
                         </div>
 
                         <div class="space-y-2">
-                            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Available Variants</h3>
+                            <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Available
+                                Variants</h3>
                             <div id="variantsList" class="grid gap-1.5"></div>
 
                             <div id="noVariantsMessage" class="hidden text-center py-6">
                                 <p class="text-xs text-slate-500">No variants available for this product</p>
                                 <button id="addWithoutVariantBtn"
                                     class="mt-3 h-9 px-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition shadow-sm">
-                                    <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Add to Cart - ৳<span id="noVariantPrice">0.00</span>
+                                    <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Add to Cart - ৳<span
+                                        id="noVariantPrice">0.00</span>
                                 </button>
                             </div>
                         </div>
@@ -331,15 +383,20 @@
     @include('admin.pos.partials.cash-register')
 
     @push('scripts')
-        <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+            integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+        <script>
+            window.initialCart = @json($cartData ?? null);
+            window.posInvoiceNumber = "{{ request()->invoice_number ?? '' }}";
+        </script>
         <script src="{{ asset('js/pos_cart.js') }}"></script>
         <script>
-            document.addEventListener("DOMContentLoaded", function () {
+            document.addEventListener("DOMContentLoaded", function() {
                 getProducts();
 
                 const register = @json($cashRegister ?? null);
 
-                const openModal  = document.getElementById('openRegisterModal');
+                const openModal = document.getElementById('openRegisterModal');
                 const closeModal = document.getElementById('closeRegisterModal');
 
                 const openingInput = document.querySelector('[name="opening_amount"]');
@@ -371,22 +428,26 @@
                 if (!register) {
                     showOpenModal();
 
-                    history.pushState({ modal: 'open' }, '');
+                    history.pushState({
+                        modal: 'open'
+                    }, '');
 
-                    window.onpopstate = function () {
+                    window.onpopstate = function() {
                         showOpenModal();
-                        history.pushState({ modal: 'open' }, '');
+                        history.pushState({
+                            modal: 'open'
+                        }, '');
                     };
                 }
 
                 // =========================
                 // CLOSE BUTTON EVENTS
                 // =========================
-                document.getElementById('closeCloseBtn')?.addEventListener('click', function () {
+                document.getElementById('closeCloseBtn')?.addEventListener('click', function() {
                     hideCloseModal();
                 });
 
-                document.getElementById('cancelCloseBtn')?.addEventListener('click', function () {
+                document.getElementById('cancelCloseBtn')?.addEventListener('click', function() {
                     hideCloseModal();
                 });
 
@@ -394,7 +455,7 @@
                 // PREVENT REOPEN BUG ON SUBMIT
                 // =========================
                 document.querySelectorAll('form[action*="cashRegister.close"]').forEach(form => {
-                    form.addEventListener('submit', function () {
+                    form.addEventListener('submit', function() {
                         hideCloseModal();
                         history.replaceState({}, document.title);
                     });
@@ -426,21 +487,30 @@
                 $.ajax({
                     url: "{{ route('admin.pos.getProducts') }}",
                     method: "GET",
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success && response.data.length > 0) {
                             var html = '';
                             var imagePath = '{{ asset('storage') }}/';
                             var defaultImage = '{{ asset('assets/images/default.png') }}';
                             response.data.forEach(function(product) {
                                 var img = product.image ? imagePath + product.image : defaultImage;
-                                var stockClass = product.stock_quantity > 0 ? 'text-emerald-600' : 'text-rose-600';
-                                html += '<div class="product-card bg-white rounded-lg border border-slate-200 p-0 cursor-pointer transition hover:shadow-md hover:-translate-y-0.5 active:translate-y-0" data-product=\'' + JSON.stringify(product) + '\'>';
-                                html += '<img src="' + img + '" alt="' + product.name + '" class="w-full h-24 object-cover rounded-t-lg" loading="lazy" onerror="this.src=\'' + defaultImage + '\'">';
+                                var stockClass = product.stock_quantity > 0 ? 'text-emerald-600' :
+                                    'text-rose-600';
+                                html +=
+                                    '<div class="product-card bg-white rounded-lg border border-slate-200 p-0 cursor-pointer transition hover:shadow-md hover:-translate-y-0.5 active:translate-y-0" data-product=\'' +
+                                    JSON.stringify(product) + '\'>';
+                                html += '<img src="' + img + '" alt="' + product.name +
+                                    '" class="w-full h-24 object-cover rounded-t-lg" loading="lazy" onerror="this.src=\'' +
+                                    defaultImage + '\'">';
                                 html += '<div class="p-2">';
-                                html += '<p class="text-xs font-semibold text-slate-800 line-clamp-2 mb-1">' + product.name + '</p>';
+                                html +=
+                                    '<p class="text-xs font-semibold text-slate-800 line-clamp-2 mb-1">' +
+                                    product.name + '</p>';
                                 html += '<div class="flex items-center justify-between">';
-                                html += '<span class="text-sm font-bold text-indigo-600">৳' + parseFloat(product.selling_price).toFixed(2) + '</span>';
-                                html += '<span class="text-[10px] font-medium ' + stockClass + '">' + parseFloat(product.stock_quantity).toFixed(0) + '</span>';
+                                html += '<span class="text-sm font-bold text-indigo-600">৳' + parseFloat(
+                                    product.selling_price).toFixed(2) + '</span>';
+                                html += '<span class="text-[10px] font-medium ' + stockClass + '">' +
+                                    parseFloat(product.stock_quantity).toFixed(0) + '</span>';
                                 html += '</div></div></div>';
                             });
                             $('#productsGrid').html(html);
@@ -450,20 +520,22 @@
                             $('#noProducts').removeClass('hidden').addClass('flex');
                         }
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         console.error("Error fetching products: ", xhr);
-                        $('#productsGrid').html('<p class="text-red-500 text-center py-4 col-span-full font-semibold">Failed to load products. Please try again.</p>');
+                        $('#productsGrid').html(
+                            '<p class="text-red-500 text-center py-4 col-span-full font-semibold">Failed to load products. Please try again.</p>'
+                            );
                     }
                 });
             }
         </script>
         <script>
-            $(document).ready(function () {
+            $(document).ready(function() {
 
                 var selectedProduct = null;
                 var paymentMethod = 'cash';
                 const posOrdersUrl = "{{ route('admin.pos.loadOrders') }}";
-                const orderId = "{{ $order->id ?? '' }}";
+                const orderId = "{{ $sale->id ?? '' }}";
 
                 // =========================
                 // INIT
@@ -476,7 +548,7 @@
                 // PRODUCT CLICK
                 // =========================
                 function attachProductCardHandlers() {
-                    $('#productsGrid').on('click', '.product-card', function () {
+                    $('#productsGrid').on('click', '.product-card', function() {
                         var productData = $(this).data('product');
                         if (productData) {
                             selectProduct(productData);
@@ -508,7 +580,7 @@
 
                     var visibleCount = 0;
 
-                    $('.product-card').each(function () {
+                    $('.product-card').each(function() {
                         var productData = $(this).data('product');
                         if (!productData) return;
 
@@ -532,7 +604,7 @@
                 let skuScanLock = false;
                 let skuScanTimeout = null;
 
-                $('#skuInput').on('input', function () {
+                $('#skuInput').on('input', function() {
                     let sku = $(this).val().trim().toLowerCase();
 
                     if (!sku) return;
@@ -547,7 +619,7 @@
                         let foundProduct = null;
                         let foundVariant = null;
 
-                        $('.product-card').each(function () {
+                        $('.product-card').each(function() {
                             let productData = $(this).data('product');
                             if (!productData) return;
 
@@ -624,10 +696,11 @@
 
                         $('#noVariantsMessage').addClass('hidden');
 
-                        product.variants.forEach(function (variant) {
+                        product.variants.forEach(function(variant) {
 
                             var disabled = variant.stock <= 0 ? 'disabled' : '';
-                            var borderClass = variant.stock > 0 ? 'border-slate-200 hover:border-indigo-400' : 'border-rose-200 bg-rose-50';
+                            var borderClass = variant.stock > 0 ? 'border-slate-200 hover:border-indigo-400' :
+                                'border-rose-200 bg-rose-50';
                             var stockText = variant.stock > 0 ? `Stock: ${variant.stock}` : 'Out of Stock';
                             var stockClass = variant.stock > 0 ? 'text-emerald-600' : 'text-rose-600';
 
@@ -652,7 +725,7 @@
                         });
 
                         // click
-                        $('.variant-btn').on('click', function () {
+                        $('.variant-btn').on('click', function() {
                             var variantId = $(this).data('variant-id');
                             var variant = product.variants.find(v => v.id == variantId);
 
@@ -672,13 +745,13 @@
                 // CLOSE MODAL
                 // =========================
 
-                $('#variantModal').on('click', function (e) {
+                $('#variantModal').on('click', function(e) {
                     if (e.target === this) {
                         closeVariantModal();
                     }
                 });
 
-               $('#closeModalBtn').on('click', function () {
+                $('#closeModalBtn').on('click', function() {
                     closeVariantModal();
                 });
 
@@ -702,12 +775,12 @@
                 }
 
                 // close button
-                $(document).on('click', '#closeOrdersModal', function () {
+                $(document).on('click', '#closeOrdersModal', function() {
                     closeModal();
                 });
 
                 // click outside to close
-                $(document).on('click', '#ordersModal', function (e) {
+                $(document).on('click', '#ordersModal', function(e) {
                     if (e.target.id === 'ordersModal') {
                         closeModal();
                     }
@@ -721,21 +794,24 @@
                     $.ajax({
                         url: posOrdersUrl,
                         method: 'GET',
-                        data: { type: type },
-                        success: function (res) {
+                        data: {
+                            type: type
+                        },
+                        success: function(res) {
                             let html = '';
 
                             if (res.data.length === 0) {
                                 html = '<p class="text-center text-gray-500">No orders found</p>';
                             } else {
-                                let orderUrlTemplate = "{{ route('admin.orders.show', ':id') }}";
+                                let orderUrlTemplate = "{{ route('admin.sales.show', ':id') }}";
                                 let posUrlTemplate = "{{ route('admin.pos.index') }}";
 
                                 res.data.forEach(order => {
                                     let url = '';
 
                                     if (order.status === 'draft') {
-                                        url = `${posUrlTemplate}?order_number=${order.order_number}`;
+                                        url =
+                                            `${posUrlTemplate}?invoice_number=${order.invoice_number}`;
                                     } else {
                                         url = orderUrlTemplate.replace(':id', order.id);
                                     }
@@ -744,7 +820,7 @@
                                         <div class="flex justify-between py-2.5 px-2 rounded hover:bg-slate-50 transition">
                                             <div>
                                                 <p class="font-semibold text-xs">
-                                                    <a href="${url}" class="text-indigo-600 hover:underline">#${order.order_number}</a>
+                                                    <a href="${url}" class="text-indigo-600 hover:underline">#${order.invoice_number}</a>
                                                 </p>
                                                 <p class="text-[11px] text-slate-500">${order.customer_name}</p>
                                             </div>
@@ -763,12 +839,12 @@
                 }
 
                 // buttons
-                $(document).on('click', '#draftOrdersBtn', function () {
+                $(document).on('click', '#draftOrdersBtn', function() {
                     $('#ordersModalTitle').text('Draft Orders');
                     loadOrders('draft');
                 });
 
-                $(document).on('click', '#salesOrdersBtn', function () {
+                $(document).on('click', '#salesOrdersBtn', function() {
                     $('#ordersModalTitle').text('Today Sales');
                     loadOrders('sales');
                 });
@@ -796,7 +872,7 @@
                     selectedProduct = null;
                 }
 
-                $('#addWithoutVariantBtn').on('click', function () {
+                $('#addWithoutVariantBtn').on('click', function() {
                     if (selectedProduct) {
                         addToCartWithoutVariant(selectedProduct);
                     }
@@ -819,7 +895,7 @@
                 // =========================
                 // PAYMENT METHOD
                 // =========================
-                $('.payment-method-btn').on('click', function () {
+                $('.payment-method-btn').on('click', function() {
                     $('.payment-method-btn')
                         .removeClass('bg-blue-600 text-white')
                         .addClass('bg-gray-200');
@@ -832,9 +908,9 @@
 
                 // Discount
 
-                $('#discountInput, #discountType').on('input change', function () {
+                $('#discountInput, #discountType').on('input change', function() {
                     if (window.posCartManager) {
-                        window.posCartManager.loadCart(window.posCartManager.orderNumber);
+                        window.posCartManager.loadCart(window.posCartManager.invoiceNumber);
                     }
                 });
 
@@ -843,12 +919,12 @@
                 // =========================
                 // COMPLETE ORDER (API CART)
                 // =========================
-                async function submitOrder(url, method = 'POST',shouldPrint = true) {
+                async function submitOrder(url, method = 'POST', shouldPrint = true) {
 
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const orderNumber = urlParams.get('order_number');
-
-                    const fetchURL = orderNumber ? `/admin/pos/cart?order_number=${orderNumber}` : `/admin/pos/cart`;
+                    const fetchURL = `/admin/pos/cart` +
+                        (window.posCartManager && window.posCartManager.invoiceNumber
+                            ? `?invoice_number=${window.posCartManager.invoiceNumber}`
+                            : '');
 
                     const res = await fetch(fetchURL);
                     const data = await res.json();
@@ -865,11 +941,14 @@
                     const payload = {
                         customer_name: $('#customerName').val(),
                         customer_phone: $('#customerPhone').val(),
+                        employee_id: $('#employeeId').val() || null,
                         payment_method: $('input[name="payment_method"]:checked').val(),
-                        cart_id : data.cart.id,
+                        cart_id: data.cart.id,
                         items: data.cart.items,
                         subtotal: data.cart.subtotal,
                         discount: discount,
+                        discount_value: parseFloat($('#discountInput').val()) || 0,
+                        discount_type: $('#discountType').val(),
                         total: (data.cart.total - discount),
                         paid: paid,
                         payable: totalAmount,
@@ -887,20 +966,21 @@
                         },
                         data: JSON.stringify(payload),
 
-                        success: function (res) {
+                        success: function(res) {
                             if (res.success) {
 
                                 window.showSuccess(res.message);
 
-                                let receiptUrl = "{{ route('admin.pos.receipt', ':order_number') }}"
-                                    .replace(':order_number', res.order_number);
+                                let receiptUrl = "{{ route('admin.pos.receipt', ':invoice_number') }}"
+                                    .replace(':invoice_number', res.invoice_number);
 
                                 resetPOS();
 
                                 if (shouldPrint) {
                                     setTimeout(() => {
-                                        printReceipt(receiptUrl, function () {
-                                            window.location.href = "{{ route('admin.pos.index') }}";
+                                        printReceipt(receiptUrl, function() {
+                                            window.location.href =
+                                                "{{ route('admin.pos.index') }}";
                                         });
                                     }, 1500);
 
@@ -910,7 +990,7 @@
                             }
                         },
 
-                        error: function (xhr) {
+                        error: function(xhr) {
                             let message = 'Something went wrong';
 
                             if (xhr.responseJSON) {
@@ -932,16 +1012,16 @@
                     });
                 }
 
-                $('#completeOrderBtn').on('click', function () {
-                    submitOrder('{{ route("admin.pos.store") }}', 'POST',true);
+                $('#completeOrderBtn').on('click', function() {
+                    submitOrder('{{ route('admin.pos.store') }}', 'POST', true);
                 });
 
-                $('#updateOrderBtn').on('click', function () {
-                    submitOrder(`/admin/pos/update/${orderId}`, 'POST',true);
+                $('#updateOrderBtn').on('click', function() {
+                    submitOrder(`/admin/pos/update/${orderId}`, 'POST', true);
                 });
 
-                $('#holdOrderBtn').on('click', function () {
-                    submitOrder('/admin/pos/draft', 'POST',false);
+                $('#holdOrderBtn').on('click', function() {
+                    submitOrder('/admin/pos/draft', 'POST', false);
                 });
 
                 function resetPOS() {
@@ -957,7 +1037,7 @@
                 }
 
 
-                (function () {
+                (function() {
 
                     let customerExists = false;
                     let selectedIndex = -1;
@@ -967,7 +1047,7 @@
                     // debounce helper
                     function debounce(fn, delay) {
                         let timer;
-                        return function () {
+                        return function() {
                             clearTimeout(timer);
                             timer = setTimeout(() => fn.apply(this, arguments), delay);
                         };
@@ -975,7 +1055,7 @@
 
                     function setupDropdown($input, $dropdown, type) {
 
-                        const fetchCustomers = debounce(function () {
+                        const fetchCustomers = debounce(function() {
 
                             let val = $input.val().trim();
 
@@ -992,9 +1072,11 @@
 
                             $.ajax({
                                 url: "{{ route('admin.pos.searchCustomers') }}",
-                                data: { term: val },
+                                data: {
+                                    term: val
+                                },
                                 dataType: 'json',
-                                success: function (data) {
+                                success: function(data) {
 
                                     if (!data.length) {
                                         $dropdown.addClass('hidden');
@@ -1007,9 +1089,9 @@
 
                                     data.forEach((c, i) => {
 
-                                        let text = type === 'name'
-                                            ? `${c.value} (${c.phone})`
-                                            : `${c.phone} (${c.value})`;
+                                        let text = type === 'name' ?
+                                            `${c.value} (${c.phone})` :
+                                            `${c.phone} (${c.value})`;
 
                                         html += `
                                             <button type="button"
@@ -1026,13 +1108,13 @@
                         }, 250);
 
                         // INPUT → unlock + search
-                        $input.on('input', function () {
+                        $input.on('input', function() {
                             isSelected = false;
                             fetchCustomers();
                         });
 
                         // CLICK SELECT
-                        $dropdown.on('click', '.dropdown-item', function (e) {
+                        $dropdown.on('click', '.dropdown-item', function(e) {
                             e.preventDefault();
                             e.stopPropagation();
 
@@ -1043,7 +1125,7 @@
                         });
 
                         // KEYBOARD NAVIGATION
-                        $input.on('keydown', function (e) {
+                        $input.on('keydown', function(e) {
 
                             let items = $dropdown.find('.dropdown-item');
 
@@ -1052,12 +1134,10 @@
                             if (e.key === 'ArrowDown') {
                                 e.preventDefault();
                                 selectedIndex++;
-                            }
-                            else if (e.key === 'ArrowUp') {
+                            } else if (e.key === 'ArrowUp') {
                                 e.preventDefault();
                                 selectedIndex--;
-                            }
-                            else if (e.key === 'Enter') {
+                            } else if (e.key === 'Enter') {
                                 e.preventDefault();
                                 if (selectedIndex >= 0) {
                                     selectCustomer(selectedIndex);
@@ -1092,11 +1172,12 @@
                     }
 
                     // OUTSIDE CLICK
-                    $(document).on('click', function (e) {
+                    $(document).on('click', function(e) {
 
                         if (
                             $(e.target).closest('#customerName, #customerPhone').length === 0 &&
-                            $(e.target).closest('#customerNameDropdown, #customerPhoneDropdown').length === 0
+                            $(e.target).closest('#customerNameDropdown, #customerPhoneDropdown').length ===
+                            0
                         ) {
                             $('#customerNameDropdown').addClass('hidden').empty();
                             $('#customerPhoneDropdown').addClass('hidden').empty();
@@ -1142,14 +1223,14 @@
                 // =========================
                 // PAID INPUT EVENT
                 // =========================
-                $("#paidAmount").on("input", function () {
+                $("#paidAmount").on("input", function() {
                     updateDue();
                 });
 
                 // =========================
                 // FULL PAID BUTTON
                 // =========================
-                $("#fullPaidBtn").on("click", function () {
+                $("#fullPaidBtn").on("click", function() {
                     let total = getTotal();
 
                     $("#paidAmount").val(total.toFixed(2));
@@ -1164,7 +1245,7 @@
                 // =========================
                 // EXTERNAL CALL (when cart/total changes)
                 // =========================
-                window.refreshPaymentUI = function () {
+                window.refreshPaymentUI = function() {
                     updateDue();
                 };
 
@@ -1200,14 +1281,14 @@
                 // =========================
                 // INPUT EVENT
                 // =========================
-                $("#cash_received").on("input", function () {
+                $("#cash_received").on("input", function() {
                     updateCash();
                 });
 
                 // =========================
                 // EXTERNAL REFRESH SUPPORT
                 // =========================
-                window.refreshCashUI = function () {
+                window.refreshCashUI = function() {
                     updateCash();
                 };
 
@@ -1222,7 +1303,7 @@
 
                     let isHandled = false;
 
-                    printWindow.onload = function () {
+                    printWindow.onload = function() {
                         printWindow.focus();
 
                         // trigger print
@@ -1230,7 +1311,7 @@
                     };
 
                     // Detect window close (works for cancel + print)
-                    let checkClose = setInterval(function () {
+                    let checkClose = setInterval(function() {
                         if (printWindow.closed) {
                             clearInterval(checkClose);
 
@@ -1242,7 +1323,7 @@
                     }, 500);
 
                     // Fallback: afterprint (not reliable alone, but useful)
-                    printWindow.onafterprint = function () {
+                    printWindow.onafterprint = function() {
                         if (!isHandled) {
                             isHandled = true;
 

@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\OrderStatus;
+use App\Enums\SaleStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Customer;
-use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\User;
 use Carbon\Carbon;
@@ -34,7 +34,7 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $orderQuery = Order::query();
+        $orderQuery = Sale::query();
 
         switch ($filter) {
 
@@ -85,7 +85,7 @@ class DashboardController extends Controller
                 $start = today()->copy()->startOfDay()->addHours($i);
                 $end = $start->copy()->endOfHour();
 
-                $revenue = Order::whereBetween('created_at', [$start, $end])
+                $revenue = Sale::whereBetween('created_at', [$start, $end])
                     ->sum('total');
 
                 $chartRevenue[] = [
@@ -100,7 +100,7 @@ class DashboardController extends Controller
 
                 $date = now()->startOfWeek()->copy()->addDays($i);
 
-                $revenue = Order::whereDate('created_at', $date)
+                $revenue = Sale::whereDate('created_at', $date)
                     ->sum('total');
 
                 $chartRevenue[] = [
@@ -117,7 +117,7 @@ class DashboardController extends Controller
 
                 $date = now()->copy()->startOfMonth()->addDays($i - 1);
 
-                $revenue = Order::whereDate('created_at', $date)
+                $revenue = Sale::whereDate('created_at', $date)
                     ->sum('total');
 
                 $chartRevenue[] = [
@@ -141,12 +141,12 @@ class DashboardController extends Controller
         $totalPosUser = Customer::count();
         $totalCustomers = $totalWebUser + $totalPosUser;
 
-        $previousRevenue = Order::whereBetween('created_at', [
+        $previousRevenue = Sale::whereBetween('created_at', [
             $previousStart,
             $previousEnd
         ])->sum('total');
 
-        $previousOrders = Order::whereBetween('created_at', [
+        $previousOrders = Sale::whereBetween('created_at', [
             $previousStart,
             $previousEnd
         ])->count();
@@ -175,7 +175,7 @@ class DashboardController extends Controller
 
         $recentOrders = (clone $orderQuery)
             ->with('user')
-            ->whereNot('status', OrderStatus::DRAFT)
+            ->whereNot('status', SaleStatus::DRAFT)
             ->latest()
             ->take(10)
             ->get()
@@ -193,7 +193,7 @@ class DashboardController extends Controller
                 ];
             });
 
-        $topProducts = OrderItem::select(
+        $topProducts = SaleItem::select(
             'product_id',
             DB::raw('SUM(quantity) as sales'),
             DB::raw('SUM(subtotal) as revenue')
@@ -231,16 +231,16 @@ class DashboardController extends Controller
             ->count();
 
 
-        $todayOrders = Order::whereDate('created_at', today())->count();
-        $todayRevenue = Order::whereDate('created_at', today())->sum('total');
+        $todayOrders = Sale::whereDate('created_at', today())->count();
+        $todayRevenue = Sale::whereDate('created_at', today())->sum('total');
 
         $avgOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0;
 
-        $websiteOrders = Order::where('is_pos', false)
+        $websiteOrders = Sale::where('is_pos', false)
             ->whereBetween('created_at', [$currentStart, $currentEnd])
             ->count();
 
-        $posOrders = Order::where('is_pos', true)
+        $posOrders = Sale::where('is_pos', true)
             ->whereBetween('created_at', [$currentStart, $currentEnd])
             ->count();
 
@@ -263,7 +263,7 @@ class DashboardController extends Controller
             'totalCustomersPercentage' => $customersPercentage,
             'totalRefund' => $totalRefund,
             'totalRefundPercentage' => $refundPercentage,
-            'pendingOrders' => Order::where('status', 'pending')->count(),
+            'pendingOrders' => Sale::where('status', 'pending')->count(),
             'totalProducts' => $totalProducts,
             'totalCategories' => $totalCategories,
             'outOfStock' => $outOfStock,

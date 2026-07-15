@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\OrderStatus;
+use App\Enums\SaleStatus;
 use App\Http\Controllers\Controller;
 use App\Models\CashRegister;
 use App\Models\District;
 use App\Models\Expense;
-use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
 use Carbon\Carbon;
@@ -50,17 +50,17 @@ class ReportController extends Controller
                 ->startOfDay();
         }
 
-        $currentSales = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $currentSales = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->sum('total');
 
-        $currentOrders = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $currentOrders = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->count();
 
         $currentAov = $currentOrders > 0
             ? $currentSales / $currentOrders
             : 0;
 
-        $currentOrderItems = OrderItem::whereHas('order', function ($query) use ($currentStart, $currentEnd) {
+        $currentOrderItems = SaleItem::whereHas('order', function ($query) use ($currentStart, $currentEnd) {
             $query->whereBetween('created_at', [$currentStart, $currentEnd]);
         })
             ->with('product:id,cost_price')
@@ -77,17 +77,17 @@ class ReportController extends Controller
 
         if ($lastStart && $lastEnd) {
 
-            $lastSales = Order::whereBetween('created_at', [$lastStart, $lastEnd])
+            $lastSales = Sale::whereBetween('created_at', [$lastStart, $lastEnd])
                 ->sum('total');
 
-            $lastOrders = Order::whereBetween('created_at', [$lastStart, $lastEnd])
+            $lastOrders = Sale::whereBetween('created_at', [$lastStart, $lastEnd])
                 ->count();
 
             $lastAov = $lastOrders > 0
                 ? $lastSales / $lastOrders
                 : 0;
 
-            $lastOrderItems = OrderItem::whereHas('order', function ($query) use ($lastStart, $lastEnd) {
+            $lastOrderItems = SaleItem::whereHas('order', function ($query) use ($lastStart, $lastEnd) {
                 $query->whereBetween('created_at', [$lastStart, $lastEnd]);
             })
                 ->with('product:id,cost_price')
@@ -135,28 +135,28 @@ class ReportController extends Controller
 
         switch ($filter) {
             case 'daily':
-                $trend = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+                $trend = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
                     ->selectRaw('HOUR(created_at) as label, SUM(total) as revenue')
                     ->groupBy('label')
                     ->orderBy('label')
                     ->get();
                 break;
             case 'weekly':
-                $trend = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+                $trend = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
                     ->selectRaw('DAYNAME(created_at) as label, SUM(total) as revenue')
                     ->groupBy('label')
                     ->orderByRaw('MIN(created_at)')
                     ->get();
                 break;
             case 'monthly':
-                $trend = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+                $trend = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
                     ->selectRaw('DAY(created_at) as label, SUM(total) as revenue')
                     ->groupBy('label')
                     ->orderBy('label')
                     ->get();
                 break;
             case 'yearly':
-                $trend = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+                $trend = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
                     ->selectRaw('MONTHNAME(created_at) as label, SUM(total) as revenue')
                     ->groupBy('label')
                     ->orderByRaw('MIN(created_at)')
@@ -164,7 +164,7 @@ class ReportController extends Controller
                 break;
             case 'custom':
             default:
-                $trend = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+                $trend = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
                     ->selectRaw('DATE(created_at) as label, SUM(total) as revenue')
                     ->groupBy('label')
                     ->orderBy('label')
@@ -180,9 +180,9 @@ class ReportController extends Controller
         $start = $currentStart;
         $end = $currentEnd;
 
-        $totalOrders = Order::whereBetween('created_at', [$start, $end])->count();
+        $totalOrders = Sale::whereBetween('created_at', [$start, $end])->count();
 
-        $totalItems = OrderItem::whereHas('order', function ($q) use ($start, $end) {
+        $totalItems = SaleItem::whereHas('order', function ($q) use ($start, $end) {
             $q->whereBetween('created_at', [$start, $end]);
         })->count();
 
@@ -196,7 +196,7 @@ class ReportController extends Controller
 
         $returnStats = SaleReturn::whereBetween('created_at', [$start, $end]);
         $totalRefundAmount = (clone $returnStats)->sum('refund_amount');
-        $totalOrders = Order::whereBetween('created_at', [$start, $end])->count();
+        $totalOrders = Sale::whereBetween('created_at', [$start, $end])->count();
 
         $ordersWithReturns = SaleReturn::whereBetween('created_at', [$start, $end])->count();
 
@@ -238,25 +238,25 @@ class ReportController extends Controller
             'revenueTrend' => $revenueTrend
         ];
 
-        $orders = Order::whereBetween('created_at', [$currentStart, $currentEnd]);
+        $orders = Sale::whereBetween('created_at', [$currentStart, $currentEnd]);
 
         $totalOrders = $orders->count();
 
 
 
-        $bestSalesDay = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $bestSalesDay = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->selectRaw('DATE(created_at) as orderDate, SUM(total) as totalSales')
             ->groupBy('orderDate')
             ->orderByDesc('totalSales')
             ->first();
 
-        $allPreviousCustomerIds = Order::where('created_at', '<', $currentStart)
+        $allPreviousCustomerIds = Sale::where('created_at', '<', $currentStart)
             ->selectRaw('COALESCE(user_id, customer_id) as customer')
             ->pluck('customer')
             ->unique()
             ->toArray();
 
-        $returningOrdersCount = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $returningOrdersCount = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->whereIn(
                 DB::raw('COALESCE(user_id, customer_id)'),
                 $allPreviousCustomerIds
@@ -280,10 +280,10 @@ class ReportController extends Controller
                 : null,
         ];
 
-        $topProductsRaw = OrderItem::whereHas('order', function ($query) use ($currentStart, $currentEnd) {
+        $topProductsRaw = SaleItem::whereHas('order', function ($query) use ($currentStart, $currentEnd) {
 
             $query->whereBetween('created_at', [$currentStart, $currentEnd])
-                ->where('status', OrderStatus::DELIVERED->value);
+                ->where('status', SaleStatus::DELIVERED->value);
 
         })
             ->with('product')
@@ -398,7 +398,7 @@ class ReportController extends Controller
 
         $lowTurnoverDays = 90;
 
-        $soldProductIds = OrderItem::whereHas('order', function ($query) use ($lowTurnoverDays) {
+        $soldProductIds = SaleItem::whereHas('order', function ($query) use ($lowTurnoverDays) {
             $query->where('created_at', '>=', now()->subDays($lowTurnoverDays));
         })
             ->pluck('product_id')
@@ -434,10 +434,10 @@ class ReportController extends Controller
         $expenseTrend = $this->getExpenseTrend($filter, $dateFrom, $dateTo);
 
         $incomeSources = [
-            'Product Sales' => Order::where('is_pos', 0)->whereBetween('created_at', [$currentStart, $currentEnd])
+            'Product Sales' => Sale::where('is_pos', 0)->whereBetween('created_at', [$currentStart, $currentEnd])
                 ->sum('total'),
 
-            'POS Sales' => Order::where('is_pos', 1)
+            'POS Sales' => Sale::where('is_pos', 1)
                 ->whereBetween('created_at', [$currentStart, $currentEnd])
                 ->sum('total'),
         ];
@@ -528,17 +528,17 @@ class ReportController extends Controller
 
         } else {
 
-            $currentStart = Order::min('created_at') ?? now();
+            $currentStart = Sale::min('created_at') ?? now();
             $currentEnd = now();
 
             $lastStart = null;
             $lastEnd = null;
         }
 
-        $orders = Order::whereBetween('created_at', [$currentStart, $currentEnd])->get();
+        $orders = Sale::whereBetween('created_at', [$currentStart, $currentEnd])->get();
 
         $prevOrders = ($lastStart && $lastEnd)
-            ? Order::whereBetween('created_at', [$lastStart, $lastEnd])->get()
+            ? Sale::whereBetween('created_at', [$lastStart, $lastEnd])->get()
             : collect();
 
         $refundItems = SaleReturnItem::whereHas('saleReturn', function ($q) use ($currentStart, $currentEnd) {
@@ -578,7 +578,7 @@ class ReportController extends Controller
         $orderGrowth = $calcGrowth($totalOrder, $prevOrder);
         $avgOrderGrowth = $calcGrowth($avgOrder, $prevAvgOrder);
 
-        $bestSelling = OrderItem::whereHas('order', function ($q) use ($currentStart, $currentEnd) {
+        $bestSelling = SaleItem::whereHas('order', function ($q) use ($currentStart, $currentEnd) {
             $q->whereBetween('created_at', [$currentStart, $currentEnd]);
         })
             ->select('product_id', DB::raw('SUM(quantity) as total_qty'))
@@ -592,10 +592,10 @@ class ReportController extends Controller
 
         foreach (CarbonPeriod::create($currentStart, $currentEnd) as $date) {
             $labels[] = $date->format('d M');
-            $revenues[] = Order::whereDate('created_at', $date)->sum('total');
+            $revenues[] = Sale::whereDate('created_at', $date)->sum('total');
         }
 
-        $orderItems = OrderItem::whereHas(
+        $orderItems = SaleItem::whereHas(
             'order',
             fn($q) =>
             $q->whereBetween('created_at', [$currentStart, $currentEnd])
@@ -604,7 +604,7 @@ class ReportController extends Controller
             ->get();
 
         $prevOrderItems = ($lastStart && $lastEnd)
-            ? OrderItem::whereHas(
+            ? SaleItem::whereHas(
                 'order',
                 fn($q) =>
                 $q->whereBetween('created_at', [$lastStart, $lastEnd])
@@ -662,7 +662,7 @@ class ReportController extends Controller
         }
         unset($channel);
 
-        $productStats = OrderItem::whereHas(
+        $productStats = SaleItem::whereHas(
             'order',
             fn($q) =>
             $q->whereBetween('created_at', [$currentStart, $currentEnd])
@@ -705,7 +705,7 @@ class ReportController extends Controller
             return $p;
         });
 
-        $regionData = Order::with('district')->where('is_pos', 0)->whereNotNull('shipping_district')
+        $regionData = Sale::with('district')->where('is_pos', 0)->whereNotNull('shipping_district')
             ->get();
 
         $ordersByDistrict = $regionData
@@ -780,24 +780,24 @@ class ReportController extends Controller
 
         } else {
 
-            $currentStart = Order::min('created_at') ?? now();
+            $currentStart = Sale::min('created_at') ?? now();
             $currentEnd = now();
 
             $lastStart = null;
             $lastEnd = null;
         }
 
-        $allTimeTotalCustomers = Order::get(['customer_id'])
+        $allTimeTotalCustomers = Sale::get(['customer_id'])
             ->unique(fn($item) => $item->user_id . '-' . $item->customer_id)
             ->count();
 
-        $newCustomersCurrent = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $newCustomersCurrent = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->get(['user_id', 'customer_id'])
             ->unique(fn($item) => $item->user_id . '-' . $item->customer_id)
             ->count();
 
         $newCustomersLast = ($lastStart && $lastEnd)
-            ? Order::whereBetween('created_at', [$lastStart, $lastEnd])
+            ? Sale::whereBetween('created_at', [$lastStart, $lastEnd])
                 ->get(['user_id', 'customer_id'])
                 ->unique(fn($item) => $item->user_id . '-' . $item->customer_id)
                 ->count()
@@ -808,19 +808,19 @@ class ReportController extends Controller
             ? round(($returningCustomersCurrent / $allTimeTotalCustomers) * 100, 1)
             : 0;
 
-        $avgClvCurrent = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $avgClvCurrent = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->avg('total') ?? 0;
 
         $avgClvLast = ($lastStart && $lastEnd)
-            ? Order::whereBetween('created_at', [$lastStart, $lastEnd])
+            ? Sale::whereBetween('created_at', [$lastStart, $lastEnd])
                 ->avg('total') ?? 0
             : 0;
 
-        $totalOrdersCurrent = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $totalOrdersCurrent = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->count();
 
         $totalOrdersLast = ($lastStart && $lastEnd)
-            ? Order::whereBetween('created_at', [$lastStart, $lastEnd])
+            ? Sale::whereBetween('created_at', [$lastStart, $lastEnd])
                 ->count()
             : 0;
 
@@ -854,12 +854,12 @@ class ReportController extends Controller
             $monthStart = $month->copy()->startOfMonth();
             $monthEnd = $month->copy()->endOfMonth();
 
-            $monthlyTotal = Order::whereBetween('created_at', [$monthStart, $monthEnd])
+            $monthlyTotal = Sale::whereBetween('created_at', [$monthStart, $monthEnd])
                 ->get(['user_id', 'customer_id'])
                 ->unique(fn($item) => $item->user_id . '-' . $item->customer_id)
                 ->count();
 
-            $previousTotal = Order::where('created_at', '<', $monthStart)
+            $previousTotal = Sale::where('created_at', '<', $monthStart)
                 ->get(['user_id', 'customer_id'])
                 ->unique(fn($item) => $item->user_id . '-' . $item->customer_id)
                 ->count();
@@ -875,7 +875,7 @@ class ReportController extends Controller
             $chartData['new_vs_returning']['returning'][] = $returningCustomers;
         }
 
-        $topCustomers = Order::whereBetween('created_at', [$currentStart, $currentEnd])
+        $topCustomers = Sale::whereBetween('created_at', [$currentStart, $currentEnd])
             ->with(['user:id,name', 'customer:id,name'])
             ->selectRaw("
                 user_id,
@@ -921,10 +921,10 @@ class ReportController extends Controller
             ];
         }
 
-        $totalRevenue = Order::whereBetween('created_at', [$start, $end])
+        $totalRevenue = Sale::whereBetween('created_at', [$start, $end])
             ->sum('total');
 
-        $orderItems = OrderItem::whereHas('order', function ($query) use ($start, $end) {
+        $orderItems = SaleItem::whereHas('order', function ($query) use ($start, $end) {
             $query->whereBetween('created_at', [$start, $end]);
         })->get();
 
@@ -1050,10 +1050,10 @@ class ReportController extends Controller
                 break;
         }
 
-        $allOrders = Order::whereBetween('created_at', [$overallStart, $overallEnd])
+        $allOrders = Sale::whereBetween('created_at', [$overallStart, $overallEnd])
             ->get();
 
-        $allOrderItems = OrderItem::whereHas('order', function ($query) use ($overallStart, $overallEnd) {
+        $allOrderItems = SaleItem::whereHas('order', function ($query) use ($overallStart, $overallEnd) {
             $query->whereBetween('created_at', [$overallStart, $overallEnd]);
         })
             ->with([

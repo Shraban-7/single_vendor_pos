@@ -214,9 +214,9 @@
                     <i data-lucide="rotate-ccw" class="w-4 h-4 text-danger/50 group-hover:text-danger transition-colors flex-shrink-0"></i>
                     <span class="text-sm text-muted group-hover:text-fg transition-colors">Retry Page</span>
                 </button>
-                <a href="/admin/orders" class="quick-link flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-transparent group text-left">
+                <a href="/admin/sales" class="quick-link flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-transparent group text-left">
                     <i data-lucide="receipt" class="w-4 h-4 text-danger/50 group-hover:text-danger transition-colors flex-shrink-0"></i>
-                    <span class="text-sm text-muted group-hover:text-fg transition-colors">Orders</span>
+                    <span class="text-sm text-muted group-hover:text-fg transition-colors">Sales</span>
                 </a>
                 <a href="/admin/settings" class="quick-link flex items-center gap-2.5 px-3 py-2.5 rounded-lg border border-transparent group text-left">
                     <i data-lucide="settings" class="w-4 h-4 text-danger/50 group-hover:text-danger transition-colors flex-shrink-0"></i>

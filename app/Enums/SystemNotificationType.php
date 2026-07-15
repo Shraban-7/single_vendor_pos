@@ -4,7 +4,15 @@ namespace App\Enums;
 
 enum SystemNotificationType: string
 {
-    // Order lifecycle
+    // Sale lifecycle
+    case SALE_CREATED = 'sale_created';
+    case SALE_CONFIRMED = 'sale_confirmed';
+    case SALE_PACKED = 'sale_packed';
+    case SALE_SHIPPED = 'sale_shipped';
+    case SALE_DELIVERED = 'sale_delivered';
+    case SALE_CANCELLED = 'sale_cancelled';
+
+    // Legacy Order lifecycle (aliases)
     case ORDER_CREATED = 'order_created';
     case ORDER_CONFIRMED = 'order_confirmed';
     case ORDER_PACKED = 'order_packed';
@@ -42,25 +50,31 @@ enum SystemNotificationType: string
     public function color(): string
     {
         return match ($this) {
+            self::SALE_CREATED,
             self::ORDER_CREATED,
             self::ACCOUNT_CREATED,
             self::NEW_MESSAGE => 'blue',
 
+            self::SALE_CONFIRMED,
             self::ORDER_CONFIRMED,
             self::CAMPAIGN_LIVE,
             self::COUPON_CREATED => 'indigo',
 
+            self::SALE_PACKED,
             self::ORDER_PACKED => 'teal',
 
+            self::SALE_SHIPPED,
             self::ORDER_SHIPPED,
             self::ROLE_CHANGED,
             self::PRICE_DROP => 'purple',
 
+            self::SALE_DELIVERED,
             self::ORDER_DELIVERED,
             self::PAYMENT_RECEIVED,
             self::REFUND_COMPLETED,
             self::PRODUCT_APPROVED => 'green',
 
+            self::SALE_CANCELLED,
             self::ORDER_CANCELLED,
             self::PAYMENT_FAILED,
             self::PRODUCT_REJECTED,
@@ -77,11 +91,17 @@ enum SystemNotificationType: string
     public function icon(): string
     {
         return match ($this) {
+            self::SALE_CREATED => 'fa-shopping-bag',
             self::ORDER_CREATED => 'fa-shopping-bag',
+            self::SALE_CONFIRMED => 'fa-check-circle',
             self::ORDER_CONFIRMED => 'fa-check-circle',
+            self::SALE_PACKED => 'fa-box',
             self::ORDER_PACKED => 'fa-box',
+            self::SALE_SHIPPED => 'fa-truck',
             self::ORDER_SHIPPED => 'fa-truck',
+            self::SALE_DELIVERED => 'fa-box-open',
             self::ORDER_DELIVERED => 'fa-box-open',
+            self::SALE_CANCELLED => 'fa-times-circle',
             self::ORDER_CANCELLED => 'fa-times-circle',
 
             self::PAYMENT_RECEIVED => 'fa-credit-card',

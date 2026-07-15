@@ -64,7 +64,7 @@
                     <i data-lucide="clipboard-list" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Orders</p>
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Sales</p>
                     <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ $calculateMetrics['totalOrders'] }}</p>
                 </div>
             </div>
@@ -166,7 +166,7 @@
             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Quick Facts</h3>
             <div class="space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-                    <span class="text-xs text-slate-500">Total Orders</span>
+                    <span class="text-xs text-slate-500">Total Sales</span>
                     <span class="text-xs font-bold text-blue-600">{{ $quickFacts['totalOrders'] }}</span>
                 </div>
                 <div class="flex items-center justify-between pb-2 border-b border-slate-100">

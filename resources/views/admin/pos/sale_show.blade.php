@@ -1,27 +1,27 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Sale #' . $order->order_number)
+@section('title', 'Sale #' . $sale->order_number)
 
 @section('content')
 {{-- Page Header --}}
 <div class="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-center gap-3">
-        <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:text-slate-900 transition">
+        <a href="{{ route('admin.sales.index') }}" class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 hover:text-slate-900 transition">
             <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
         </a>
         <div>
-            <h1 class="text-xl font-bold tracking-tight text-slate-900">Sale {{ $order->order_number }}</h1>
-            <p class="text-xs text-slate-500">Placed on {{ $order->created_at->format('M d, Y \a\t h:i A') }}</p>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900">Sale {{ $sale->order_number }}</h1>
+            <p class="text-xs text-slate-500">Placed on {{ $sale->created_at->format('M d, Y \a\t h:i A') }}</p>
         </div>
     </div>
     <div class="flex items-center gap-2">
-        @if ($order->status->value !== 'draft')
-        <button onclick="printReceipt('{{ route('admin.pos.receipt', $order->order_number) }}')"
+        @if ($sale->status->value !== 'draft')
+        <button onclick="printReceipt('{{ route('admin.pos.receipt', $sale->invoice_number) }}')"
             class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-white bg-amber-600 rounded-lg shadow-sm hover:bg-amber-700 transition">
             <i data-lucide="printer" class="w-3.5 h-3.5"></i>
             <span>Receipt</span>
         </button>
-        <button onclick="printReceipt('{{ route('admin.orders.invoice', $order->order_number) }}')"
+        <button onclick="printReceipt('{{ route('admin.ecommerce-sales.invoice', $sale->order_number) }}')"
             class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition">
             <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
             <span>Invoice</span>
@@ -32,7 +32,7 @@
             <span>Return</span>
         </button>
         @endif
-        @if($order->status->value !== 'cancelled')
+        @if($sale->status->value !== 'cancelled')
         <button onclick="openDeleteModal()"
             class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-semibold text-white bg-rose-600 rounded-lg shadow-sm hover:bg-rose-700 transition">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -43,26 +43,26 @@
 </div>
 
 <div class="grid lg:grid-cols-3 gap-6">
-    {{-- Left Column - Order Details --}}
-    <div class="lg:col-span-2 space-y-4">
-        {{-- Order Status --}}
+        {{-- Left Column - Sale Details --}}
+        <div class="lg:col-span-2 space-y-4">
+            {{-- Order Status --}}
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2 mb-3 flex items-center gap-1.5">
                 <i data-lucide="info" class="w-3.5 h-3.5 text-slate-400"></i>
-                Order Status
+                Sale Status
             </h2>
 
-            <form action="{{ route('admin.orders.update-status', $order->id) }}" method="POST" class="text-xs space-y-3">
+            <form action="{{ route('admin.ecommerce-sales.update-status', $sale->id) }}" method="POST" class="text-xs space-y-3">
                 @csrf
                 <div class="grid md:grid-cols-2 gap-3">
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">Status</label>
                         <select name="status" class="w-full h-9 px-2.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
-                            <option value="pending" {{ $order->status->value === 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="confirmed" {{ $order->status->value === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                            <option value="shipped" {{ $order->status->value === 'shipped' ? 'selected' : '' }}>Shipped</option>
-                            <option value="delivered" {{ $order->status->value === 'delivered' ? 'selected' : '' }}>Delivered</option>
-                            <option value="cancelled" {{ $order->status->value === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                            <option value="pending" {{ $sale->status->value === 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="confirmed" {{ $sale->status->value === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
+                            <option value="shipped" {{ $sale->status->value === 'shipped' ? 'selected' : '' }}>Shipped</option>
+                            <option value="delivered" {{ $sale->status->value === 'delivered' ? 'selected' : '' }}>Delivered</option>
+                            <option value="cancelled" {{ $sale->status->value === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
                     </div>
                     <div>
@@ -80,11 +80,11 @@
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2 mb-3 flex items-center gap-1.5">
                 <i data-lucide="package" class="w-3.5 h-3.5 text-slate-400"></i>
-                Order Items ({{ $order->items->count() }})
+                Sale Items ({{ $sale->items->count() }})
             </h2>
 
             <div class="space-y-3">
-                @foreach($order->items as $item)
+                @foreach($sale->items as $item)
                 <div class="flex gap-3 relative">
 
                     @if(!empty($item->return_item_id))
@@ -124,17 +124,17 @@
             <div class="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
                 <div class="flex justify-between">
                     <span class="text-slate-500">Subtotal</span>
-                    <span class="font-medium text-slate-800">{{ money($order->subtotal) }}</span>
+                    <span class="font-medium text-slate-800">{{ money($sale->subtotal) }}</span>
                 </div>
                 <div class="flex justify-between">
                     <span class="text-slate-500">Shipping Cost</span>
-                    <span class="font-medium text-slate-800">{{ money($order->shipping_cost) }}</span>
+                    <span class="font-medium text-slate-800">{{ money($sale->shipping_cost) }}</span>
                 </div>
 
-                @if($order->discount_amount > 0)
-                    <div class="flex justify-between text-emerald-600">
-                        <span>Discount @if($order->coupon)({{ $order->coupon->code }})@endif</span>
-                        <span class="font-medium">-{{ money($order->discount_amount) }}</span>
+                    @if($sale->discount_amount > 0)
+                        <div class="flex justify-between text-emerald-600">
+                            <span>Discount @if($sale->coupon)({{ $sale->coupon->code }})@endif</span>
+                            <span class="font-medium">-{{ money($sale->discount_amount) }}</span>
                     </div>
                 @endif
 
@@ -157,13 +157,13 @@
 
                 <div class="flex justify-between text-sm">
                     <span class="font-bold text-slate-900">Total</span>
-                    <span class="text-lg font-bold text-slate-900">{{ money($order->total) }}</span>
+                    <span class="text-lg font-bold text-slate-900">{{ money($sale->total) }}</span>
                 </div>
 
                 @if($totalRefund > 0)
                     <div class="flex justify-between text-slate-600 pt-1">
                         <span>Net Paid</span>
-                        <span class="font-semibold">{{ money($order->total - $totalRefund) }}</span>
+                        <span class="font-semibold">{{ money($sale->total - $totalRefund) }}</span>
                     </div>
                 @endif
             </div>
@@ -177,7 +177,7 @@
             </h2>
 
             <div class="space-y-3">
-                @forelse($order->statusHistories as $history)
+                @forelse($sale->statusHistories as $history)
                 <div class="flex gap-3">
                     <div class="flex flex-col items-center">
                         <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center shrink-0">
@@ -220,19 +220,19 @@
             <div class="space-y-2.5 text-xs">
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Name</p>
-                    <p class="font-semibold text-slate-800">{{ $order->shipping_name }}</p>
+                    <p class="font-semibold text-slate-800">{{ $sale->shipping_name }}</p>
                 </div>
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Phone</p>
-                    <a href="tel:{{ $order->shipping_phone }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
-                        {{ $order->shipping_phone }}
+                    <a href="tel:{{ $sale->shipping_phone }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
+                        {{ $sale->shipping_phone }}
                     </a>
                 </div>
-                @if($order->shipping_email)
+                @if($sale->shipping_email)
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Email</p>
-                    <a href="mailto:{{ $order->shipping_email }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
-                        {{ $order->shipping_email }}
+                    <a href="mailto:{{ $sale->shipping_email }}" class="font-semibold text-indigo-600 hover:text-indigo-800">
+                        {{ $sale->shipping_email }}
                     </a>
                 </div>
                 @endif
@@ -245,16 +245,16 @@
                 Shipping Address
             </h2>
 
-            @if($order->shipping_address)
+            @if($sale->shipping_address)
             <div class="space-y-2.5 text-xs">
                 <div>
-                    <p class="text-slate-800">{{ $order->shipping_address }}</p>
-                    <p class="text-slate-500">{{ $order->shipping_city }}, {{ $order->shipping_district }}</p>
+                    <p class="text-slate-800">{{ $sale->shipping_address }}</p>
+                    <p class="text-slate-500">{{ $sale->shipping_city }}, {{ $sale->shipping_district }}</p>
                 </div>
                 <div class="pt-2.5 border-t border-slate-100">
                     <span class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium rounded bg-indigo-50 text-indigo-700 border border-indigo-100/70">
                         <i data-lucide="truck" class="w-3 h-3"></i>
-                        {{ $order->delivery_zone ? $order->delivery_zone->label() : '' }}
+                        {{ $sale->delivery_zone ? $sale->delivery_zone->label() : '' }}
                     </span>
                 </div>
             </div>
@@ -272,27 +272,27 @@
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Payment Method</p>
                     <span class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded bg-slate-100 text-slate-700">
-                        {{ $order->payment_method->label() }}
+                        {{ $sale->payment_method->label() }}
                     </span>
                 </div>
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Payment Status</p>
-                    @if($order->payment_status->value === 'paid')
+                    @if($sale->payment_status->value === 'paid')
                     <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-50 text-emerald-700 border border-emerald-100">Paid</span>
                     @else
-                    <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-700 border border-amber-200/60">{{ $order->payment_status->label() }}</span>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-700 border border-amber-200/60">{{ $sale->payment_status->label() }}</span>
                     @endif
                 </div>
-                @if($order->transaction_id)
+                @if($sale->transaction_id)
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Transaction ID</p>
-                    <code class="block bg-slate-50 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-slate-700">{{ $order->transaction_id }}</code>
+                    <code class="block bg-slate-50 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-slate-700">{{ $sale->transaction_id }}</code>
                 </div>
                 @endif
-                @if($order->paid_at)
+                @if($sale->paid_at)
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Paid At</p>
-                    <p class="text-xs text-slate-800">{{ $order->paid_at->format('M d, Y h:i A') }}</p>
+                    <p class="text-xs text-slate-800">{{ $sale->paid_at->format('M d, Y h:i A') }}</p>
                 </div>
                 @endif
             </div>
@@ -305,28 +305,28 @@
                 Tracking Information
             </h2>
 
-            @if($order->tracking_number)
+            @if($sale->tracking_number)
             <div class="space-y-2.5 mb-3 text-xs">
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Courier</p>
-                    <p class="font-semibold text-slate-800">{{ $order->courier }}</p>
+                    <p class="font-semibold text-slate-800">{{ $sale->courier }}</p>
                 </div>
                 <div>
                     <p class="text-[10px] text-slate-400 mb-0.5">Tracking Number</p>
-                    <code class="block bg-slate-50 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-slate-700">{{ $order->tracking_number }}</code>
+                    <code class="block bg-slate-50 px-2.5 py-1.5 rounded-lg text-[11px] font-mono text-slate-700">{{ $sale->tracking_number }}</code>
                 </div>
             </div>
             @endif
 
-            <form action="{{ route('admin.orders.update-tracking', $order->id) }}" method="POST" class="text-xs space-y-2.5">
+            <form action="{{ route('admin.ecommerce-sales.update-tracking', $sale->id) }}" method="POST" class="text-xs space-y-2.5">
                 @csrf
                 <div>
                     <label class="block font-semibold text-slate-600 mb-1">Courier</label>
-                    <input type="text" name="courier" value="{{ old('courier', $order->courier) }}" placeholder="e.g., Sundarban, Pathao" class="w-full h-9 px-2.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
+                    <input type="text" name="courier" value="{{ old('courier', $sale->courier) }}" placeholder="e.g., Sundarban, Pathao" class="w-full h-9 px-2.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-600 mb-1">Tracking Number</label>
-                    <input type="text" name="tracking_number" value="{{ old('tracking_number', $order->tracking_number) }}" placeholder="Enter tracking number" class="w-full h-9 px-2.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
+                    <input type="text" name="tracking_number" value="{{ old('tracking_number', $sale->tracking_number) }}" placeholder="Enter tracking number" class="w-full h-9 px-2.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
                 </div>
                 <button type="submit" class="w-full h-9 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition shadow-sm">
                     <i data-lucide="save" class="w-3.5 h-3.5"></i>Save Tracking Info
@@ -335,15 +335,15 @@
         </div>
 
         {{-- Employee Information --}}
-        @if ($order->is_pos == 1)
+        @if ($sale->is_pos == 1)
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2 mb-3 flex items-center gap-1.5">
                 <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
                 Employee Information
             </h2>
-            @if($order->employee)
+            @if($sale->employee)
             <div class="text-xs">
-                <p class="font-semibold text-slate-800">{{ $order->employee->name ?? '' }}</p>
+                <p class="font-semibold text-slate-800">{{ $sale->employee->name ?? '' }}</p>
             </div>
             @else
             <p class="text-xs text-slate-500">No employee.</p>
@@ -358,22 +358,22 @@
                 Admin Notes
             </h2>
 
-            <form action="{{ route('admin.orders.update-notes', $order->id) }}" method="POST" class="text-xs space-y-2.5">
+            <form action="{{ route('admin.ecommerce-sales.update-notes', $sale->id) }}" method="POST" class="text-xs space-y-2.5">
                 @csrf
-                <textarea name="admin_notes" rows="3" placeholder="Add internal notes..." class="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50 resize-none">{{ old('admin_notes', $order->admin_notes) }}</textarea>
+                <textarea name="admin_notes" rows="3" placeholder="Add internal notes..." class="w-full px-2.5 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50 resize-none">{{ old('admin_notes', $sale->admin_notes) }}</textarea>
                 <button type="submit" class="w-full h-9 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition shadow-sm">
                     <i data-lucide="save" class="w-3.5 h-3.5"></i>Save Notes
                 </button>
             </form>
         </div>
 
-        @if($order->notes)
+        @if($sale->notes)
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2 mb-3 flex items-center gap-1.5">
                 <i data-lucide="message-square" class="w-3.5 h-3.5 text-slate-400"></i>
                 Customer Notes
             </h2>
-            <p class="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg">{{ $order->notes }}</p>
+            <p class="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg">{{ $sale->notes }}</p>
         </div>
         @endif
     </div>
@@ -387,14 +387,14 @@
             <div class="w-12 h-12 bg-rose-50 border border-rose-100 rounded-xl flex items-center justify-center mx-auto mb-3">
                 <i data-lucide="alert-triangle" class="w-5 h-5 text-rose-600"></i>
             </div>
-            <h3 class="font-bold text-slate-900 mb-1">Delete Order?</h3>
-            <p class="text-xs text-slate-500">Are you sure you want to delete this order? This action cannot be undone.</p>
+            <h3 class="font-bold text-slate-900 mb-1">Delete Sale?</h3>
+            <p class="text-xs text-slate-500">Are you sure you want to delete this sale? This action cannot be undone.</p>
         </div>
         <div class="flex gap-2.5">
             <button onclick="closeDeleteModal()" class="flex-1 h-9 inline-flex items-center justify-center text-xs font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition">
                 Cancel
             </button>
-            <form action="{{ route('admin.orders.destroy', $order->id) }}" method="POST" class="flex-1">
+            <form action="{{ route('admin.sales.destroy', $sale->id) }}" method="POST" class="flex-1">
                 @csrf
                 @method('DELETE')
                 <input type="hidden" name="source" value="{{ $source }}">
@@ -417,7 +417,7 @@
         </div>
 
         <div class="max-h-72 overflow-y-auto space-y-2 text-xs">
-            @foreach($order->items as $item)
+            @foreach($sale->items as $item)
             <div class="border border-slate-200 p-2.5 rounded-lg flex gap-3 items-start bg-slate-50/30">
                 <input type="checkbox"
                     class="return-check mt-0.5 rounded border-slate-300 text-indigo-600 focus:ring-0 {{ $item->return_item_id ? 'hidden' : '' }}"
@@ -603,7 +603,7 @@
             remarks: $("#refundRemarks").val(),
         };
         $.ajax({
-            url: `/admin/orders/{{ $order->id }}/return`,
+            url: `{{ route('admin.sales.return', $sale->id) }}`,
             type: "POST",
             data: JSON.stringify(payload),
             contentType: "application/json",

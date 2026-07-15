@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CashRegister;
 use App\Models\Expense;
-use App\Models\Order;
+use App\Models\Sale;
 use App\Models\SaleReturn;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -41,7 +41,7 @@ class CashRegisterController extends Controller
 
         [$start, $end] = businessDayRange();
 
-        $salesTotal = Order::whereNull('user_id')->whereBetween('created_at', [$start, $end])->sum('paid');
+        $salesTotal = Sale::whereNull('user_id')->whereBetween('created_at', [$start, $end])->sum('paid');
         $expense = Expense::whereBetween('created_at', [$start, $end])->sum('amount');
         $salesReturns = SaleReturn::whereBetween('created_at', [$start, $end])->sum('refund_amount');
         $expectedCash = $register->opening_amount + $salesTotal - $salesReturns;

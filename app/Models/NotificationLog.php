@@ -13,7 +13,7 @@ class NotificationLog extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id',
+        'sale_id',
         'user_id',
         'type',
         'recipient',
@@ -31,9 +31,9 @@ class NotificationLog extends Model
     ];
 
     // Relationships
-    public function order(): BelongsTo
+    public function sale(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Sale::class);
     }
 
     public function user(): BelongsTo

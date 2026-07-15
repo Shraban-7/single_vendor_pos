@@ -71,7 +71,7 @@
                 <i class="fas fa-redo mr-2"></i>Try Again
             </a>
             @auth
-            <a href="{{ route('orders.index') }}" class="flex-1 border-2 border-brand-blue text-brand-blue py-3 px-6 rounded-lg font-medium hover:bg-brand-blue hover:text-white transition text-center">
+            <a href="{{ route('admin.ecommerce-sales.index') }}" class="flex-1 border-2 border-brand-blue text-brand-blue py-3 px-6 rounded-lg font-medium hover:bg-brand-blue hover:text-white transition text-center">
                 <i class="fas fa-shopping-bag mr-2"></i>View Orders
             </a>
             @else
@@ -87,7 +87,7 @@
 <script>
     let timeLeft = 3.5;
     const countdownElement = document.getElementById('countdown');
-    const redirectUrl = "<?php echo auth()->check() ? route('orders.index') : route('home'); ?>";
+    const redirectUrl = "<?php echo auth()->check() ? route('admin.ecommerce-sales.index') : route('home'); ?>";
 
     const timer = setInterval(() => {
         timeLeft -= 0.1;

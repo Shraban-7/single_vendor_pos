@@ -2,24 +2,23 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\OrderStatus;
-use App\Enums\PaymentMethod;
+use App\Enums\PaymentMethodType;
 use App\Enums\PaymentStatus;
+use App\Enums\SaleStatus;
+use App\Enums\StockMovementType;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\CashRegister;
 use App\Models\Category;
 use App\Models\Customer;
+use App\Models\Employee;
 use App\Models\Expense;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\OrderStatusHistory;
 use App\Models\Product;
-use App\Models\ProductVariant; // Keep if you still use variants, otherwise safe to ignore
+use App\Models\Sale;
+use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\StockMovement;
-use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,32 +29,32 @@ class PosController extends Controller
     public function index(Request $request)
     {
         $categories = Category::where('is_active', true)->get();
-        $order = null;
+        $employees = Employee::where('is_active', true)->get();
+        $sale = null;
 
-        if ($request->order_number) {
-            $order = Order::with(['items.product', 'customer'])
-                ->where('order_number', $request->order_number)
-                ->where('is_pos', 1)
+        if ($request->invoice_number) {
+            $sale = Sale::with(['items.product', 'customer'])
+                ->where('invoice_number', $request->invoice_number)
                 ->first();
         }
 
-        $cart = $this->getCart($request);
+        $cartData = $this->getCartResponse($request->invoice_number);
         [$start, $end] = $this->businessDayRange();
 
-        $orders = Order::where('is_pos', 1)
+        $sales = Sale::where('invoice_number', 'like', 'POS-%')
             ->whereBetween('created_at', [$start, $end])
             ->get();
 
-        $cashRegisterData = $this->getCashRegisterData($start, $end, $orders->sum('paid'));
+        $cashRegisterData = $this->getCashRegisterData($start, $end, $sales->sum('paid_amount'));
         $cashRegister = $cashRegisterData['cashRegister'];
 
-        return view('admin.pos.index', compact('categories', 'cart', 'order', 'cashRegister', 'cashRegisterData'));
+        return view('admin.pos.index', compact('categories', 'employees', 'cartData', 'sale', 'cashRegister', 'cashRegisterData'));
     }
 
     public function getProducts()
     {
         $products = Product::where('is_active', true)
-            ->select('id', 'name', 'selling_price', 'image', 'sku', 'stock_quantity', 'category_id')
+            ->select('id', 'name', 'selling_price', 'image', 'sku', 'stock_quantity', 'category_id', 'unit_id', 'cost_price')
             ->with('category:id,name')
             ->latest()
             ->get();
@@ -72,12 +71,12 @@ class PosController extends Controller
         $categoryId = $request->get('category_id');
 
         $products = Product::where('is_active', true)
-            ->select('id', 'name', 'selling_price', 'image', 'sku', 'stock_quantity', 'category_id')
+            ->select('id', 'name', 'selling_price', 'image', 'sku', 'stock_quantity', 'category_id', 'unit_id', 'cost_price')
             ->with('category:id,name')
             ->when($query, function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
-                  ->orWhere('sku', 'like', "%{$query}%")
-                  ->orWhere('barcode', 'like', "%{$query}%");
+                    ->orWhere('sku', 'like', "%{$query}%")
+                    ->orWhere('barcode', 'like', "%{$query}%");
             })
             ->when($categoryId, function ($q) use ($categoryId) {
                 $q->where('category_id', $categoryId);
@@ -117,6 +116,8 @@ class PosController extends Controller
             'due' => 'required|numeric|min:0',
             'payment_method' => 'nullable|string',
             'discount' => 'nullable|numeric',
+            'discount_type' => 'nullable|string',
+            'employee_id' => 'nullable|integer|exists:users,id',
             'customer_name' => 'nullable|string|max:255',
             'customer_phone' => 'nullable|string|max:20',
             'cash_received' => 'nullable|numeric',
@@ -139,48 +140,65 @@ class PosController extends Controller
             $payable = (float) $request->payable;
 
             if ($due <= 0) {
-                $payment_status = PaymentStatus::PAID->value ?? 'paid';
+                $payment_status = PaymentStatus::PAID->value;
             } elseif ($due >= $payable) {
-                $payment_status = PaymentStatus::UNPAID->value ?? 'unpaid';
+                $payment_status = PaymentStatus::UNPAID->value;
             } else {
-                $payment_status = 'partial';
+                $payment_status = PaymentStatus::PARTIAL->value;
             }
 
-            $order = Order::create([
-                'order_number' => 'POS-' . strtoupper(uniqid()),
-                'is_pos' => 1,
+            $invoiceNumber = $this->generateInvoiceNumber();
+
+            $sale = Sale::create([
+                'invoice_number' => $invoiceNumber,
+                'sale_date' => now()->toDateString(),
                 'user_id' => Auth::id(),
+                'employee_id' => $request->employee_id ?? Auth::id(),
                 'customer_id' => $customer_id,
-                'shipping_name' => $request->customer_name ?? 'Walk-in Customer',
                 'subtotal' => $request->subtotal,
+                'discount_type' => $request->discount_type,
+                'discount_value' => $request->discount_value ?? $request->discount ?? 0,
                 'discount_amount' => $request->discount ?? 0,
-                'total' => $request->total,
+                'total_amount' => $request->total,
                 'payable' => $request->payable,
-                'paid' => $request->paid,
-                'due' => $request->due,
+                'paid_amount' => $request->paid,
+                'due_amount' => $request->due,
                 'cash_received' => $request->cash_received,
-                'cash_returned' => $request->cash_returned,
-                'status' => OrderStatus::DELIVERED->value ?? 'delivered',
-                'payment_method' => $request->payment_method ?? 'cash',
+                'change_amount' => $request->cash_returned,
+                'status' => SaleStatus::COMPLETED->value,
+                'payment_method' => $this->mapPaymentMethod($request->payment_method),
                 'payment_status' => $payment_status,
                 'paid_at' => now(),
             ]);
 
+            if ((float) $request->paid > 0 && method_exists($sale, 'recordPayment')) {
+                $sale->recordPayment(
+                    amount: (float) $request->paid,
+                    method: $this->mapPaymentMethod($request->payment_method),
+                    transactionId: null,
+                    notes: 'POS Sale payment'
+                );
+            }
+
             foreach ($request->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
+                $product = Product::lockForUpdate()->find($item['product_id']);
+                $qty = (float) $item['quantity'];
+                $unitPrice = (float) $item['price'];
+                $lineSubtotal = $unitPrice * $qty;
+
+                SaleItem::create([
+                    'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
+                    'unit_id' => $product?->unit_id ?? 1,
                     'product_name' => $item['product_name'],
-                    'product_sku' => $item['sku'],
-                    'quantity' => (float) $item['quantity'],
-                    'unit_price' => (float) $item['price'],
-                    'subtotal' => (float) $item['price'] * (float) $item['quantity'],
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'cost_price' => $product?->cost_price ?? 0,
+                    'subtotal' => $lineSubtotal,
+                    'total' => $lineSubtotal,
                 ]);
 
-                // ✅ FIXED: Properly update stock_quantity and stock_out, and log movement
-                $product = Product::lockForUpdate()->find($item['product_id']);
                 if ($product) {
-                    $qty = (float) $item['quantity'];
                     $beforeQty = (float) $product->stock_quantity;
                     $afterQty = $beforeQty - $qty;
 
@@ -192,26 +210,18 @@ class PosController extends Controller
                         'user_id' => Auth::id(),
                         'product_id' => $product->id,
                         'product_variant_id' => null,
-                        'type' => 'out',
+                        'type' => StockMovementType::SALE->value,
                         'reference_type' => 'pos_sale',
-                        'reference_id' => $order->id,
+                        'reference_id' => $sale->id,
                         'quantity' => $qty,
-                        'unit_cost' => (float) $item['price'],
+                        'unit_cost' => $product->cost_price ?? 0,
                         'before_quantity' => $beforeQty,
                         'after_quantity' => $afterQty,
-                        'notes' => "POS Sale: {$order->order_number}",
+                        'notes' => "POS Sale: {$sale->invoice_number}",
                     ]);
                 }
             }
 
-            OrderStatusHistory::create([
-                'order_id' => $order->id,
-                'status' => OrderStatus::DELIVERED->value ?? 'delivered',
-                'comment' => "POS Order Completed",
-                'updated_by' => Auth::id(),
-            ]);
-
-            // Clear cart if it exists
             if ($request->filled('cart_id')) {
                 $cart = Cart::find($request->cart_id);
                 if ($cart) {
@@ -224,22 +234,21 @@ class PosController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Order completed successfully',
-                'order_id' => $order->id,
-                'order_number' => $order->order_number,
+                'message' => 'Sale completed successfully',
+                'sale_id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to complete order: ' . $e->getMessage(),
+                'message' => 'Failed to complete sale: ' . $e->getMessage(),
             ], 500);
         }
     }
 
     public function saveDraft(Request $request)
     {
-        // Similar validation as store, but status = 'draft' and NO stock deduction
         $data = $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -248,8 +257,15 @@ class PosController extends Controller
             'items.*.price' => 'required|numeric|min:0',
             'subtotal' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
+            'discount_type' => 'nullable|string|in:fixed,percentage',
+            'discount_value' => 'nullable|numeric|min:0',
+            'discount' => 'nullable|numeric',
             'customer_name' => 'nullable|string|max:255',
             'customer_phone' => 'nullable|string|max:20',
+            'payment_method' => 'string',
+            'employee_id' => 'nullable|integer|exists:users,id',
+            'cash_received' => 'nullable|numeric',
+            'cash_returned' => 'nullable|numeric',
         ]);
 
         try {
@@ -264,33 +280,47 @@ class PosController extends Controller
                 $customer_id = $customer->id;
             }
 
-            $order = Order::create([
-                'order_number' => 'POS-DRAFT-' . strtoupper(uniqid()),
-                'is_pos' => 1,
+            $invoiceNumber = $this->generateInvoiceNumber();
+            $sale = Sale::create([
+                'invoice_number' => $invoiceNumber,
+                'sale_date' => now()->toDateString(),
                 'user_id' => Auth::id(),
                 'customer_id' => $customer_id,
-                'shipping_name' => $request->customer_name ?? 'Walk-in Customer',
                 'subtotal' => $request->subtotal,
-                'total' => $request->total,
+                'discount_type' => $request->discount_type,
+                'discount_value' => $request->discount_value ?? $request->discount ?? 0,
+                'discount_amount' => $request->discount ?? 0,
+                'total_amount' => $request->total,
                 'payable' => $request->total,
-                'paid' => 0,
-                'due' => $request->total,
-                'status' => OrderStatus::DRAFT->value ?? 'draft',
-                'payment_status' => 'unpaid',
-                'notes' => 'POS Draft Order',
+                'paid_amount' => 0,
+                'due_amount' => $request->total,
+                'cash_received' => $request->cash_received ?? 0,
+                'change_amount' => $request->cash_returned ?? 0,
+                'employee_id' => $request->employee_id ?? Auth::id(),
+                'status' => SaleStatus::DRAFT->value,
+                'payment_method' => $this->mapPaymentMethod($request->payment_method),
+                'payment_status' => PaymentStatus::UNPAID->value,
+                'notes' => 'POS Draft Sale',
             ]);
 
             foreach ($request->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
+                $product = Product::find($item['product_id']);
+                $qty = (float) $item['quantity'];
+                $unitPrice = (float) $item['price'];
+                $lineSubtotal = $unitPrice * $qty;
+
+                SaleItem::create([
+                    'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
+                    'product_variant_id' => null,
+                    'unit_id' => $product?->unit_id ?? 1,
                     'product_name' => $item['product_name'],
-                    'product_sku' => $item['sku'] ?? null,
-                    'quantity' => (float) $item['quantity'],
-                    'unit_price' => (float) $item['price'],
-                    'subtotal' => (float) $item['price'] * (float) $item['quantity'],
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'cost_price' => $product?->cost_price ?? 0,
+                    'subtotal' => $lineSubtotal,
+                    'total' => $lineSubtotal,
                 ]);
-                // NOTE: Draft orders do NOT deduct stock
             }
 
             if ($request->filled('cart_id')) {
@@ -306,7 +336,7 @@ class PosController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Draft saved successfully',
-                'order_number' => $order->order_number,
+                'invoice_number' => $sale->invoice_number,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -314,17 +344,43 @@ class PosController extends Controller
         }
     }
 
-    public function getOrCreateCart($orderNumber = null)
+    public function getOrCreateCart($invoiceNumber = null)
     {
-        if ($orderNumber) {
-            return Cart::firstOrCreate(
-                ['order_number' => $orderNumber, 'is_pos' => 1],
-                ['user_id' => Auth::id()]
-            );
+        if ($invoiceNumber) {
+            $cart = Cart::where('invoice_number', $invoiceNumber)->first();
+
+            if (!$cart) {
+                // Hydrate a cart from an existing sale so it can be edited in POS
+                $draft = Sale::where('invoice_number', $invoiceNumber)->first();
+
+                if ($draft) {
+                    $cart = Cart::create([
+                        'invoice_number' => $invoiceNumber,
+                        'user_id' => Auth::id(),
+                    ]);
+
+                    foreach ($draft->items as $item) {
+                         CartItem::create([
+                            'cart_id' => $cart->id,
+                            'product_id' => $item->product_id,
+                            'quantity' => (float) $item->quantity,
+                            'item_unit_price' => (float) ($item->unit_price ?? $item->product->selling_price ?? 0),
+                            'item_total_price' => (float) ($item->unit_price ?? $item->product->selling_price ?? 0) * (float) $item->quantity,
+                        ]);
+                    }
+                } else {
+                    $cart = Cart::firstOrCreate(
+                        ['invoice_number' => $invoiceNumber],
+                        ['user_id' => Auth::id()]
+                    );
+                }
+            }
+
+            return $cart;
         }
 
         return Cart::firstOrCreate(
-            ['is_pos' => 1, 'order_number' => null],
+            ['invoice_number' => null],
             ['user_id' => Auth::id()]
         );
     }
@@ -333,7 +389,7 @@ class PosController extends Controller
     {
         return response()->json([
             'success' => true,
-            'cart' => $this->getCartResponse($request->order_number)
+            'cart' => $this->getCartResponse($request->invoice_number)
         ]);
     }
 
@@ -342,12 +398,12 @@ class PosController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|numeric|min:0.01',
-            'order_number' => 'nullable|string',
+            'invoice_number' => 'nullable|string',
         ]);
 
         try {
             DB::beginTransaction();
-            $cart = $this->getOrCreateCart($request->order_number);
+            $cart = $this->getOrCreateCart($request->invoice_number);
             $product = Product::findOrFail($request->product_id);
 
             if ($product->stock_quantity < $request->quantity) {
@@ -376,6 +432,8 @@ class PosController extends Controller
                     'cart_id' => $cart->id,
                     'product_id' => $request->product_id,
                     'quantity' => (float) $request->quantity,
+                    'item_unit_price' => (float) ($product->selling_price ?? 0),
+                    'item_total_price' => (float) ($product->selling_price ?? 0) * (float) $request->quantity,
                 ]);
             }
 
@@ -384,7 +442,7 @@ class PosController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Product added to cart',
-                'cart' => $this->getCartResponse($request->order_number)
+                'cart' => $this->getCartResponse($request->invoice_number)
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -394,10 +452,10 @@ class PosController extends Controller
 
     public function updateQuantity(Request $request, $itemId)
     {
-        $request->validate(['quantity' => 'required|numeric|min:0.01', 'order_number' => 'nullable|string']);
+        $request->validate(['quantity' => 'required|numeric|min:0.01', 'invoice_number' => 'nullable|string']);
 
         try {
-            $cart = $this->getOrCreateCart($request->order_number);
+            $cart = $this->getOrCreateCart($request->invoice_number);
             $cartItem = CartItem::where('cart_id', $cart->id)->where('id', $itemId)->firstOrFail();
             $product = Product::find($cartItem->product_id);
 
@@ -413,7 +471,7 @@ class PosController extends Controller
 
             return response()->json([
                 'success' => true,
-                'cart' => $this->getCartResponse($request->order_number)
+                'cart' => $this->getCartResponse($request->invoice_number)
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -423,24 +481,25 @@ class PosController extends Controller
     public function removeItem(Request $request, $itemId)
     {
         try {
-            $cart = $this->getOrCreateCart($request->order_number);
+            $cart = $this->getOrCreateCart($request->invoice_number);
             $cartItem = CartItem::where('cart_id', $cart->id)->where('id', $itemId)->firstOrFail();
             $cartItem->delete();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Item removed',
-                'cart' => $this->getCartResponse($request->order_number)
+                'cart' => $this->getCartResponse($request->invoice_number)
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    public function clearCart()
+    public function clearCart(Request $request)
     {
         try {
-            $cart = $this->getOrCreateCart();
+            $invoiceNumber = $request->invoice_number ?? null;
+            $cart = $this->getOrCreateCart($invoiceNumber);
             $cart->items()->delete();
             $cart->delete();
 
@@ -452,68 +511,71 @@ class PosController extends Controller
 
     public function posSales(Request $request)
     {
-        $query = Order::where('is_pos', 1)->with(['customer']);
+        $query = Sale::with(['customer'])
+            ->where('invoice_number', 'like', 'POS-%');
 
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
         if ($request->filled('search')) {
-            $query->where('order_number', 'like', "%{$request->search}%");
+            $query->where('invoice_number', 'like', "%{$request->search}%");
         }
 
         if ($request->filled('date_from') && $request->filled('date_to')) {
-            $query->whereBetween('created_at', [$request->date_from . ' 00:00:00', $request->date_to . ' 23:59:59']);
+            $query->whereBetween('sale_date', [$request->date_from, $request->date_to]);
         }
 
-        $orders = $query->orderByDesc('created_at')->paginate(20);
+        $sales = $query->orderByDesc('created_at')->paginate(20);
 
-        return view('admin.pos.sales', compact('orders'));
+        return view('admin.pos.sales', compact('sales'));
     }
 
-    public function saleShow($order_number)
+    public function saleShow($invoice_number)
     {
-        $order = Order::with(['customer', 'items.product'])->where('order_number', $order_number)->firstOrFail();
-        return view('admin.pos.sale_show', compact('order'));
+        $sale = Sale::with(['customer', 'items.product'])->where('invoice_number', $invoice_number)->firstOrFail();
+        return view('admin.pos.sale_show', compact('sale'));
     }
 
     public function saleDelete($id)
     {
-        $order = Order::findOrFail($id);
-        $order->delete();
+        $sale = Sale::findOrFail($id);
+
+        // Optional: Revert stock here if needed before deletion
+        $sale->delete();
 
         return redirect()->route('admin.pos.sales.index')->with('success', 'Sale deleted successfully!');
     }
 
-    public function receipt($orderNumber)
+    public function receipt($invoiceNumber)
     {
-        $order = Order::where('order_number', $orderNumber)->with(['customer', 'items.product'])->firstOrFail();
-        return view('admin.pos.receipt', compact('order'));
+        $sale = Sale::where('invoice_number', $invoiceNumber)->with(['customer', 'items.product'])->firstOrFail();
+        return view('admin.pos.receipt', compact('sale'));
     }
 
     public function getPosOrders(Request $request)
     {
         $type = $request->get('type', 'sales');
 
-        $query = Order::where('is_pos', 1)
-            ->with('customer:id,name,phone');
+        $query = Sale::with('customer:id,name,phone')
+            ->where('invoice_number', 'like', 'POS-%');
 
         if ($type === 'draft') {
-            $query->where('status', OrderStatus::DRAFT->value);
+            $query->where('status', SaleStatus::DRAFT->value);
         } else {
             [$start, $end] = $this->businessDayRange();
             $query->whereBetween('created_at', [$start, $end]);
         }
 
-        $orders = $query->latest()->get();
+        $sales = $query->latest()->get();
 
-        $data = $orders->map(function ($order) {
+        $data = $sales->map(function ($sale) {
             return [
-                'id' => $order->id,
-                'order_number' => $order->order_number,
-                'customer_name' => $order->customer?->name ?? 'Walk-in Customer',
-                'total' => number_format($order->total, 2),
-                'status' => $order->status,
+                'id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
+                'customer_name' => $sale->customer?->name ?? 'Walk-in Customer',
+                'total' => number_format($sale->total_amount, 2),
+                'status' => $sale->status,
             ];
         });
 
@@ -536,6 +598,8 @@ class PosController extends Controller
             'due' => 'required|numeric|min:0',
             'payment_method' => 'nullable|string',
             'discount' => 'nullable|numeric',
+            'discount_type' => 'nullable|string',
+            'employee_id' => 'nullable|integer|exists:users,id',
             'customer_name' => 'nullable|string|max:255',
             'customer_phone' => 'nullable|string|max:20',
             'cash_received' => 'nullable|numeric',
@@ -545,9 +609,9 @@ class PosController extends Controller
         try {
             DB::beginTransaction();
 
-            $order = Order::findOrFail($orderId);
+            $sale = Sale::findOrFail($orderId);
 
-            $customer_id = $order->customer_id;
+            $customer_id = $sale->customer_id;
             if ($request->filled('customer_name') && $request->filled('customer_phone')) {
                 $customer = Customer::firstOrCreate(
                     ['phone' => $request->customer_phone],
@@ -560,49 +624,115 @@ class PosController extends Controller
             $payable = (float) $request->payable;
 
             if ($due <= 0) {
-                $payment_status = PaymentStatus::PAID->value ?? 'paid';
+                $payment_status = PaymentStatus::PAID->value;
             } elseif ($due >= $payable) {
-                $payment_status = PaymentStatus::UNPAID->value ?? 'unpaid';
+                $payment_status = PaymentStatus::UNPAID->value;
             } else {
-                $payment_status = 'partial';
+                $payment_status = PaymentStatus::PARTIAL->value;
             }
 
-            $order->update([
+            $sale->update([
                 'customer_id' => $customer_id,
-                'shipping_name' => $request->customer_name ?? 'Walk-in Customer',
+                'employee_id' => $request->employee_id ?? $sale->employee_id ?? Auth::id(),
                 'subtotal' => $request->subtotal,
+                'discount_type' => $request->discount_type,
+                'discount_value' => $request->discount_value ?? $request->discount ?? 0,
                 'discount_amount' => $request->discount ?? 0,
-                'total' => $request->total,
+                'total_amount' => $request->total,
                 'payable' => $request->payable,
-                'paid' => $request->paid,
-                'due' => $request->due,
+                'paid_amount' => $request->paid,
+                'due_amount' => $request->due,
                 'cash_received' => $request->cash_received,
-                'cash_returned' => $request->cash_returned,
-                'payment_method' => $request->payment_method ?? 'cash',
+                'change_amount' => $request->cash_returned,
+                'status' => SaleStatus::COMPLETED->value,
+                'payment_method' => $this->mapPaymentMethod($request->payment_method),
                 'payment_status' => $payment_status,
+                'paid_at' => now(),
             ]);
 
-            $order->items()->delete();
+            // Revert old stock (only if it was already deducted — drafts never deduct on save)
+            if ($sale->status !== SaleStatus::DRAFT->value) {
+                $oldItems = $sale->items;
+                foreach ($oldItems as $oldItem) {
+                    $product = Product::find($oldItem->product_id);
+                    if ($product) {
+                        $product->increment('stock_quantity', $oldItem->quantity);
+                        $product->decrement('stock_out', $oldItem->quantity);
+                    }
+                }
+            }
+            $sale->items()->delete();
+
+            // Clear old payments for simplicity on update (or handle complex reconciliation)
+            $sale->payments()->delete();
+
+            if ((float) $request->paid > 0 && method_exists($sale, 'recordPayment')) {
+                $sale->recordPayment(
+                    amount: (float) $request->paid,
+                    method: $this->mapPaymentMethod($request->payment_method),
+                    transactionId: null,
+                    notes: 'POS Sale payment updated'
+                );
+            }
 
             foreach ($request->items as $item) {
-                OrderItem::create([
-                    'order_id' => $order->id,
+                $product = Product::find($item['product_id']);
+                $qty = (float) $item['quantity'];
+                $unitPrice = (float) $item['price'];
+                $lineSubtotal = $unitPrice * $qty;
+
+                SaleItem::create([
+                    'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],
+                    'product_variant_id' => null,
+                    'unit_id' => $product?->unit_id ?? 1,
                     'product_name' => $item['product_name'],
-                    'product_sku' => $item['sku'],
-                    'quantity' => (float) $item['quantity'],
-                    'unit_price' => (float) $item['price'],
-                    'subtotal' => (float) $item['price'] * (float) $item['quantity'],
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'cost_price' => $product?->cost_price ?? 0,
+                    'subtotal' => $lineSubtotal,
+                    'total' => $lineSubtotal,
                 ]);
+
+                if ($product) {
+                    $beforeQty = (float) $product->stock_quantity;
+                    $afterQty = $beforeQty - $qty;
+
+                    $product->stock_out = (float) $product->stock_out + $qty;
+                    $product->stock_quantity = $afterQty;
+                    $product->save();
+
+                    StockMovement::create([
+                        'user_id' => Auth::id(),
+                        'product_id' => $product->id,
+                        'product_variant_id' => null,
+                        'type' => StockMovementType::SALE->value,
+                        'reference_type' => 'pos_sale',
+                        'reference_id' => $sale->id,
+                        'quantity' => $qty,
+                        'unit_cost' => $product->cost_price ?? 0,
+                        'before_quantity' => $beforeQty,
+                        'after_quantity' => $afterQty,
+                        'notes' => "POS Sale Updated: {$sale->invoice_number}",
+                    ]);
+                }
             }
 
             DB::commit();
 
+            if ($sale->invoice_number) {
+                $cart = Cart::where('invoice_number', $sale->invoice_number)->first();
+                if ($cart) {
+                    $cart->items()->delete();
+                    $cart->delete();
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'Order updated successfully',
-                'order_id' => $order->id,
-                'order_number' => $order->order_number,
+                'message' => 'Sale updated successfully',
+                'sale_id' => $sale->id,
+                'invoice_number' => $sale->invoice_number,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -617,43 +747,47 @@ class PosController extends Controller
     {
         $request->validate([
             'price' => 'required|numeric|min:0',
-            'order_number' => 'nullable|string',
+            'invoice_number' => 'nullable|string',
         ]);
 
         try {
-            $cart = $this->getOrCreateCart($request->order_number);
+            $cart = $this->getOrCreateCart($request->invoice_number);
             $cartItem = CartItem::where('cart_id', $cart->id)->where('id', $itemId)->firstOrFail();
-
             $cartItem->item_unit_price = (float) $request->price;
             $cartItem->item_total_price = (float) $request->price * (float) $cartItem->quantity;
             $cartItem->save();
 
             return response()->json([
                 'success' => true,
-                'cart' => $this->getCartResponse($request->order_number)
+                'message' => 'Price updated',
+                'cart' => $this->getCartResponse($request->invoice_number)
             ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 
-    private function getCartResponse($orderNumber = null)
+    private function getCartResponse($invoiceNumber = null)
     {
-        $cart = $this->getOrCreateCart($orderNumber);
+        $cart = $this->getOrCreateCart($invoiceNumber);
         $cart->load('items.product');
 
         $items = $cart->items->map(function ($item) {
+            $product = $item->product;
+            $price = (float) ($item->item_unit_price ?? $product->selling_price);
+            $qty = (float) $item->quantity;
+
             return [
                 'id' => $item->id,
                 'source' => 'cart',
                 'product_id' => $item->product_id,
-                'sku' => $item->product->sku ?? '',
-                'product_name' => $item->product->name ?? 'Unknown',
-                'product_image' => $item->product->image ? asset('storage/' . $item->product->image) : asset('assets/images/default.png'),
-                'quantity' => (float) $item->quantity,
-                'price' => (float) $item->product->selling_price,
-                'stock' => (float) $item->product->stock_quantity,
-                'total_price' => (float) $item->quantity * (float) $item->product->selling_price,
+                'sku' => $product->sku ?? '',
+                'product_name' => $product->name ?? 'Unknown',
+                'product_image' => $product->image ? asset('storage/' . $product->image) : asset('assets/images/default.png'),
+                'quantity' => $qty,
+                'price' => $price,
+                'stock' => (float) $product->stock_quantity,
+                'total_price' => $qty * $price,
             ];
         });
 
@@ -689,5 +823,36 @@ class PosController extends Controller
         $start = Carbon::today()->startOfDay();
         $end = Carbon::today()->endOfDay();
         return [$start, $end];
+    }
+
+    private function mapPaymentMethod(?string $method): string
+    {
+        return match (strtolower($method)) {
+            'bkash', 'nagad', 'mobile_banking' => PaymentMethodType::MOBILE_BANKING->value,
+            'bank' => PaymentMethodType::BANK->value,
+            'card' => PaymentMethodType::CARD->value,
+            'cash' => PaymentMethodType::CASH->value,
+            'none',null, '' => PaymentMethodType::NONE->value,
+            default => PaymentMethodType::OTHER->value,
+        };
+    }
+
+    private function generateInvoiceNumber(): string
+    {
+        $prefix = 'INV-';
+        $lastSale = Sale::withTrashed()
+            ->where('invoice_number', 'like', "{$prefix}%")
+            ->orderBy('id', 'desc')
+            ->lockForUpdate()
+            ->first();
+
+        if ($lastSale) {
+            $lastNumber = (int) substr($lastSale->invoice_number, strlen($prefix));
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        return $prefix . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
     }
 }

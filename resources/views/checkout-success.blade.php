@@ -20,11 +20,11 @@
             <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-gray-200">
                 <div>
                     <p class="text-sm text-gray-500 mb-1">Order Number</p>
-                    <h2 class="text-2xl font-bold text-brand-blue">{{ $order->order_number }}</h2>
+                    <h2 class="text-2xl font-bold text-brand-blue">{{ $sale->order_number }}</h2>
                 </div>
                 <div class="flex items-center gap-2 bg-yellow-50 px-4 py-2 rounded-full">
                     <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                    <span class="text-sm font-semibold text-yellow-700">{{ $order->status->label() }}</span>
+                    <span class="text-sm font-semibold text-yellow-700">{{ $sale->status->label() }}</span>
                 </div>
             </div>
 
@@ -36,10 +36,10 @@
                         Customer Information
                     </h3>
                     <div class="space-y-2 text-sm text-gray-600">
-                        <p><strong>Name:</strong> {{ $order->shipping_name }}</p>
-                        <p><strong>Phone:</strong> {{ $order->shipping_phone }}</p>
-                        @if($order->shipping_email)
-                        <p><strong>Email:</strong> {{ $order->shipping_email }}</p>
+                        <p><strong>Name:</strong> {{ $sale->shipping_name }}</p>
+                        <p><strong>Phone:</strong> {{ $sale->shipping_phone }}</p>
+                        @if($sale->shipping_email)
+                        <p><strong>Email:</strong> {{ $sale->shipping_email }}</p>
                         @endif
                     </div>
                 </div>
@@ -50,12 +50,12 @@
                         Delivery Address
                     </h3>
                     <div class="text-sm text-gray-600">
-                        <p>{{ $order->shipping_address }}</p>
-                        <p>{{ $order->shipping_city }}, {{ $order->shipping_district }}</p>
+                        <p>{{ $sale->shipping_address }}</p>
+                        <p>{{ $sale->shipping_city }}, {{ $sale->shipping_district }}</p>
                         <p class="mt-2">
                             <span class="inline-flex items-center gap-1 bg-blue-50 text-brand-blue px-2 py-1 rounded-full text-xs font-medium">
                                 <i class="fas fa-truck"></i>
-                                {{ $order->delivery_zone->label() }}
+                                {{ $sale->delivery_zone->label() }}
                             </span>
                         </p>
                     </div>
@@ -66,10 +66,10 @@
             <div class="py-6 border-b border-gray-200">
                 <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <i class="fas fa-box text-brand-blue"></i>
-                    Order Items ({{ $order->items->count() }})
+                    Order Items ({{ $sale->items->count() }})
                 </h3>
                 <div class="space-y-4">
-                    @foreach($order->items as $item)
+                    @foreach($sale->items as $item)
                     <div class="flex gap-4">
                         <div class="w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
                             <img src="{{ $item->product_image }}" alt="{{ $item->product_name }}" class="w-full h-full object-cover">
@@ -106,17 +106,17 @@
                             <p>
                                 <strong>Method:</strong>
                                 <span class="ml-2 inline-flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-xs font-medium">
-                                    {{ $order->payment_method->label() }}
+                                    {{ $sale->payment_method->label() }}
                                 </span>
                             </p>
                             <p>
                                 <strong>Status:</strong>
-                                <span class="ml-2 inline-flex items-center gap-1 {{ $order->payment_status->value === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }} px-2 py-1 rounded text-xs font-medium">
-                                    {{ $order->payment_status->label() }}
+                                <span class="ml-2 inline-flex items-center gap-1 {{ $sale->payment_status->value === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }} px-2 py-1 rounded text-xs font-medium">
+                                    {{ $sale->payment_status->label() }}
                                 </span>
                             </p>
-                            @if($order->transaction_id)
-                            <p><strong>Transaction ID:</strong> <code class="ml-2 bg-gray-100 px-2 py-1 rounded text-xs">{{ $order->transaction_id }}</code></p>
+                            @if($sale->transaction_id)
+                            <p><strong>Transaction ID:</strong> <code class="ml-2 bg-gray-100 px-2 py-1 rounded text-xs">{{ $sale->transaction_id }}</code></p>
                             @endif
                         </div>
                     </div>
@@ -127,36 +127,36 @@
                         <div class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Subtotal</span>
-                                <span class="font-medium">{{ money($order->subtotal) }}</span>
+                                <span class="font-medium">{{ money($sale->subtotal) }}</span>
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Shipping</span>
-                                <span class="font-medium">{{ money($order->shipping_cost) }}</span>
+                                <span class="font-medium">{{ money($sale->shipping_cost) }}</span>
                             </div>
-                            @if($order->discount_amount > 0)
+                            @if($sale->discount_amount > 0)
                             <div class="flex justify-between text-green-600">
                                 <span>Discount</span>
-                                <span class="font-medium">-{{ money($order->discount_amount) }}</span>
+                                <span class="font-medium">-{{ money($sale->discount_amount) }}</span>
                             </div>
                             @endif
                             <div class="h-px bg-gray-300 my-2"></div>
                             <div class="flex justify-between text-lg font-bold">
                                 <span class="text-gray-900">Total</span>
-                                <span class="text-brand-blue">{{ money($order->total) }}</span>
+                                <span class="text-brand-blue">{{ money($sale->total) }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            @if($order->notes)
+            @if($sale->notes)
             {{-- Order Notes --}}
             <div class="pt-6 border-t border-gray-200">
                 <h3 class="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                     <i class="fas fa-sticky-note text-brand-blue"></i>
                     Order Notes
                 </h3>
-                <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{{ $order->notes }}</p>
+                <p class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{{ $sale->notes }}</p>
             </div>
             @endif
         </div>
@@ -192,7 +192,7 @@
                     </div>
                     <div>
                         <h4 class="font-semibold text-gray-900 mb-1">Delivery</h4>
-                        <p class="text-sm text-gray-600">Your order will be delivered within {{ $order->delivery_zone->value === 'inside_dhaka' ? '1-2 days' : '3-5 days' }}</p>
+                        <p class="text-sm text-gray-600">Your order will be delivered within {{ $sale->delivery_zone->value === 'inside_dhaka' ? '1-2 days' : '3-5 days' }}</p>
                     </div>
                 </div>
             </div>

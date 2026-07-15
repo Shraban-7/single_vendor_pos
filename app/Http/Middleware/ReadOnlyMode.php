@@ -12,8 +12,9 @@ class ReadOnlyMode
     {
         $except = [
             'logout',
-            'admin.orders.update-status',
-            'admin.orders.processReturn',
+            'admin.ecommerce-sales.update-status',
+            'admin.ecommerce-sales.update-tracking',
+            'admin.ecommerce-sales.update-notes',
             'admin.cashRegister.open',
             'admin.cashRegister.close',
             'admin.pos.store',

@@ -16,9 +16,9 @@ class SaleReturn extends Model
         return $this->hasMany(SaleReturnItem::class);
     }
 
-    public function order()
+    public function sale()
     {
-        return $this->belongsTo(Order::class,'sale_id');
+        return $this->belongsTo(Sale::class, 'sale_id');
     }
 
     public function employee()
