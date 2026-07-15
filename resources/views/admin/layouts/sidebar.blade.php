@@ -126,16 +126,35 @@ $user = auth()->user();
                         <span class="w-1 h-1 rounded-full bg-current"></span>
                         <span>Sales Report</span>
                     </a>
-                    <a href="{{ route('admin.reports.financial') }}"
-                        class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition {{ request()->routeIs('admin.reports.financial') ? 'text-indigo-400 font-semibold bg-slate-800/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/30' }}">
+                    <a href="{{ route('admin.reports.purchases') }}"
+                        class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition {{ request()->routeIs('admin.reports.purchases') ? 'text-indigo-400 font-semibold bg-slate-800/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/30' }}">
                         <span class="w-1 h-1 rounded-full bg-current"></span>
-                        <span>Finantial Report</span>
+                        <span>Purchase Report</span>
                     </a>
-
+                    <a href="{{ route('admin.reports.profit-loss') }}"
+                        class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition {{ request()->routeIs('admin.reports.profit-loss') ? 'text-indigo-400 font-semibold bg-slate-800/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/30' }}">
+                        <span class="w-1 h-1 rounded-full bg-current"></span>
+                        <span>Profit & Loss</span>
+                    </a>
+                    <a href="{{ route('admin.reports.stock') }}"
+                        class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition {{ request()->routeIs('admin.reports.stock') ? 'text-indigo-400 font-semibold bg-slate-800/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/30' }}">
+                        <span class="w-1 h-1 rounded-full bg-current"></span>
+                        <span>Stock Report</span>
+                    </a>
                     <a href="{{ route('admin.reports.customers') }}"
                         class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition {{ request()->routeIs('admin.reports.customers') ? 'text-indigo-400 font-semibold bg-slate-800/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/30' }}">
                         <span class="w-1 h-1 rounded-full bg-current"></span>
-                        <span>Profit & Loss</span>
+                        <span>Customer Report</span>
+                    </a>
+                    <a href="{{ route('admin.reports.suppliers') }}"
+                        class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition {{ request()->routeIs('admin.reports.suppliers') ? 'text-indigo-400 font-semibold bg-slate-800/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/30' }}">
+                        <span class="w-1 h-1 rounded-full bg-current"></span>
+                        <span>Supplier Report</span>
+                    </a>
+                    <a href="{{ route('admin.reports.expenses') }}"
+                        class="flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition {{ request()->routeIs('admin.reports.expenses') ? 'text-indigo-400 font-semibold bg-slate-800/40' : 'text-slate-400 hover:text-white hover:bg-slate-800/30' }}">
+                        <span class="w-1 h-1 rounded-full bg-current"></span>
+                        <span>Expense Report</span>
                     </a>
                 </div>
             </div>

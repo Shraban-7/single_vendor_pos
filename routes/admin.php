@@ -168,12 +168,14 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
     });
 
 
-    Route::prefix('reports')->as('reports.')->group(function () {
-        Route::get('/financial', [ReportController::class, 'financial'])->name('financial');
-        Route::get('/sales', [ReportController::class, 'sales'])->name('sales');
-        Route::get('/customers', [ReportController::class, 'customers'])->name('customers');
-        Route::get('/overview', [ReportController::class, 'overview'])->name('overview');
-        Route::get('/cash-registers', [ReportController::class, 'cashRegisters'])->name('cashRegisters');
+    Route::prefix('reports')->name('reports.')->group(function () {
+        Route::get('/sales', [ReportController::class, 'salesReport'])->name('sales');
+        Route::get('/purchases', [ReportController::class, 'purchaseReport'])->name('purchases');
+        Route::get('/profit-loss', [ReportController::class, 'profitLossReport'])->name('profit-loss');
+        Route::get('/stock', [ReportController::class, 'stockReport'])->name('stock');
+        Route::get('/customers', [ReportController::class, 'customerReport'])->name('customers');
+        Route::get('/suppliers', [ReportController::class, 'supplierReport'])->name('suppliers');
+        Route::get('/expenses', [ReportController::class, 'expenseReport'])->name('expenses');
     });
 
     // Categories Routes (placeholder)

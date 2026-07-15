@@ -73,20 +73,19 @@ class User extends Authenticatable
         'gender' => Gender::class,
     ];
 
-    // Relationships
-    public function addresses(): HasMany
-    {
-        return $this->hasMany(Address::class);
-    }
-
-    public function defaultAddress(): HasOne
-    {
-        return $this->hasOne(Address::class)->where('is_default', true);
-    }
-
-    public function sales(): HasMany
+    public function sales()
     {
         return $this->hasMany(Sale::class);
+    }
+
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
+    public function expenses()
+    {
+        return $this->hasMany(Expense::class);
     }
 
     public function cart(): HasOne
@@ -94,15 +93,6 @@ class User extends Authenticatable
         return $this->hasOne(Cart::class);
     }
 
-    public function wishlists(): HasMany
-    {
-        return $this->hasMany(Wishlist::class);
-    }
-
-    public function reviews(): HasMany
-    {
-        return $this->hasMany(Review::class);
-    }
 
     public function notificationLogs(): HasMany
     {

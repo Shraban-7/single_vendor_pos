@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Customer Report')
+@section('title', 'Supplier Report')
 
 @section('content')
 
@@ -9,8 +9,8 @@
     {{-- Page Header --}}
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-xl font-bold tracking-tight text-slate-900">Customer Report</h1>
-            <p class="text-xs text-slate-500">Customer activity for {{ \Carbon\Carbon::parse($month)->format('F Y') }}</p>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900">Supplier Report</h1>
+            <p class="text-xs text-slate-500">Supplier activity for {{ \Carbon\Carbon::parse($month)->format('F Y') }}</p>
         </div>
         <div>
             <form method="GET" class="flex items-center gap-2">
@@ -32,8 +32,8 @@
                     <i data-lucide="users" class="w-4 h-4"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Customers</p>
-                    <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ $data['customer_summary']['total'] }}</p>
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Suppliers</p>
+                    <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ $data['supplier_summary']['total'] }}</p>
                 </div>
             </div>
         </div>
@@ -45,7 +45,7 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">New This Period</p>
-                    <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ $data['customer_summary']['new'] }}</p>
+                    <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ $data['supplier_summary']['new'] }}</p>
                 </div>
             </div>
         </div>
@@ -57,7 +57,7 @@
                 </div>
                 <div class="min-w-0">
                     <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Active</p>
-                    <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ $data['customer_summary']['active'] }}</p>
+                    <p class="text-base font-extrabold text-slate-900 tracking-tight">{{ $data['supplier_summary']['active'] }}</p>
                 </div>
             </div>
         </div>
@@ -76,35 +76,35 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {{-- Total Sales Summary --}}
+        {{-- Total Purchases Summary --}}
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Sales (Period)</p>
-            <p class="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">{{ $data['total_sales']['amount'] }}</p>
-            <p class="text-[10px] text-slate-400 mt-1">{{ $data['total_sales']['count'] }} invoices</p>
+            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Purchases (Period)</p>
+            <p class="text-2xl font-extrabold text-slate-900 tracking-tight mt-1">{{ $data['total_purchases']['amount'] }}</p>
+            <p class="text-[10px] text-slate-400 mt-1">{{ $data['total_purchases']['count'] }} orders</p>
         </div>
 
-        {{-- Top Customers --}}
+        {{-- Top Suppliers --}}
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden lg:col-span-2">
             <div class="px-4 py-3 border-b border-slate-100 bg-slate-50/40">
-                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Top Customers</h2>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Top Suppliers</h2>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full border-collapse text-left">
                     <thead>
                         <tr class="border-b bg-slate-50/70 border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                            <th class="px-4 py-2.5">Customer</th>
+                            <th class="px-4 py-2.5">Supplier</th>
                             <th class="px-4 py-2.5">Phone</th>
                             <th class="px-4 py-2.5 text-right">Orders</th>
-                            <th class="px-4 py-2.5 text-right">Purchase</th>
+                            <th class="px-4 py-2.5 text-right">Purchases</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 text-xs">
-                        @forelse($data['top_customers'] as $c)
+                        @forelse($data['top_suppliers'] as $s)
                             <tr class="hover:bg-slate-50/60 transition-colors">
-                                <td class="px-4 py-2.5 font-medium text-slate-800">{{ $c['name'] }}</td>
-                                <td class="px-4 py-2.5 text-slate-500">{{ $c['phone'] }}</td>
-                                <td class="px-4 py-2.5 text-right text-slate-600">{{ number_format($c['purchase_count']) }}</td>
-                                <td class="px-4 py-2.5 text-right font-semibold text-slate-900">{{ $c['total_purchase'] }}</td>
+                                <td class="px-4 py-2.5 font-medium text-slate-800">{{ $s['name'] }}</td>
+                                <td class="px-4 py-2.5 text-slate-500">{{ $s['phone'] }}</td>
+                                <td class="px-4 py-2.5 text-right text-slate-600">{{ number_format($s['purchase_count']) }}</td>
+                                <td class="px-4 py-2.5 text-right font-semibold text-slate-900">{{ $s['total_purchase'] }}</td>
                             </tr>
                         @empty
                             <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">No data</td></tr>

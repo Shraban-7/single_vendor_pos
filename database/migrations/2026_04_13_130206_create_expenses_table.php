@@ -13,11 +13,20 @@ return new class extends Migration
     {
         Schema::create('expenses', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('category_id')->nullable();
-            $table->decimal('amount',11,2);
-            $table->string('description')->nullable();
+            $table->unsignedBigInteger('user_id')->index();
+            $table->unsignedBigInteger('category_id');
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->decimal('amount', 12, 2);
             $table->date('expense_date');
+            $table->string('payment_method', 50)->nullable(); //cash, bank, card, mobile
+            $table->string('receipt_image')->nullable();
+            $table->boolean('is_recurring')->default(false);
+            $table->string('recurring_frequency')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
+            $table->index('expense_date', 'idx_expense_date');
+            $table->index('category_id');
         });
     }
 
