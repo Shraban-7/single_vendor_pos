@@ -127,28 +127,6 @@
         <h3 class="mb-1 text-xs font-medium text-slate-500">Out of Stock</h3>
         <p class="text-xl font-bold text-slate-900 tabular-nums">{{ number_format($widgets['outOfStock'], 0) }}</p>
     </div>
-
-    {{-- Total Reviews --}}
-    <!-- <div class="p-4 transition bg-white border shadow-sm rounded-2xl border-slate-100 hover:shadow-md">
-        <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center justify-center w-10 h-10 bg-amber-500/10 text-amber-600 rounded-xl">
-                <i data-lucide="star" class="w-5 h-5"></i>
-            </div>
-        </div>
-        <h3 class="mb-1 text-xs font-medium text-slate-500">Reviews</h3>
-        <p class="text-xl font-bold text-slate-900 tabular-nums">{{ number_format($widgets['totalReviews'], 0) }}</p>
-    </div> -->
-
-    {{-- Active Coupons --}}
-    <!-- <div class="p-4 transition bg-white border shadow-sm rounded-2xl border-slate-100 hover:shadow-md">
-        <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center justify-center w-10 h-10 bg-violet-500/10 text-violet-600 rounded-xl">
-                <i data-lucide="ticket-percent" class="w-5 h-5"></i>
-            </div>
-        </div>
-        <h3 class="mb-1 text-xs font-medium text-slate-500">Active Coupons</h3>
-        <p class="text-xl font-bold text-slate-900 tabular-nums">{{ number_format($widgets['activeCoupons'], 0) }}</p>
-    </div> -->
 </div>
 
 {{-- Charts and Recent Activity --}}

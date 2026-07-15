@@ -212,10 +212,6 @@ class DashboardController extends Controller
                 ];
             });
 
-        // Optimization: Run low stock constraints directly within the database engine instead of working on huge in-memory collection dumps.
-        // Only pull columns necessary to evaluate your accessor and render the dashboard view
-        // 1. Fetch the items once. Include the actual raw DB column names used by your accessors (e.g., 'image', 'stock', etc.)
-// If unsure, you can omit ->select(...) entirely and just use Product::get()
         $allLowStockProducts = Product::select('id', 'name', 'image')
             ->get()
             ->filter(fn($product) => $product->total_stock <= 10);
@@ -233,8 +229,7 @@ class DashboardController extends Controller
             ->get()
             ->filter(fn($product) => $product->total_stock <= 0)
             ->count();
-        $totalReviews = Review::count();
-        $activeCoupons = Coupon::where('expires_at', '>', now())->count();
+
 
         $todayOrders = Order::whereDate('created_at', today())->count();
         $todayRevenue = Order::whereDate('created_at', today())->sum('total');
@@ -272,8 +267,6 @@ class DashboardController extends Controller
             'totalProducts' => $totalProducts,
             'totalCategories' => $totalCategories,
             'outOfStock' => $outOfStock,
-            'totalReviews' => $totalReviews,
-            'activeCoupons' => $activeCoupons,
             'todayOrders' => $todayOrders,
             'todayRevenue' => $todayRevenue,
             'avgOrderValue' => $avgOrderValue,

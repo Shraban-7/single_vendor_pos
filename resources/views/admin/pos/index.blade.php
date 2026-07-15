@@ -427,7 +427,28 @@
                     url: "{{ route('admin.pos.getProducts') }}",
                     method: "GET",
                     success: function (response) {
-                        $('#productsGrid').html(response.data.html);
+                        if (response.success && response.data.length > 0) {
+                            var html = '';
+                            var imagePath = '{{ asset('storage') }}/';
+                            var defaultImage = '{{ asset('assets/images/default.png') }}';
+                            response.data.forEach(function(product) {
+                                var img = product.image ? imagePath + product.image : defaultImage;
+                                var stockClass = product.stock_quantity > 0 ? 'text-emerald-600' : 'text-rose-600';
+                                html += '<div class="product-card bg-white rounded-lg border border-slate-200 p-0 cursor-pointer transition hover:shadow-md hover:-translate-y-0.5 active:translate-y-0" data-product=\'' + JSON.stringify(product) + '\'>';
+                                html += '<img src="' + img + '" alt="' + product.name + '" class="w-full h-24 object-cover rounded-t-lg" loading="lazy" onerror="this.src=\'' + defaultImage + '\'">';
+                                html += '<div class="p-2">';
+                                html += '<p class="text-xs font-semibold text-slate-800 line-clamp-2 mb-1">' + product.name + '</p>';
+                                html += '<div class="flex items-center justify-between">';
+                                html += '<span class="text-sm font-bold text-indigo-600">৳' + parseFloat(product.selling_price).toFixed(2) + '</span>';
+                                html += '<span class="text-[10px] font-medium ' + stockClass + '">' + parseFloat(product.stock_quantity).toFixed(0) + '</span>';
+                                html += '</div></div></div>';
+                            });
+                            $('#productsGrid').html(html);
+                            $('#noProducts').addClass('hidden');
+                        } else {
+                            $('#productsGrid').empty();
+                            $('#noProducts').removeClass('hidden').addClass('flex');
+                        }
                     },
                     error: function (xhr) {
                         console.error("Error fetching products: ", xhr);

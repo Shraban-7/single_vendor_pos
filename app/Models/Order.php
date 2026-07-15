@@ -31,25 +31,25 @@ class Order extends Model
             }
         });
 
-        static::updated(function ($order) {        
-            if ($order->wasChanged('status')) {        
+        static::updated(function ($order) {
+            if ($order->wasChanged('status')) {
                 $status = $order->status;
                 $notificationType = match ($status) {
                     \App\Enums\OrderStatus::PENDING =>\App\Enums\SystemNotificationType::ORDER_CREATED,
                     \App\Enums\OrderStatus::CONFIRMED =>\App\Enums\SystemNotificationType::ORDER_CONFIRMED,
                     \App\Enums\OrderStatus::SHIPPED => \App\Enums\SystemNotificationType::ORDER_SHIPPED,
                     \App\Enums\OrderStatus::DELIVERED => \App\Enums\SystemNotificationType::ORDER_DELIVERED,
-                    \App\Enums\OrderStatus::CANCELLED => \App\Enums\SystemNotificationType::ORDER_CANCELLED,        
+                    \App\Enums\OrderStatus::CANCELLED => \App\Enums\SystemNotificationType::ORDER_CANCELLED,
                     default => null,
-                };        
-        
+                };
+
                 if (!$notificationType) {
                     return;
-                }        
-        
+                }
+
                 $admins = \App\Models\User::whereIn('role',\App\Enums\UserRole::staffRoles())->get();
-        
-                foreach ($admins as $admin) {        
+
+                foreach ($admins as $admin) {
                     \App\Models\Notification::create([
                         'user_id' => $admin->id,
                         'title' => 'Order Status Updated',
@@ -57,8 +57,8 @@ class Order extends Model
                         'type' => $notificationType,
                         'action_url' => route('admin.orders.show', $order->order_number),
                     ]);
-                }        
-            }        
+                }
+            }
         });
     }
 
@@ -210,7 +210,7 @@ class Order extends Model
                 ->first();
             $orderNumber = $lastOrder ? ((int) substr($lastOrder->order_number, -2)) + 1 : 1;
         }
-        
+
         $sequence = $orderNumber;
 
         return $prefix . $date . str_pad($sequence, 2, '0', STR_PAD_LEFT);
