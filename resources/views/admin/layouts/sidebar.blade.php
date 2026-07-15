@@ -52,6 +52,11 @@ $user = auth()->user();
                     <i data-lucide="archive-restore" class="w-5 h-5"></i>
                     <span class="font-heading">Returns</span>
                 </a>
+                <a href="{{ route('admin.saleExchanges.index') }}"
+                    class="sidebar-link flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-300 rounded-xl transition {{ request()->routeIs('admin.saleExchanges.*') ? 'active' : '' }}">
+                    <i data-lucide="repeat" class="w-5 h-5"></i>
+                    <span class="font-heading">Exchanges</span>
+                </a>
             </div>
 
             <div class="pt-4">

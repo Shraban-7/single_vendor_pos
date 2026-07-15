@@ -1,14 +1,14 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Sales Returns')
+@section('title', 'Sale Exchanges')
 
 @section('content')
 
     {{-- Page Header --}}
     <div class="flex flex-col gap-2 mb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h1 class="text-xl font-bold tracking-tight text-slate-900">Sale Returns</h1>
-            <p class="text-xs text-slate-500">Track and manage order returns and refunds.</p>
+            <h1 class="text-xl font-bold tracking-tight text-slate-900">Sale Exchanges</h1>
+            <p class="text-xs text-slate-500">Track product exchanges processed against sales returns.</p>
         </div>
         <div class="flex items-center gap-2">
             <button onclick="window.print()"
@@ -17,7 +17,7 @@
                 <span>Print</span>
             </button>
 
-            <button onclick="exportReturns()"
+            <button onclick="exportExchanges()"
                 class="inline-flex items-center justify-center gap-1.5 px-3 h-9 text-xs font-medium text-white bg-emerald-600 rounded-lg shadow-sm hover:bg-emerald-700 transition">
                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                 <span>Export</span>
@@ -27,7 +27,7 @@
 
     {{-- Compact Filter Framework --}}
     <div class="p-3.5 mb-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-        <form method="GET" action="{{ route('admin.saleReturns.index') }}" class="space-y-2.5">
+        <form method="GET" action="{{ route('admin.saleExchanges.index') }}" class="space-y-2.5">
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-12">
 
                 {{-- Global Search Bar --}}
@@ -57,8 +57,8 @@
                     <button type="submit" class="flex flex-1 items-center justify-center h-9 text-xs text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition shadow-sm" title="Apply Filters">
                         <i data-lucide="filter" class="w-3.5 h-3.5"></i>
                     </button>
-                    <a href="{{ route('admin.saleReturns.index') }}" class="flex items-center justify-center w-9 h-9 text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-800 transition shadow-sm" title="Reset Filters">
-                        <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                    <a href="{{ route('admin.saleExchanges.index') }}" class="flex items-center justify-center w-9 h-9 text-slate-500 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-800 transition shadow-sm" title="Reset Filters">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                     </a>
                 </div>
 
@@ -66,7 +66,7 @@
         </form>
     </div>
 
-    {{-- High Density Return Ledger Data Table --}}
+    {{-- Exchange Ledger Data Table --}}
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full border-collapse text-left">
@@ -75,92 +75,105 @@
                         <th class="px-4 py-3">Return ID</th>
                         <th class="px-4 py-3">Origin Invoice</th>
                         <th class="px-4 py-3">Customer Profile</th>
-                        <th class="px-4 py-3">Items Count</th>
-                        <th class="px-4 py-3">Refund Amount</th>
-                        <th class="px-4 py-3">Refund Gateway</th>
+                        <th class="px-4 py-3">Exchanged Items</th>
+                        <th class="px-4 py-3">Exchange Value</th>
+                        <th class="px-4 py-3">Returned For</th>
                         <th class="px-4 py-3">Processed By</th>
                         <th class="px-4 py-3">Date Logged</th>
                         <th class="px-4 py-3 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
-                    @forelse($returns as $return)
+                    @forelse($exchanges as $exchange)
                         <tr class="hover:bg-slate-50/60 transition-colors">
 
                             {{-- Return Number Identifier --}}
                             <td class="px-4 py-2.5 whitespace-nowrap font-medium">
-                                <span class="font-bold text-slate-900 text-sm">#{{ $return->return_number }}</span>
+                                <span class="font-bold text-slate-900 text-sm">#{{ $exchange->return_number }}</span>
                             </td>
 
                             {{-- Originating Invoice Reference --}}
                             <td class="px-4 py-2.5 whitespace-nowrap">
-                                @if ($return->sale != null)
-                                    <a href="{{ route('admin.ecommerce-sales.show', $return->sale->invoice_number) }}"
+                                @if ($exchange->sale != null)
+                                    <a href="{{ route('admin.ecommerce-sales.show', $exchange->sale->invoice_number) }}"
                                         class="text-indigo-600 hover:text-indigo-800 hover:underline font-semibold">
-                                        {{ $return->order_number }}
+                                        {{ $exchange->order_number }}
                                     </a>
                                 @else
                                     <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-rose-50 text-rose-700 border border-rose-100/70">
-                                        {{ $return->order_number }} (Deleted)
+                                        {{ $exchange->order_number }} (Deleted)
                                     </span>
                                 @endif
                             </td>
 
                             {{-- Customer Profile --}}
                             <td class="px-4 py-2.5 max-w-[150px] truncate">
-                                <span class="font-medium text-slate-800 block">{{ $return->customer->name ?? ($return->sale?->customer?->name ?? 'Walk-in Customer') }}</span>
-                                <span class="text-[10px] text-slate-400 block mt-0.5 tracking-tight">{{ $return->customer->phone ?? ($return->sale?->customer?->phone ?? '—') }}</span>
+                                <span class="font-medium text-slate-800 block">{{ $exchange->customer->name ?? ($exchange->sale?->customer?->name ?? 'Walk-in Customer') }}</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5 tracking-tight">{{ $exchange->customer->phone ?? ($exchange->sale?->customer?->phone ?? '—') }}</span>
                             </td>
 
-                            {{-- Return Volume Quantity count --}}
-                            <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
-                                {{ $return->items_count }} {{ Str::plural('item', $return->items_count) }}
+                            {{-- Exchanged Items --}}
+                            <td class="px-4 py-2.5 text-slate-600">
+                                <div class="flex flex-col gap-1">
+                                    @foreach($exchange->exchangeItems as $exItem)
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold rounded bg-violet-50 text-violet-700 border border-violet-100">
+                                                {{ $exItem->quantity }}
+                                            </span>
+                                            <span class="font-medium text-slate-800 truncate max-w-[180px]" title="{{ $exItem->name }}">
+                                                {{ $exItem->name }}
+                                            </span>
+                                            <span class="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                                                {{ money($exItem->unit_price) }} ea • {{ money($exItem->subtotal) }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </td>
 
-                            {{-- Net Refund Valuation metrics --}}
-                            <td class="px-4 py-2.5 whitespace-nowrap font-bold text-rose-600 text-sm">
-                                {{ money($return->refund_amount) }}
+                            {{-- Exchange Value --}}
+                            <td class="px-4 py-2.5 whitespace-nowrap font-bold text-violet-600 text-sm">
+                                {{ money($exchange->exchange_value) }}
                             </td>
 
-                            {{-- Remittance refund option labels --}}
+                            {{-- Returned For (refund) --}}
                             <td class="px-4 py-2.5 whitespace-nowrap font-medium text-slate-700">
                                 <span class="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-slate-100 text-slate-700 border border-slate-200/60">
-                                    {{ ucfirst(str_replace('_', ' ', $return->refund_method ?? '')) }}
+                                    {{ ucfirst(str_replace('_', ' ', $exchange->refund_method ?? '')) }}
                                 </span>
                             </td>
 
                             {{-- Processing Operator Context --}}
                             <td class="px-4 py-2.5 whitespace-nowrap text-slate-600 font-medium">
-                                {{ $return->employee->name ?? 'System' }}
+                                {{ $exchange->employee->name ?? 'System' }}
                             </td>
 
                             {{-- Document Timestamp fields --}}
                             <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
-                                <span>{{ $return->created_at->format('M d, Y') }}</span>
-                                <span class="text-[10px] text-slate-400 block mt-0.5">{{ $return->created_at->format('h:i A') }}</span>
+                                <span>{{ $exchange->created_at->format('M d, Y') }}</span>
+                                <span class="text-[10px] text-slate-400 block mt-0.5">{{ $exchange->created_at->format('h:i A') }}</span>
                             </td>
 
                             {{-- Action Tools Navigation --}}
                             <td class="px-4 py-2.5 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end">
-                                    <a href="{{ route('admin.saleReturns.show', $return->id) }}"
+                                    <a href="{{ route('admin.saleExchanges.show', $exchange->id) }}"
                                        class="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded transition"
-                                       title="View Return Details">
+                                       title="View Details">
                                         <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                     </a>
                                 </div>
                             </td>
                         </tr>
                     @empty
-                        {{-- Clean Empty Database Ledger Workspace State illustration --}}
                         <tr>
                             <td colspan="9" class="px-4 py-16 text-center text-slate-500">
                                 <div class="max-w-xs mx-auto flex flex-col items-center">
                                     <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-slate-50 text-slate-400 mb-3 border border-slate-100">
-                                        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                                        <i data-lucide="repeat" class="w-5 h-5"></i>
                                     </div>
-                                    <h3 class="font-bold text-slate-900">No return logs discovered</h3>
-                                    <p class="text-xs text-slate-500 mt-0.5">No logged processing cycles map to your filter combinations right now.</p>
+                                    <h3 class="font-bold text-slate-900">No exchange logs discovered</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">No logged exchanges map to your filter combinations right now.</p>
                                 </div>
                             </td>
                         </tr>
@@ -170,9 +183,9 @@
         </div>
 
         {{-- Footer Pagination Component Section --}}
-        @if($returns->hasPages())
+        @if($exchanges->hasPages())
             <div class="px-4 py-3 bg-slate-50/50 border-t border-slate-100">
-                {{ $returns->links() }}
+                {{ $exchanges->links() }}
             </div>
         @endif
     </div>
@@ -181,10 +194,10 @@
 
 @push('scripts')
     <script>
-        function exportReturns() {
+        function exportExchanges() {
             const params = new URLSearchParams(window.location.search);
             params.append('export', 'csv');
-            window.location.href = `{{ route('admin.saleReturns.index') }}?${params.toString()}`;
+            window.location.href = `{{ route('admin.saleExchanges.index') }}?${params.toString()}`;
         }
     </script>
 @endpush

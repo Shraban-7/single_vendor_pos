@@ -1,32 +1,49 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Sale #' . $sale->order_number)
+@section('title', 'Sale #' . $sale->invoice_number)
 
 @section('content')
 {{-- Header --}}
 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
     <div class="flex items-center gap-4">
-        <a href="{{ route('admin.ecommerce-sales.index') }}" class="w-10 h-10 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-50 transition">
-            <i class="fas fa-arrow-left text-gray-600"></i>
+        <a href="{{ route('admin.ecommerce-sales.index') }}" class="w-10 h-10 flex items-center justify-center border border-slate-200 rounded-xl hover:bg-slate-50 transition text-slate-600">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
         </a>
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Sale {{ $sale->order_number }}</h1>
-            <p class="text-sm text-gray-500 mt-1">Created on {{ $sale->created_at->format('M d, Y \a\t h:i A') }}</p>
+            <div class="flex items-center gap-3">
+                <h1 class="text-xl font-bold tracking-tight text-slate-900">Sale {{ $sale->invoice_number }}</h1>
+                @php
+                    $statusColors = [
+                        'draft' => 'bg-amber-50 text-amber-700 border-amber-100',
+                        'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                        'cancelled' => 'bg-rose-50 text-rose-700 border-rose-100',
+                    ];
+                    $statusValue = is_object($sale->status) ? $sale->status->value : $sale->status;
+                @endphp
+                <span class="inline-flex px-2 py-0.5 text-[10px] font-bold rounded-full border {{ $statusColors[$statusValue] ?? 'bg-slate-50 text-slate-600 border-slate-200' }}">
+                    {{ is_object($sale->status) ? $sale->status->label() : ucfirst($statusValue) }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">Created on {{ $sale->created_at->format('M d, Y \a\t h:i A') }}</p>
         </div>
     </div>
-    <div class="flex items-center gap-3">
-        <button onclick="downloadInvoice()" class="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition flex items-center gap-2">
-            <i class="fas fa-download"></i>
-            <span>Download Invoice</span>
+
+    <div class="flex items-center gap-2">
+        <button onclick="downloadInvoice()" class="flex items-center justify-center gap-1.5 px-3.5 h-9 text-xs font-medium bg-white border border-slate-200 text-slate-700 rounded-lg shadow-sm hover:bg-slate-50 transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>PDF</span>
         </button>
-        <!-- <button onclick="window.print()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition flex items-center gap-2">
-            <i class="fas fa-print"></i>
-            <span>Print Invoice</span>
-        </button> -->
-        @if($sale->status->value !== 'cancelled')
-        <button onclick="openDeleteModal()" class="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition flex items-center gap-2">
-            <i class="fas fa-trash"></i>
-            <span>Delete</span>
+
+        @if($statusValue !== 'cancelled' && (!$sale->has_return || $sale->return_status !== 'full'))
+        <button onclick="openReturnModal()" class="flex items-center justify-center gap-1.5 px-3.5 h-9 text-xs font-semibold text-white bg-indigo-600 rounded-lg shadow-sm hover:bg-indigo-700 transition">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Return / Exchange</span>
+        </button>
+        @endif
+
+        @if($statusValue !== 'cancelled')
+        <button onclick="openDeleteModal()" class="flex items-center justify-center gap-1.5 px-3.5 h-9 text-xs font-medium text-rose-600 bg-rose-50 border border-rose-100 rounded-lg hover:bg-rose-100 transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         </button>
         @endif
     </div>
@@ -35,371 +52,466 @@
 <div class="grid lg:grid-cols-3 gap-6">
     {{-- Left Column - Order Details --}}
     <div class="lg:col-span-2 space-y-6">
-        {{-- Order Status --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-info-circle text-blue-600"></i>
-                Sale Status
-            </h2>
-
-            <form action="{{ route('admin.ecommerce-sales.update-status', $sale->id) }}" method="POST" class="space-y-4">
-                @csrf
-                <div class="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                        <select name="status" class="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="pending" {{ $sale->status->value === 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="confirmed" {{ $sale->status->value === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
-                            <option value="shipped" {{ $sale->status->value === 'shipped' ? 'selected' : '' }}>Shipped</option>
-                            <option value="delivered" {{ $sale->status->value === 'delivered' ? 'selected' : '' }}>Delivered</option>
-                            <option value="cancelled" {{ $sale->status->value === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Comment (Optional)</label>
-                        <input type="text" name="comment" placeholder="Add a note..." class="w-full h-11 px-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                </div>
-                <button type="submit" class="w-full md:w-auto px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium">
-                    <i class="fas fa-save mr-2"></i>Update Status
-                </button>
-            </form>
-        </div>
-
         {{-- Order Items --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-box text-blue-600"></i>
-                Order Items ({{ $sale->items->count() }})
-            </h2>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="package" class="w-4 h-4 text-indigo-600"></i>
+                    Order Items ({{ $sale->items->count() }})
+                </h2>
+            </div>
 
-            <div class="space-y-4">
-                @foreach($sale->items as $item)
-                <div class="flex gap-4 p-4 bg-gray-50 rounded-xl">
-                    <div class="w-20 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-white">
-                        <img src="{{ $item->product_image }}" alt="{{ $item->product_name }}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <h4 class="font-semibold text-gray-900 mb-1">{{ $item->product_name }}</h4>
-                        @if($item->size_name || $item->color_name)
-                        <p class="text-sm text-gray-500 mb-2">
-                            @if($item->size_name)Size: {{ $item->size_name }}@endif
-                            @if($item->size_name && $item->color_name) | @endif
-                            @if($item->color_name)Color: {{ $item->color_name }}@endif
-                        </p>
-                        @endif
-                        <div class="flex items-center justify-between">
-                            <span class="text-sm text-gray-600">Qty: {{ $item->quantity }} × {{ money($item->unit_price) }}</span>
-                            <span class="text-base font-bold text-gray-900">{{ money($item->total) }}</span>
-                        </div>
-                    </div>
-                </div>
-                @endforeach
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr>
+                            <th class="px-5 py-3">Product</th>
+                            <th class="px-5 py-3 text-center">Qty</th>
+                            <th class="px-5 py-3 text-right">Unit Price</th>
+                            <th class="px-5 py-3 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($sale->items as $item)
+                        <tr class="hover:bg-slate-50/60 transition-colors">
+                            <td class="px-5 py-3.5">
+                                <p class="font-semibold text-slate-800">{{ $item->product_name }}</p>
+                                @if(!empty($item->product_variant_id) || !empty($item->size_name) || !empty($item->color_name))
+                                <p class="text-[10px] text-slate-500 mt-0.5">
+                                    {{ trim(($item->size_name ?? '') . ' - ' . ($item->color_name ?? ''), ' -') }}
+                                </p>
+                                @endif
+                            </td>
+                            <td class="px-5 py-3.5 text-center text-slate-600">{{ number_format($item->quantity, 2) }}</td>
+                            <td class="px-5 py-3.5 text-right text-slate-600">{{ money($item->unit_price) }}</td>
+                            <td class="px-5 py-3.5 text-right font-bold text-slate-900">{{ money($item->total) }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
 
             {{-- Order Summary --}}
-            <div class="mt-6 pt-6 border-t border-gray-200 space-y-3">
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">Subtotal</span>
-                    <span class="font-medium text-gray-900">{{ money($sale->subtotal) }}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">Shipping Cost</span>
-                    <span class="font-medium text-gray-900">{{ money($sale->shipping_cost) }}</span>
-                </div>
-                @if($sale->discount_amount > 0)
-                <div class="flex justify-between text-sm text-green-600">
-                    <span>Discount @if($sale->coupon)({{ $sale->coupon->code }})@endif</span>
-                    <span class="font-medium">-{{ money($sale->discount_amount) }}</span>
-                </div>
-                @endif
-                <div class="h-px bg-gray-200"></div>
-                <div class="flex justify-between text-lg">
-                    <span class="font-bold text-gray-900">Total</span>
-                    <span class="text-2xl font-bold text-blue-600">{{ money($sale->total) }}</span>
+            <div class="px-5 py-4 bg-slate-50/30 border-t border-slate-100">
+                <div class="max-w-xs ml-auto space-y-2 text-xs">
+                    <div class="flex justify-between text-slate-600">
+                        <span>Subtotal</span>
+                        <span class="font-medium text-slate-900">{{ money($sale->subtotal) }}</span>
+                    </div>
+                    @if($sale->discount_amount > 0)
+                    <div class="flex justify-between text-emerald-600">
+                        <span>Discount</span>
+                        <span class="font-medium">-{{ money($sale->discount_amount) }}</span>
+                    </div>
+                    @endif
+                    @if($sale->tax_amount > 0)
+                    <div class="flex justify-between text-slate-600">
+                        <span>Tax ({{ $sale->vat_rate }}%)</span>
+                        <span class="font-medium text-slate-900">{{ money($sale->tax_amount) }}</span>
+                    </div>
+                    @endif
+                    <div class="h-px bg-slate-200 my-2"></div>
+                    <div class="flex justify-between text-base">
+                        <span class="font-bold text-slate-900">Total Amount</span>
+                        <span class="font-bold text-indigo-600">{{ money($sale->total_amount) }}</span>
+                    </div>
+                    <div class="flex justify-between text-slate-600">
+                        <span>Paid</span>
+                        <span class="font-medium text-emerald-600">{{ money($sale->paid_amount) }}</span>
+                    </div>
+                    @if($sale->due_amount > 0)
+                    <div class="flex justify-between text-rose-600 font-semibold">
+                        <span>Due</span>
+                        <span>{{ money($sale->due_amount) }}</span>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
 
         {{-- Status History --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-history text-blue-600"></i>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="history" class="w-4 h-4 text-indigo-600"></i>
                 Status History
             </h2>
 
-            <div class="space-y-4">
-                @forelse($sale->statusHistories as $history)
-                <div class="flex gap-4">
+            <div class="space-y-0">
+                @forelse($sale->statusHistories ?? [] as $history)
+                <div class="flex gap-4 relative">
                     <div class="flex flex-col items-center">
-                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-circle text-blue-600 text-xs"></i>
+                        <div class="w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center flex-shrink-0 border border-indigo-100 z-10">
+                            <i data-lucide="check" class="w-3.5 h-3.5 text-indigo-600"></i>
                         </div>
                         @if(!$loop->last)
-                        <div class="flex-1 w-0.5 bg-gray-200 my-1"></div>
+                        <div class="flex-1 w-0.5 bg-slate-200 my-1"></div>
                         @endif
                     </div>
-                    <div class="flex-1 pb-4">
+                    <div class="flex-1 pb-6">
                         <div class="flex items-start justify-between gap-4 mb-1">
-                            <span class="font-semibold text-gray-900">{{ $history->status->label() }}</span>
-                            <span class="text-sm text-gray-500">{{ $history->created_at->diffForHumans() }}</span>
+                            <span class="text-sm font-semibold text-slate-800">{{ is_object($history->status) ? $history->status->label() : ucfirst($history->status) }}</span>
+                            <span class="text-[10px] text-slate-400">{{ $history->created_at->format('M d, h:i A') }}</span>
                         </div>
-                        @if($history->comment)
-                        <p class="text-sm text-gray-600 mb-1">{{ $history->comment }}</p>
+                        @if(!empty($history->comment))
+                        <p class="text-xs text-slate-600 mb-1">{{ $history->comment }}</p>
                         @endif
-                        @if($history->updater)
-                        <p class="text-xs text-gray-500">By: {{ $history->updater->name }}</p>
+                        @if(!empty($history->updater))
+                        <p class="text-[10px] text-slate-400">By: {{ $history->updater->name }}</p>
                         @endif
-                        <p class="text-xs text-gray-400">{{ $history->created_at->format('M d, Y \a\t h:i A') }}</p>
                     </div>
                 </div>
                 @empty
-                <p class="text-sm text-gray-500 text-center py-4">No status history available</p>
+                <p class="text-xs text-slate-400 text-center py-4">No status history available</p>
                 @endforelse
             </div>
         </div>
     </div>
 
-    {{-- Right Column - Customer & Shipping Info --}}
+    {{-- Right Column - Customer & Payment Info --}}
     <div class="space-y-6">
         {{-- Customer Information --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-user text-blue-600"></i>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="user" class="w-4 h-4 text-indigo-600"></i>
                 Customer Information
             </h2>
 
-            <div class="space-y-3">
+            <div class="space-y-4">
                 <div>
-                    <p class="text-xs text-gray-500 mb-1">Name</p>
-                    <p class="font-semibold text-gray-900">{{ $sale->shipping_name }}</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Name</p>
+                    <p class="text-sm font-semibold text-slate-800">{{ $sale->customer->name ?? 'Walk-in Customer' }}</p>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500 mb-1">Phone</p>
-                    <a href="tel:{{ $sale->shipping_phone }}" class="font-semibold text-blue-600 hover:text-blue-800">
-                        {{ $sale->shipping_phone }}
+                    <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Phone</p>
+                    <a href="tel:{{ $sale->customer->phone ?? '' }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800 hover:underline">
+                        {{ $sale->customer->phone ?? '—' }}
                     </a>
-                </div>
-                @if($sale->shipping_email)
-                <div>
-                    <p class="text-xs text-gray-500 mb-1">Email</p>
-                    <a href="mailto:{{ $sale->shipping_email }}" class="font-semibold text-blue-600 hover:text-blue-800">
-                        {{ $sale->shipping_email }}
-                    </a>
-                </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- Shipping Address --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-map-marker-alt text-blue-600"></i>
-                Shipping Address
-            </h2>
-
-            <div class="space-y-3">
-                <div>
-                    <p class="text-sm text-gray-900">{{ $sale->shipping_address }}</p>
-                    <p class="text-sm text-gray-600">{{ $sale->shipping_city }}, {{ $sale->shipping_district }}</p>
-                </div>
-                <div class="pt-3 border-t border-gray-200">
-                    <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-                        <i class="fas fa-truck"></i>
-                        {{ $sale->delivery_zone->label() }}
-                    </span>
                 </div>
             </div>
         </div>
 
         {{-- Payment Information --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-credit-card text-blue-600"></i>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="credit-card" class="w-4 h-4 text-indigo-600"></i>
                 Payment Information
             </h2>
 
-            <div class="space-y-3">
+            <div class="space-y-4">
                 <div>
-                    <p class="text-xs text-gray-500 mb-1">Payment Method</p>
-                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-sm font-medium">
-                        {{ $sale->payment_method->label() }}
+                    <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Method</p>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded-md text-xs font-medium text-slate-700 capitalize">
+                        {{ str_replace('_', ' ', $sale->payment_method ?? '—') }}
                     </span>
                 </div>
                 <div>
-                    <p class="text-xs text-gray-500 mb-1">Payment Status</p>
-                    @if($sale->payment_status->value === 'paid')
-                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                        <i class="fas fa-check-circle"></i>
-                        Paid
+                    <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Status</p>
+                    @php
+                        $pStatus = is_object($sale->payment_status) ? $sale->payment_status->value : $sale->payment_status;
+                    @endphp
+                    @if($pStatus === 'paid')
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-xs font-medium border border-emerald-100">
+                        <i data-lucide="check-circle" class="w-3 h-3"></i> Paid
+                    </span>
+                    @elseif($pStatus === 'partial')
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-md text-xs font-medium border border-amber-100">
+                        <i data-lucide="clock" class="w-3 h-3"></i> Partial
                     </span>
                     @else
-                    <span class="inline-flex items-center gap-1 px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">
-                        <i class="fas fa-clock"></i>
-                        {{ $sale->payment_status->label() }}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-rose-50 text-rose-700 rounded-md text-xs font-medium border border-rose-100">
+                        <i data-lucide="x-circle" class="w-3 h-3"></i> Unpaid
                     </span>
                     @endif
                 </div>
-                @if($sale->transaction_id)
-                <div>
-                    <p class="text-xs text-gray-500 mb-1">Transaction ID</p>
-                    <code class="block bg-gray-50 px-3 py-2 rounded-lg text-sm font-mono">{{ $sale->transaction_id }}</code>
-                </div>
-                @endif
                 @if($sale->paid_at)
                 <div>
-                    <p class="text-xs text-gray-500 mb-1">Paid At</p>
-                    <p class="text-sm text-gray-900">{{ $sale->paid_at->format('M d, Y h:i A') }}</p>
+                    <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Paid At</p>
+                    <p class="text-sm text-slate-700">{{ \Carbon\Carbon::parse($sale->paid_at)->format('M d, Y h:i A') }}</p>
                 </div>
                 @endif
             </div>
-        </div>
-
-        {{-- Tracking Information --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-shipping-fast text-blue-600"></i>
-                Tracking Information
-            </h2>
-
-            @if($sale->tracking_number)
-            <div class="space-y-3 mb-4">
-                <div>
-                    <p class="text-xs text-gray-500 mb-1">Courier</p>
-                    <p class="font-semibold text-gray-900">{{ $sale->courier }}</p>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500 mb-1">Tracking Number</p>
-                    <code class="block bg-gray-50 px-3 py-2 rounded-lg text-sm font-mono">{{ $sale->tracking_number }}</code>
-                </div>
-            </div>
-            @endif
-
-            <form action="{{ route('admin.ecommerce-sales.update-tracking', $sale->id) }}" method="POST" class="space-y-3">
-                @csrf
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Courier</label>
-                    <input type="text" name="courier" value="{{ old('courier', $sale->courier) }}" placeholder="e.g., Sundarban, Pathao" class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
-                    <input type="text" name="tracking_number" value="{{ old('tracking_number', $sale->tracking_number) }}" placeholder="Enter tracking number" class="w-full h-10 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                </div>
-                <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
-                    <i class="fas fa-save mr-2"></i>Save Tracking Info
-                </button>
-            </form>
         </div>
 
         {{-- Admin Notes --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-sticky-note text-blue-600"></i>
-                Admin Notes
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <h2 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <i data-lucide="sticky-note" class="w-4 h-4 text-indigo-600"></i>
+                Internal Notes
             </h2>
-
             <form action="{{ route('admin.ecommerce-sales.update-notes', $sale->id) }}" method="POST">
                 @csrf
-                <textarea name="admin_notes" rows="4" placeholder="Add internal notes about this sale..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none">{{ old('admin_notes', $sale->admin_notes) }}</textarea>
-                <button type="submit" class="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm">
-                    <i class="fas fa-save mr-2"></i>Save Notes
+                <textarea name="notes" rows="4" placeholder="Add internal notes about this sale..." class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none mb-3">{{ old('notes', $sale->notes) }}</textarea>
+                <button type="submit" class="w-full px-4 h-9 text-xs font-semibold text-white bg-slate-800 rounded-lg hover:bg-slate-900 transition flex items-center justify-center gap-1.5">
+                    <i data-lucide="save" class="w-3.5 h-3.5"></i> Save Notes
                 </button>
             </form>
         </div>
+    </div>
+</div>
 
-        @if($sale->notes)
-        {{-- Customer Notes --}}
-        <div class="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 class="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <i class="fas fa-comment text-blue-600"></i>
-                Customer Notes
-            </h2>
-            <p class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg">{{ $sale->notes }}</p>
+{{-- ========================================== --}}
+{{-- RETURN / EXCHANGE MODAL --}}
+{{-- ========================================== --}}
+<div id="returnModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-xs" onclick="closeReturnModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="relative inline-block w-full max-w-2xl p-6 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5 text-indigo-600"></i>
+                    Process Return / Exchange
+                </h3>
+                <button type="button" onclick="closeReturnModal()" class="text-slate-400 hover:text-slate-600 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('admin.saleReturns.store') }}" method="POST" x-data="returnForm({{ json_encode($sale->items->map(fn($i) => [
+                'id' => $i->id,
+                'product_id' => $i->product_id,
+                'name' => $i->product_name,
+                'quantity' => $i->quantity,
+                'quantity_returned' => $i->quantity_returned ?? 0,
+                'unit_price' => $i->unit_price
+            ])) }})" class="space-y-4">
+                @csrf
+                <input type="hidden" name="sale_id" value="{{ $sale->id }}">
+                <input type="hidden" name="return_date" value="{{ \Carbon\Carbon::now()->toDateString() }}">
+
+                {{-- Tab Switcher --}}
+                <div class="flex gap-1 p-1 bg-slate-100 rounded-lg">
+                    <button type="button" @click="activeTab = 'return'" :class="activeTab === 'return' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'" class="flex-1 h-8 text-xs font-semibold rounded-md transition">Return</button>
+                    <button type="button" @click="activeTab = 'exchange'" :class="activeTab === 'exchange' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500 hover:text-slate-700'" class="flex-1 h-8 text-xs font-semibold rounded-md transition">Exchange</button>
+                </div>
+
+                {{-- RETURN TAB --}}
+                <div x-show="activeTab === 'return'" class="space-y-4">
+                    {{-- Items to Return --}}
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3">Select Items to Return</h4>
+                        <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            <template x-for="(item, index) in returnItems" :key="index">
+                                <div x-show="item.quantity > item.quantity_returned" class="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-semibold text-slate-800 truncate" x-text="item.name"></p>
+                                        <p class="text-[10px] text-slate-500 mt-0.5">
+                                            Purchased: <span x-text="item.quantity"></span> |
+                                            Returned: <span x-text="item.quantity_returned"></span> |
+                                            Available: <span x-text="item.quantity - item.quantity_returned" class="font-bold text-indigo-600"></span>
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-right">
+                                            <label class="block text-[9px] font-semibold text-slate-500 mb-1">Qty</label>
+                                            <input type="number" step="0.01" x-model.number="item.return_qty" :max="item.quantity - item.quantity_returned" min="0" @input="calculateTotal()" class="w-16 h-8 text-xs border border-slate-300 rounded-md px-1 text-center focus:ring-1 focus:ring-indigo-500">
+                                        </div>
+                                        <div class="flex flex-col items-center justify-center pt-4">
+                                            <label class="inline-flex items-center cursor-pointer select-none">
+                                                <input type="checkbox" x-model="item.stock_replaced" class="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5">
+                                                <span class="ml-1 text-[9px] font-medium text-slate-600">Restock</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- Hidden inputs for submission -->
+                                    <input type="hidden" :name="'items['+index+'][sale_item_id]'" :value="item.id">
+                                    <input type="hidden" :name="'items['+index+'][product_id]'" :value="item.product_id">
+                                    <input type="hidden" :name="'items['+index+'][quantity]'" :value="item.return_qty">
+                                    <input type="hidden" :name="'items['+index+'][stock_replaced]'" :value="item.stock_replaced">
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Return Type</label>
+                            <select name="return_type" x-model="returnType" class="w-full h-9 text-xs border border-slate-300 rounded-lg px-3 focus:ring-1 focus:ring-indigo-500">
+                                <option value="partial">Partial Return</option>
+                                <option value="full">Full Return</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Reason</label>
+                            <select name="reason" required class="w-full h-9 text-xs border border-slate-300 rounded-lg px-3 focus:ring-1 focus:ring-indigo-500">
+                                <option value="defective">Defective / Damaged</option>
+                                <option value="wrong_item">Wrong Item Delivered</option>
+                                <option value="customer_changed_mind">Customer Changed Mind</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Refund Method</label>
+                            <select name="refund_method" class="w-full h-9 text-xs border border-slate-300 rounded-lg px-3 focus:ring-1 focus:ring-indigo-500">
+                                <option value="cash">Cash</option>
+                                <option value="bank">Bank Transfer</option>
+                                <option value="mobile_banking">Mobile Banking</option>
+                                <option value="store_credit">Store Credit</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Refund Amount (৳)</label>
+                            <input type="number" step="0.01" name="refund_amount" x-model.number="totalRefund" class="w-full h-9 text-xs border border-slate-300 rounded-lg px-3 focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-800">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-600 mb-1">Notes (Optional)</label>
+                        <textarea name="reason_notes" rows="2" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 resize-none" placeholder="Add specific details about this return..."></textarea>
+                    </div>
+                </div>
+
+                {{-- EXCHANGE TAB --}}
+                <div x-show="activeTab === 'exchange'" class="space-y-4">
+                    <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                        <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-3">Add Exchange Products</h4>
+
+                        {{-- Search --}}
+                        <div class="relative mb-3">
+                            <input type="text" x-model="exchangeSearch" @input.debounce.300ms="searchExchangeProducts()" placeholder="Search product by name or SKU..." class="w-full pl-8 pr-3 h-9 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 bg-white">
+                            <i data-lucide="search" class="absolute w-3.5 h-3.5 left-2.5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+
+                            <div x-show="exchangeResults.length > 0" class="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+                                <template x-for="p in exchangeResults" :key="p.id">
+                                    <button type="button" @click="addExchangeItem(p)" class="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center justify-between gap-2 border-b border-slate-100 last:border-0">
+                                        <span class="text-xs font-medium text-slate-800 truncate" x-text="p.name"></span>
+                                        <span class="text-[10px] text-slate-400 shrink-0">৳<span x-text="p.price"></span> · <span x-text="p.stock"></span> in stock</span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            <template x-for="(item, index) in exchangeItems" :key="item.temp_id">
+                                <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs font-semibold text-slate-800 truncate" x-text="item.name"></p>
+                                        <p class="text-[10px] text-slate-500 mt-0.5">Price: ৳<span x-text="item.unit_price"></span></p>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="text-right">
+                                            <label class="block text-[9px] font-semibold text-slate-500 mb-1">Qty</label>
+                                            <input type="number" step="0.01" x-model.number="item.quantity" min="0.01" :max="item.stock" @input="calculateExchange()" class="w-16 h-8 text-xs border border-slate-300 rounded-md px-1 text-center focus:ring-1 focus:ring-indigo-500">
+                                        </div>
+                                        <button type="button" @click="removeExchangeItem(item.temp_id)" class="text-rose-500 hover:text-rose-700 pt-4">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" :name="'exchange_items['+index+'][product_id]'" :value="item.product_id">
+                                    <input type="hidden" :name="'exchange_items['+index+'][quantity]'" :value="item.quantity">
+                                    <input type="hidden" :name="'exchange_items['+index+'][unit_price]'" :value="item.unit_price">
+                                </div>
+                            </template>
+                            <p x-show="exchangeItems.length === 0" class="text-[11px] text-slate-400 text-center py-4">No exchange products added yet.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Refund Method</label>
+                            <select name="refund_method" class="w-full h-9 text-xs border border-slate-300 rounded-lg px-3 focus:ring-1 focus:ring-indigo-500">
+                                <option value="cash">Cash</option>
+                                <option value="bank">Bank Transfer</option>
+                                <option value="mobile_banking">Mobile Banking</option>
+                                <option value="store_credit">Store Credit</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Exchange Value (৳)</label>
+                            <input type="number" step="0.01" name="exchange_value" x-model.number="totalExchange" class="w-full h-9 text-xs border border-slate-300 rounded-lg px-3 focus:ring-1 focus:ring-indigo-500 font-semibold text-slate-800">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Reason</label>
+                            <select name="reason" required class="w-full h-9 text-xs border border-slate-300 rounded-lg px-3 focus:ring-1 focus:ring-indigo-500">
+                                <option value="defective">Defective / Damaged</option>
+                                <option value="wrong_item">Wrong Item Delivered</option>
+                                <option value="customer_changed_mind">Customer Changed Mind</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-[10px] font-semibold text-slate-600 mb-1">Notes (Optional)</label>
+                            <textarea name="reason_notes" rows="2" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-indigo-500 resize-none" placeholder="Add specific details about this exchange..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                    <button type="button" onclick="closeReturnModal()" class="px-4 h-9 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 h-9 text-xs font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition flex items-center gap-1.5">
+                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                        <span x-text="activeTab === 'exchange' ? 'Process Exchange' : 'Process Return'"></span>
+                    </button>
+                </div>
+            </form>
         </div>
-        @endif
     </div>
 </div>
 
 {{-- Invoice Template (Hidden) - A4 Size --}}
 <div id="invoiceTemplate" class="hidden">
     <div class="invoice-container" style="width: 210mm; padding: 12mm 15mm; background: white; font-family: 'Arial', 'Helvetica', sans-serif; color: #000;">
-        {{-- Invoice Header --}}
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 3px solid #000;">
             <div style="flex: 1;">
-                <h1 style="font-size: 28px; font-weight: 700; color: #000; margin: 0 0 3px 0; letter-spacing: -0.5px;">SPINNER FASHION</h1>
+                <h1 style="font-size: 28px; font-weight: 700; color: #000; margin: 0 0 3px 0; letter-spacing: -0.5px;">INVOICE</h1>
                 <div style="width: 50px; height: 2px; background: #000; margin-bottom: 8px;"></div>
                 <p style="font-size: 9px; color: #444; margin: 0; line-height: 1.6;">
-                    123 Fashion Street, Dhaka 1215, Bangladesh<br>
-                    Phone: +880 1711-123456 | Email: info@spinnerfashion.com<br>
-                    Web: www.spinnerfashion.com
+                    NEXUS MART<br>
+                    House 45, Road 12, Dhanmondi, Dhaka 1209<br>
+                    Phone: +880 1712-345678 | support@nexusmart.com.bd
                 </p>
             </div>
             <div style="text-align: right;">
-                <h2 style="font-size: 30px; font-weight: 700; color: #000; margin: 0 0 5px 0; letter-spacing: 2px;">INVOICE</h2>
                 <table style="margin-left: auto; border-collapse: collapse; margin-top: 10px;">
                     <tr>
                         <td style="padding: 3px 10px 3px 0; font-size: 9px; color: #666; text-align: right; font-weight: 600;">Invoice No:</td>
-                        <td style="padding: 3px 0; font-size: 9px; color: #000; font-weight: 700;">{{ $sale->order_number }}</td>
+                        <td style="padding: 3px 0; font-size: 9px; color: #000; font-weight: 700;">{{ $sale->invoice_number }}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 3px 10px 3px 0; font-size: 9px; color: #666; text-align: right; font-weight: 600;">Invoice Date:</td>
+                        <td style="padding: 3px 10px 3px 0; font-size: 9px; color: #666; text-align: right; font-weight: 600;">Date:</td>
                         <td style="padding: 3px 0; font-size: 9px; color: #000; font-weight: 700;">{{ $sale->created_at->format('d M, Y') }}</td>
                     </tr>
                     <tr>
-                        <td style="padding: 3px 10px 3px 0; font-size: 9px; color: #666; text-align: right; font-weight: 600;">Sale Status:</td>
-                        <td style="padding: 3px 0; font-size: 9px; color: #000; font-weight: 700;">{{ strtoupper($sale->status->label()) }}</td>
+                        <td style="padding: 3px 10px 3px 0; font-size: 9px; color: #666; text-align: right; font-weight: 600;">Status:</td>
+                        <td style="padding: 3px 0; font-size: 9px; color: #000; font-weight: 700;">{{ strtoupper(is_object($sale->status) ? $sale->status->label() : $sale->status) }}</td>
                     </tr>
                 </table>
             </div>
         </div>
 
-        {{-- Bill To & Payment Info --}}
         <div style="display: flex; gap: 30px; margin-bottom: 20px;">
             <div style="flex: 1; border-left: 3px solid #000; padding-left: 10px;">
                 <h3 style="font-size: 9px; font-weight: 700; color: #000; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">BILL TO</h3>
                 <p style="font-size: 10px; color: #000; margin: 0; line-height: 1.7;">
-                    <strong style="font-size: 12px; display: block; margin-bottom: 5px; color: #000;">{{ $sale->shipping_name }}</strong>
-                    {{ $sale->shipping_address }}<br>
-                    {{ $sale->shipping_city }}, {{ $sale->shipping_district }}@if($sale->shipping_postal_code) - {{ $sale->shipping_postal_code }}@endif<br>
-                    <strong>Phone:</strong> {{ $sale->shipping_phone }}@if($sale->shipping_email)<br><strong>Email:</strong> {{ $sale->shipping_email }}@endif
+                    <strong style="font-size: 12px; display: block; margin-bottom: 5px; color: #000;">{{ $sale->customer->name ?? 'Walk-in Customer' }}</strong>
+                    {{ $sale->customer->phone ?? '—' }}
                 </p>
             </div>
             <div style="flex: 1; border-left: 3px solid #000; padding-left: 10px;">
-                <h3 style="font-size: 9px; font-weight: 700; color: #000; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">PAYMENT DETAILS</h3>
+                <h3 style="font-size: 9px; font-weight: 700; color: #000; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">PAYMENT</h3>
                 <table style="width: 100%; font-size: 10px; line-height: 1.7;">
                     <tr>
-                        <td style="color: #666; padding: 1px 0; width: 45%;">Payment Method:</td>
-                        <td style="color: #000; padding: 1px 0; font-weight: 600;">{{ $sale->payment_method->label() }}</td>
+                        <td style="color: #666; padding: 1px 0; width: 45%;">Method:</td>
+                        <td style="color: #000; padding: 1px 0; font-weight: 600; text-transform: capitalize;">{{ str_replace('_', ' ', $sale->payment_method ?? '—') }}</td>
                     </tr>
                     <tr>
-                        <td style="color: #666; padding: 1px 0;">Payment Status:</td>
-                        <td style="color: #000; padding: 1px 0; font-weight: 600;">{{ strtoupper($sale->payment_status->label()) }}</td>
+                        <td style="color: #666; padding: 1px 0;">Status:</td>
+                        <td style="color: #000; padding: 1px 0; font-weight: 600;">{{ strtoupper(is_object($sale->payment_status) ? $sale->payment_status->label() : $sale->payment_status) }}</td>
                     </tr>
-                    @if($sale->transaction_id)
-                    <tr>
-                        <td style="color: #666; padding: 1px 0; vertical-align: top;">Transaction ID:</td>
-                        <td style="color: #000; padding: 1px 0; font-family: 'Courier New', monospace; font-size: 8px; word-break: break-all; font-weight: 600;">{{ $sale->transaction_id }}</td>
-                    </tr>
-                    @endif
-                    @if($sale->paid_at)
-                    <tr>
-                        <td style="color: #666; padding: 1px 0;">Paid Date:</td>
-                        <td style="color: #000; padding: 1px 0; font-weight: 600;">{{ $sale->paid_at->format('d M, Y') }}</td>
-                    </tr>
-                    @endif
                 </table>
             </div>
         </div>
 
-        {{-- Order Items Table --}}
-        {{-- Order Items Table --}}
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
             <thead>
                 <tr style="background: #000;">
                     <th style="padding: 10px 8px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; border-right: 1px solid #333; width: 5%;">SL</th>
-                    <th style="padding: 10px 8px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; border-right: 1px solid #333;">Product Description</th>
+                    <th style="padding: 10px 8px; text-align: left; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; border-right: 1px solid #333;">Product</th>
                     <th style="padding: 10px 8px; text-align: center; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; border-right: 1px solid #333; width: 8%;">Qty</th>
-                    <th style="padding: 10px 8px; text-align: right; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; border-right: 1px solid #333; width: 15%;">Unit Price</th>
+                    <th style="padding: 10px 8px; text-align: right; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; border-right: 1px solid #333; width: 15%;">Price</th>
                     <th style="padding: 10px 8px; text-align: right; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fff; width: 15%;">Total</th>
                 </tr>
             </thead>
@@ -409,172 +521,155 @@
                     <td style="padding: 10px 8px; font-size: 9px; color: #666; border-right: 1px solid #e5e7eb; text-align: center;">{{ $index + 1 }}</td>
                     <td style="padding: 10px 8px; border-right: 1px solid #e5e7eb;">
                         <div style="font-size: 10px; font-weight: 600; color: #000; margin-bottom: 3px;">{{ $item->product_name }}</div>
-                        @if($item->size_name || $item->color_name)
-                        <div style="font-size: 8px; color: #666;">
-                            @if($item->size_name)<span style="background: #f3f4f6; padding: 2px 5px; border-radius: 2px; margin-right: 3px;">Size: {{ $item->size_name }}</span>@endif
-                            @if($item->color_name)<span style="background: #f3f4f6; padding: 2px 5px; border-radius: 2px;">Color: {{ $item->color_name }}</span>@endif
-                        </div>
-                        @endif
                     </td>
-                    <td style="padding: 10px 8px; text-align: center; font-size: 10px; color: #000; font-weight: 600; border-right: 1px solid #e5e7eb;">{{ $item->quantity }}</td>
-                    <td style="padding: 10px 8px; text-align: right; font-size: 10px; color: #000; border-right: 1px solid #e5e7eb;">{{ money($item->unit_price) }}</td>
-                    <td style="padding: 10px 8px; text-align: right; font-size: 10px; color: #000; font-weight: 700;">{{ money($item->total) }}</td>
+                    <td style="padding: 10px 8px; text-align: center; font-size: 10px; color: #000; font-weight: 600; border-right: 1px solid #e5e7eb;">{{ number_format($item->quantity, 2) }}</td>
+                    <td style="padding: 10px 8px; text-align: right; font-size: 10px; color: #000; border-right: 1px solid #e5e7eb;">{{ number_format($item->unit_price, 2) }}</td>
+                    <td style="padding: 10px 8px; text-align: right; font-size: 10px; color: #000; font-weight: 700;">{{ number_format($item->total, 2) }}</td>
                 </tr>
                 @endforeach
             </tbody>
         </table>
 
-        {{-- Totals Section --}}
         <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
             <div style="width: 300px;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <tr style="border-bottom: 1px solid #e5e7eb;">
                         <td style="padding: 8px 12px; font-size: 10px; color: #000; background: #f9fafb; font-weight: 600;">Subtotal</td>
-                        <td style="padding: 8px 12px; text-align: right; font-size: 10px; color: #000; font-weight: 600; background: #fff;">{{ money($sale->subtotal) }}</td>
-                    </tr>
-                    <tr style="border-bottom: 1px solid #e5e7eb;">
-                        <td style="padding: 8px 12px; font-size: 10px; color: #000; background: #f9fafb; font-weight: 600;">Shipping Charge<br><span style="font-size: 8px; color: #666; font-weight: 400;">({{ $sale->delivery_zone->label() }})</span></td>
-                        <td style="padding: 8px 12px; text-align: right; font-size: 10px; color: #000; font-weight: 600; background: #fff;">{{ money($sale->shipping_cost) }}</td>
+                        <td style="padding: 8px 12px; text-align: right; font-size: 10px; color: #000; font-weight: 600; background: #fff;">{{ number_format($sale->subtotal, 2) }}</td>
                     </tr>
                     @if($sale->discount_amount > 0)
                     <tr style="border-bottom: 1px solid #e5e7eb;">
-                        <td style="padding: 8px 12px; font-size: 10px; color: #059669; background: #f9fafb; font-weight: 600;">Discount @if($sale->coupon)<br><span style="font-size: 8px; font-weight: 400;">({{ $sale->coupon->code }})</span>@endif</td>
-                        <td style="padding: 8px 12px; text-align: right; font-size: 10px; color: #059669; font-weight: 600; background: #fff;">-{{ money($sale->discount_amount) }}</td>
+                        <td style="padding: 8px 12px; font-size: 10px; color: #059669; background: #f9fafb; font-weight: 600;">Discount</td>
+                        <td style="padding: 8px 12px; text-align: right; font-size: 10px; color: #059669; font-weight: 600; background: #fff;">-{{ number_format($sale->discount_amount, 2) }}</td>
                     </tr>
                     @endif
                     <tr style="background: #000;">
                         <td style="padding: 12px; font-size: 11px; font-weight: 700; color: #fff; text-transform: uppercase; letter-spacing: 0.5px;">Grand Total</td>
-                        <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 700; color: #fff;">{{ money($sale->total) }}</td>
+                        <td style="padding: 12px; text-align: right; font-size: 14px; font-weight: 700; color: #fff;">{{ number_format($sale->total_amount, 2) }}</td>
                     </tr>
                 </table>
             </div>
         </div>
 
-        {{-- Shipping & Tracking Information --}}
-        @if($sale->tracking_number)
-        <div style="margin-bottom: 15px; border-left: 3px solid #000; padding: 10px 0 10px 10px;">
-            <h3 style="font-size: 9px; font-weight: 700; color: #000; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">SHIPPING & TRACKING</h3>
-            <table style="width: 100%; font-size: 10px; line-height: 1.7;">
-                <tr>
-                    <td style="padding: 1px 0; color: #666; width: 20%; font-weight: 600;">Courier Service:</td>
-                    <td style="padding: 1px 0; color: #000; font-weight: 700;">{{ $sale->courier }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 1px 0; color: #666; vertical-align: top; font-weight: 600;">Tracking Number:</td>
-                    <td style="padding: 1px 0; color: #000; font-family: 'Courier New', monospace; font-size: 9px; font-weight: 700;">{{ $sale->tracking_number }}</td>
-                </tr>
-            </table>
-        </div>
-        @endif
-
-        {{-- Customer Notes --}}
-        @if($sale->notes)
-        <div style="margin-bottom: 15px; border-left: 3px solid #f59e0b; padding: 10px 0 10px 10px; background: #fffbeb;">
-            <h3 style="font-size: 9px; font-weight: 700; color: #000; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">CUSTOMER NOTES</h3>
-            <p style="margin: 0; font-size: 10px; color: #000; line-height: 1.6;">{{ $sale->notes }}</p>
-        </div>
-        @endif
-
-        {{-- Terms & Footer --}}
         <div style="border-top: 2px solid #e5e7eb; padding-top: 12px; margin-top: 15px;">
-            <h3 style="font-size: 9px; font-weight: 700; color: #000; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">TERMS & CONDITIONS</h3>
-            <p style="margin: 0 0 12px 0; font-size: 8px; color: #666; line-height: 1.6;">
-                • Payment is due within 15 days from the invoice date. Please include the invoice number with your payment.<br>
-                • All sales are final. Returns or exchanges are only accepted for defective products within 7 days of delivery.<br>
-                • For any queries regarding this invoice, please contact us at +880 1711-123456 or info@spinnerfashion.com
+            <p style="margin: 0; font-size: 8px; color: #666; line-height: 1.6;">
+                • All sales are final. Returns or exchanges are only accepted for defective products within 7 days.<br>
+                • For queries, contact: +880 1712-345678 | www.nexusmart.com.bd
             </p>
             <div style="text-align: center; border-top: 1px solid #e5e7eb; padding-top: 12px;">
-                <p style="margin: 0 0 4px 0; font-size: 10px; color: #000; font-weight: 700;">Thank you for shopping with Spinner Fashion!</p>
-                <p style="margin: 0; font-size: 8px; color: #666;">
-                    For support & inquiries: +880 1711-123456 | info@spinnerfashion.com | www.spinnerfashion.com
-                </p>
+                <p style="margin: 0 0 4px 0; font-size: 10px; color: #000; font-weight: 700;">Thank you for shopping with us!</p>
             </div>
-        </div>
+        </div
     </div>
 </div>
-{{-- End Invoice Template --}}
 
 {{-- Delete Confirmation Modal --}}
-<div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6">
-        <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+<div id="deleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-xs" onclick="closeDeleteModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="relative inline-block w-full max-w-md p-6 my-8 text-left align-middle transition-all bg-white shadow-xl rounded-2xl">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 text-rose-600"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">Delete Sale?</h3>
+                <p class="text-sm text-slate-500">Are you sure you want to delete this sale? This action cannot be undone and will affect inventory.</p>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Delete Sale?</h3>
-            <p class="text-gray-600">Are you sure you want to delete this sale? This action cannot be undone.</p>
-        </div>
-        <div class="flex gap-3">
-            <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition font-medium">
-                Cancel
-            </button>
-            <form action="{{ route('admin.ecommerce-sales.destroy', $sale->id) }}" method="POST" class="flex-1">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="w-full px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition font-medium">
-                    Delete
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 px-4 h-10 text-sm font-medium text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">
+                    Cancel
                 </button>
-            </form>
+                <form action="{{ route('admin.ecommerce-sales.destroy', $sale->id) }}" method="POST" class="flex-1">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="w-full px-4 h-10 text-sm font-semibold text-white bg-rose-600 rounded-xl hover:bg-rose-700 transition">
+                        Delete Permanently
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
 @push('scripts')
-{{-- html2pdf.js library for PDF generation --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
 <script>
-    function downloadInvoice() {
-        const invoiceElement = document.getElementById('invoiceTemplate');
-        const invoiceNumber = '{{ $sale->order_number }}';
-
-        // Show loading state
-        const button = event.target.closest('button');
-        const originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generating...';
-
-        // Clone the element to avoid modifying the original
-        const clonedElement = invoiceElement.cloneNode(true);
-        clonedElement.classList.remove('hidden');
-
-        // Configure pdf options
-        const opt = {
-            margin: 0,
-            filename: `Invoice-${invoiceNumber}.pdf`,
-            image: {
-                type: 'jpeg',
-                quality: 0.98
+    // Return Modal Alpine.js Logic
+    function returnForm(initialItems) {
+        return {
+            activeTab: 'return',
+            returnItems: initialItems.map(item => ({
+                ...item,
+                return_qty: item.quantity - item.quantity_returned,
+                stock_replaced: true
+            })),
+            returnType: 'partial',
+            totalRefund: 0,
+            exchangeItems: [],
+            exchangeSearch: '',
+            exchangeResults: [],
+            totalExchange: 0,
+            calculateTotal() {
+                this.totalRefund = this.returnItems.reduce((sum, item) => {
+                    return sum + (item.return_qty * item.unit_price);
+                }, 0);
             },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                scrollY: 0,
-                scrollX: 0
+            calculateExchange() {
+                this.totalExchange = this.exchangeItems.reduce((sum, item) => {
+                    return sum + (item.quantity * item.unit_price);
+                }, 0);
             },
-            jsPDF: {
-                unit: 'mm',
-                format: 'a4',
-                orientation: 'portrait',
-                compress: true
+            async searchExchangeProducts() {
+                if (this.exchangeSearch.length < 1) {
+                    this.exchangeResults = [];
+                    return;
+                }
+                try {
+                    const res = await fetch(`/admin/sale-returns/search-products?term=${encodeURIComponent(this.exchangeSearch)}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    this.exchangeResults = await res.json();
+                } catch (e) {
+                    this.exchangeResults = [];
+                }
             },
-            pagebreak: {
-                mode: ['avoid-all', 'css', 'legacy']
+            addExchangeItem(p) {
+                if (this.exchangeItems.some(i => i.product_id === p.id)) {
+                    this.exchangeSearch = '';
+                    this.exchangeResults = [];
+                    return;
+                }
+                this.exchangeItems.push({
+                    temp_id: Date.now() + '_' + p.id,
+                    product_id: p.id,
+                    name: p.name,
+                    unit_price: p.price,
+                    stock: p.stock,
+                    quantity: 1
+                });
+                this.exchangeSearch = '';
+                this.exchangeResults = [];
+                this.calculateExchange();
+            },
+            removeExchangeItem(tempId) {
+                this.exchangeItems = this.exchangeItems.filter(i => i.temp_id !== tempId);
+                this.calculateExchange();
+            },
+            init() {
+                this.calculateTotal();
             }
-        };
+        }
+    }
 
-        // Generate and download PDF
-        html2pdf().set(opt).from(clonedElement).save().then(() => {
-            // Restore button state
-            button.disabled = false;
-            button.innerHTML = originalText;
-        }).catch((error) => {
-            console.error('PDF generation error:', error);
-            button.disabled = false;
-            button.innerHTML = originalText;
-            alert('Failed to generate PDF. Please try again.');
-        });
+    function openReturnModal() {
+        document.getElementById('returnModal').classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeReturnModal() {
+        document.getElementById('returnModal').classList.add('hidden');
     }
 
     function openDeleteModal() {
@@ -585,9 +680,44 @@
         document.getElementById('deleteModal').classList.add('hidden');
     }
 
-    // Close modal on outside click
-    document.getElementById('deleteModal').addEventListener('click', function(e) {
-        if (e.target === this) {
+    function downloadInvoice() {
+        const invoiceElement = document.getElementById('invoiceTemplate');
+        const invoiceNumber = '{{ $sale->invoice_number }}';
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+
+        button.disabled = true;
+        button.innerHTML = '<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Generating...';
+        if (window.lucide) lucide.createIcons();
+
+        const clonedElement = invoiceElement.cloneNode(true);
+        clonedElement.classList.remove('hidden');
+
+        const opt = {
+            margin: 0,
+            filename: `Invoice-${invoiceNumber}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true }
+        };
+
+        html2pdf().set(opt).from(clonedElement).save().then(() => {
+            button.disabled = false;
+            button.innerHTML = originalText;
+            if (window.lucide) lucide.createIcons();
+        }).catch((error) => {
+            console.error('PDF generation error:', error);
+            button.disabled = false;
+            button.innerHTML = originalText;
+            if (window.lucide) lucide.createIcons();
+            alert('Failed to generate PDF. Please try again.');
+        });
+    }
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeReturnModal();
             closeDeleteModal();
         }
     });

@@ -7,7 +7,7 @@
     <div class="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-xl font-bold tracking-tight text-slate-900">Sales</h1>
-            <p class="text-xs text-slate-500">Manage, track, and export customer invoices.</p>
+            <p class="text-xs text-slate-500">Manage, track, and export invoices.</p>
         </div>
         <div class="flex items-center gap-2">
             <button onclick="window.print()"
@@ -30,23 +30,26 @@
             <div class="flex items-center gap-1 pb-2 overflow-x-auto border-b border-slate-100 no-scrollbar whitespace-nowrap">
                 @php
                     $tabs = [
-                        'all' => ['label' => 'All Sales', 'color' => 'indigo'],
-                        'pending' => ['label' => 'Pending', 'color' => 'amber'],
-                        'confirmed' => ['label' => 'Confirmed', 'color' => 'indigo'],
-                        'shipped' => ['label' => 'Shipped', 'color' => 'violet'],
-                        'delivered' => ['label' => 'Delivered', 'color' => 'emerald'],
-                        'cancelled' => ['label' => 'Cancelled', 'color' => 'rose']
+                        'all' => ['label' => 'All Sales', 'color' => 'slate'],
+                        'draft' => ['label' => 'Draft', 'color' => 'amber'],
+                        'completed' => ['label' => 'Completed', 'color' => 'emerald'],
                     ];
                     $currentStatus = request('status', 'all');
                 @endphp
+
                 @foreach($tabs as $key => $tab)
                     @php
                         $isActive = $currentStatus === $key;
-                        $activeClasses = $key === 'all' ? 'bg-slate-900 text-white' : "bg-{$tab['color']}-50 text-{$tab['color']}-700 border border-{$tab['color']}-200/60 font-semibold";
+                        $activeClasses = $key === 'all'
+                            ? 'bg-slate-900 text-white'
+                            : "bg-{$tab['color']}-50 text-{$tab['color']}-700 border border-{$tab['color']}-200/60 font-semibold";
                     @endphp
                     <a href="{{ route('admin.ecommerce-sales.index', array_merge(request()->except('status'), ['status' => $key])) }}"
                         class="px-3 py-1 text-xs rounded-md transition-all {{ $isActive ? $activeClasses : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900' }}">
-                        {{ $tab['label'] }} <span class="ml-0.5 text-[10px] {{ $isActive ? 'opacity-90' : 'text-slate-400' }}">({{ $statusCounts[$key] }})</span>
+                        {{ $tab['label'] }}
+                        <span class="ml-0.5 text-[10px] {{ $isActive ? 'opacity-90' : 'text-slate-400' }}">
+                            ({{ $statusCounts[$key] ?? 0 }})
+                        </span>
                     </a>
                 @endforeach
             </div>
@@ -57,7 +60,7 @@
                 <div class="sm:col-span-4">
                     <div class="relative">
                         <input type="text" name="search" value="{{ request('search') }}"
-                            placeholder="Search sale #, customer name..."
+                            placeholder="Search invoice #, customer name..."
                             class="w-full pl-8 pr-3 text-xs transition border rounded-lg h-9 border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50 focus:bg-white">
                         <i data-lucide="search" class="absolute w-3.5 h-3.5 -translate-y-1/2 left-2.5 top-1/2 text-slate-400"></i>
                     </div>
@@ -67,19 +70,20 @@
                 <div class="sm:col-span-2">
                     <select name="payment_status" class="w-full px-2 text-xs border rounded-lg h-9 border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
                         <option value="all">All Payments</option>
-                        <option value="pending" {{ request('payment_status') === 'pending' ? 'selected' : '' }}>Pending</option>
                         <option value="paid" {{ request('payment_status') === 'paid' ? 'selected' : '' }}>Paid</option>
-                        <option value="failed" {{ request('payment_status') === 'failed' ? 'selected' : '' }}>Failed</option>
+                        <option value="partial" {{ request('payment_status') === 'partial' ? 'selected' : '' }}>Partial</option>
+                        <option value="unpaid" {{ request('payment_status') === 'unpaid' ? 'selected' : '' }}>Unpaid</option>
                     </select>
                 </div>
 
                 {{-- Payment Method Dropdown --}}
                 <div class="sm:col-span-2">
                     <select name="payment_method" class="w-full px-2 text-xs border rounded-lg h-9 border-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-400 bg-slate-50/50">
-                        <option value="all">All Gateways</option>
-                        <option value="cod" {{ request('payment_method') === 'cod' ? 'selected' : '' }}>COD</option>
-                        <option value="bkash" {{ request('payment_method') === 'bkash' ? 'selected' : '' }}>bKash</option>
-                        <option value="nagad" {{ request('payment_method') === 'nagad' ? 'selected' : '' }}>Nagad</option>
+                        <option value="all">All Methods</option>
+                        <option value="cash" {{ request('payment_method') === 'cash' ? 'selected' : '' }}>Cash</option>
+                        <option value="card" {{ request('payment_method') === 'card' ? 'selected' : '' }}>Card</option>
+                        <option value="bank" {{ request('payment_method') === 'bank' ? 'selected' : '' }}>Bank</option>
+                        <option value="mobile_banking" {{ request('payment_method') === 'mobile_banking' ? 'selected' : '' }}>Mobile Banking</option>
                     </select>
                 </div>
 
@@ -110,7 +114,7 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="border-b bg-slate-50/70 border-slate-200 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th class="px-4 py-3">Sale Number</th>
+                        <th class="px-4 py-3">Invoice #</th>
                         <th class="px-4 py-3">Customer</th>
                         <th class="px-4 py-3">Items</th>
                         <th class="px-4 py-3">Total</th>
@@ -123,64 +127,74 @@
                 <tbody class="text-xs divide-y divide-slate-100">
                     @forelse($sales as $sale)
                         <tr class="transition-colors hover:bg-slate-50/60">
-                            {{-- Sale Id --}}
                             <td class="px-4 py-2.5 whitespace-nowrap font-medium">
-                                <a href="{{ route('admin.ecommerce-sales.show', $sale->id) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
-                                    {{ $sale->order_number }}
+                                <a href="{{ route('admin.ecommerce-sales.show', $sale->invoice_number) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:underline">
+                                   #{{ $sale->invoice_number }}
                                 </a>
-                                <span class="text-[10px] text-slate-400 block">ID: #{{ $sale->id }}</span>
                             </td>
+
                             {{-- Customer --}}
                             <td class="px-4 py-2.5 max-w-[150px] truncate">
-                                <span class="block font-medium text-slate-800">{{ $sale->shipping_name }}</span>
-                                <span class="text-[10px] text-slate-400 block tracking-tight">{{ $sale->shipping_phone }}</span>
+                                <span class="block font-medium text-slate-800">{{ $sale->customer->name ?? 'Walk-in' }}</span>
+                                <span class="text-[10px] text-slate-400 block tracking-tight">{{ $sale->customer->phone ?? '—' }}</span>
                             </td>
+
                             {{-- Items count --}}
                             <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
                                 {{ $sale->items->count() }} {{ Str::plural('item', $sale->items->count()) }}
                             </td>
+
                             {{-- Total amount --}}
                             <td class="px-4 py-2.5 whitespace-nowrap font-bold text-slate-900 text-sm">
-                                {{ money($sale->total) }}
+                                {{ money($sale->total_amount) }}
                             </td>
+
                             {{-- Payment details --}}
                             <td class="px-4 py-2.5 whitespace-nowrap">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[11px] font-medium text-slate-500">{{ $sale->payment_method->label() }}</span>
-                                    @if ($sale->payment_status->value === 'paid')
+                                    <span class="text-[11px] font-medium text-slate-500 capitalize">{{ str_replace('_', ' ', $sale->payment_method ?? '—') }}</span>
+                                    @php
+                                        $pStatus = is_object($sale->payment_status) ? $sale->payment_status->value : $sale->payment_status;
+                                    @endphp
+                                    @if ($pStatus === 'paid')
                                         <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-50 text-emerald-700 border border-emerald-100">Paid</span>
+                                    @elseif ($pStatus === 'partial')
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-700 border border-amber-100">Partial</span>
                                     @else
-                                        <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-50 text-amber-600 border border-amber-100">{{ $sale->payment_status->label() }}</span>
+                                        <span class="px-1.5 py-0.5 text-[10px] font-medium rounded bg-rose-50 text-rose-700 border border-rose-100">Unpaid</span>
                                     @endif
                                 </div>
                             </td>
-                            {{-- Fullfillment status badge --}}
+
+                            {{-- Fulfillment status badge --}}
                             <td class="px-4 py-2.5 whitespace-nowrap">
                                 @php
+                                    $statusValue = is_object($sale->status) ? $sale->status->value : $sale->status;
                                     $statusColors = [
-                                        'pending' => 'bg-amber-50 text-amber-700 border-amber-100',
-                                        'confirmed' => 'bg-indigo-50 text-indigo-700 border-indigo-100',
-                                        'shipped' => 'bg-violet-50 text-violet-700 border-violet-100',
-                                        'delivered' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
-                                        'cancelled' => 'bg-rose-50 text-rose-700 border-rose-100',
+                                        'draft' => 'bg-amber-50 text-amber-700 border-amber-100',
+                                        'completed' => 'bg-emerald-50 text-emerald-700 border-emerald-100',
                                     ];
+                                    $badgeClass = $statusColors[$statusValue] ?? 'bg-slate-50 text-slate-600 border-slate-200';
+                                    $badgeLabel = is_object($sale->status) ? $sale->status->label() : ucfirst($statusValue);
                                 @endphp
-                                <span class="inline-flex px-2 py-0.5 text-[10px] font-bold rounded-full border {{ $statusColors[$sale->status->value] ?? 'bg-slate-50 text-slate-600 border-slate-200' }}">
-                                    {{ $sale->status->label() }}
+                                <span class="inline-flex px-2 py-0.5 text-[10px] font-bold rounded-full border {{ $badgeClass }}">
+                                    {{ $badgeLabel }}
                                 </span>
                             </td>
-                            {{-- Custom timestamp fields --}}
+
+                            {{-- Timestamp --}}
                             <td class="px-4 py-2.5 whitespace-nowrap text-slate-600">
                                 <span>{{ $sale->created_at->format('M d, Y') }}</span>
                                 <span class="text-[10px] text-slate-400 block mt-0.5">{{ $sale->created_at->format('h:i A') }}</span>
                             </td>
-                            {{-- Clean inline icon buttons --}}
+
+                            {{-- Actions --}}
                             <td class="px-4 py-2.5 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-0.5">
-                                    <a href="{{ route('admin.ecommerce-sales.show', $sale->id) }}" class="p-1 transition rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100" title="View">
+                                    <a href="{{ route('admin.ecommerce-sales.show', $sale->invoice_number) }}" class="p-1 transition rounded text-slate-400 hover:text-indigo-600 hover:bg-slate-100" title="View">
                                         <i data-lucide="eye" class="w-3.5 h-3.5"></i>
                                     </a>
-                                    <button onclick="printSale({{ $sale->id }})" class="p-1 transition rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Print Invoice">
+                                    <button onclick="printSale('{{ $sale->invoice_number }}')" class="p-1 transition rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Print Invoice">
                                         <i data-lucide="printer" class="w-3.5 h-3.5"></i>
                                     </button>
                                 </div>
@@ -203,15 +217,15 @@
         {{-- Light Footer Pagination --}}
         @if ($sales->hasPages())
             <div class="px-4 py-3 text-xs border-t bg-slate-50/50 border-slate-100">
-                {{ $sales->links() }}
+                {{ $sales->links('vendor.pagination.light') }}
             </div>
         @endif
     </div>
 
     @push('scripts')
         <script>
-            function printSale(saleId) {
-                window.open(`/admin/ecommerce-sales/${saleId}/print`, '_blank');
+            function printSale(invoiceNumber) {
+                window.open(`/admin/ecommerce-sales/${invoiceNumber}/invoice`, '_blank');
             }
 
             function exportSales() {

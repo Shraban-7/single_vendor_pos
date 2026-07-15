@@ -53,7 +53,14 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
     });
     Route::prefix('sale-returns')->as('saleReturns.')->group(function () {
         Route::get('/', [SaleReturnController::class, 'index'])->name('index');
+        Route::post('/', [SaleReturnController::class, 'store'])->name('store');
+        Route::get('/search-products', [SaleReturnController::class, 'searchProducts'])->name('searchProducts');
         Route::get('/{return}', [SaleReturnController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('sale-exchanges')->as('saleExchanges.')->group(function () {
+        Route::get('/', [SaleReturnController::class, 'exchanges'])->name('index');
+        Route::get('/{id}', [SaleReturnController::class, 'show'])->name('show');
     });
 
     Route::post('/sales/{id}/return', [SaleReturnController::class, 'processReturn'])->name('sales.return');
@@ -132,11 +139,18 @@ Route::middleware(['admin','auth'])->prefix('admin')->name('admin.')->group(func
             Route::delete('/{id}', [PosController::class, 'saleDelete'])->name('destroy');
     });
 
+    Route::prefix('sale-returns')->name('saleReturns.')->group(function () {
+        Route::get('/', [SaleReturnController::class, 'index'])->name('index');
+        Route::get('/create', [SaleReturnController::class, 'create'])->name('create');
+        Route::post('/', [SaleReturnController::class, 'store'])->name('store');
+        Route::get('/{id}', [SaleReturnController::class, 'show'])->name('show');
+        Route::delete('/{id}', [SaleReturnController::class, 'destroy'])->name('destroy');
+    });
+
     Route::prefix('ecommerce-sales')->as('ecommerce-sales.')->group(function () {
         Route::get('/', [SaleController::class, 'index'])->name('index');
         Route::get('/{order_number}', [SaleController::class, 'show'])->name('show');
         Route::post('/{id}/status', [SaleController::class, 'updateStatus'])->name('update-status');
-        Route::post('/{id}/tracking', [SaleController::class, 'updateTracking'])->name('update-tracking');
         Route::post('/{id}/notes', [SaleController::class, 'updateNotes'])->name('update-notes');
         Route::delete('/{id}', [SaleController::class, 'destroy'])->name('destroy');
         Route::get('/{orderNumber}/invoice', [SaleController::class, 'invoice'])->name('invoice');

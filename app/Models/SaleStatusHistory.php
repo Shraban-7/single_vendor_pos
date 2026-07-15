@@ -29,6 +29,11 @@ class SaleStatusHistory extends Model
         return $this->belongsTo(Sale::class);
     }
 
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return $this->status->label();

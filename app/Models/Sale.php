@@ -31,7 +31,7 @@ class Sale extends Model
                     'title' => 'New Sale Received',
                     'message' => "Sale {$sale->invoice_number} has been placed.",
                     'type' => \App\Enums\SystemNotificationType::SALE_CREATED,
-                    'action_url' => route('admin.sales.show', $sale->invoice_number),
+                    'action_url' => route('admin.ecommerce-sales.show', $sale->invoice_number),
                 ]);
             }
         });
@@ -60,7 +60,7 @@ class Sale extends Model
                         'title' => 'Sale Status Updated',
                         'message' => "Sale {$sale->invoice_number} status changed to {$status->value}.",
                         'type' => $notificationType,
-                        'action_url' => route('admin.sales.show', $sale->order_number),
+                        'action_url' => route('admin.ecommerce-sales.show', $sale->invoice_number),
                     ]);
                 }
             }
@@ -87,6 +87,7 @@ class Sale extends Model
         'discount_type' => \App\Enums\DiscountType::class,
         'return_status' => \App\Enums\ReturnStatus::class,
         'has_return' => 'boolean',
+        'paid_at' => 'datetime'
     ];
 
     public function user(): BelongsTo
@@ -106,6 +107,11 @@ class Sale extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(SaleStatusHistory::class);
     }
 
     public function notificationLogs(): HasMany

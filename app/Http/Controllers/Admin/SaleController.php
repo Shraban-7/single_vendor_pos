@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Sale;
 use App\Models\SaleStatusHistory;
 use App\Models\SaleReturn;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,8 +15,7 @@ class SaleController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Sale::with(['user', 'items'])
-            ->where('is_pos', 0)
+        $query = Sale::with(['user', 'customer', 'items'])
             ->orderByDesc('created_at');
 
         if ($request->filled('status') && $request->status !== 'all') {
@@ -33,9 +33,11 @@ class SaleController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('order_number', 'like', "%{$search}%")
-                    ->orWhere('shipping_name', 'like', "%{$search}%")
-                    ->orWhere('shipping_phone', 'like', "%{$search}%");
+                $q->where('invoice_number', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -49,12 +51,9 @@ class SaleController extends Controller
         $sales = $query->paginate(20)->appends($request->all());
 
         $statusCounts = [
-            'all' => Sale::where('is_pos', 0)->count(),
-            'pending' => Sale::where('is_pos', 0)->where('status', SaleStatus::PENDING)->count(),
-            'confirmed' => Sale::where('is_pos', 0)->where('status', SaleStatus::CONFIRMED)->count(),
-            'shipped' => Sale::where('is_pos', 0)->where('status', SaleStatus::SHIPPED)->count(),
-            'delivered' => Sale::where('is_pos', 0)->where('status', SaleStatus::DELIVERED)->count(),
-            'cancelled' => Sale::where('is_pos', 0)->where('status', SaleStatus::CANCELLED)->count(),
+            'all' => Sale::count(),
+            'draft' => Sale::where('status', SaleStatus::DRAFT->value)->count(),
+            'complted' => Sale::where('status', SaleStatus::COMPLETED->value)->count(),
         ];
 
         return view('admin.sales.index', compact('sales', 'statusCounts'));
@@ -64,10 +63,11 @@ class SaleController extends Controller
     {
         $sale = Sale::with([
             'user',
+            'customer',
+            'employee',
             'items.product',
-            'coupon',
             'statusHistories'
-        ])->where('order_number', $order_number)->first();
+        ])->where('invoice_number', $order_number)->firstOrFail();
 
         $source = $request->source;
 
@@ -92,66 +92,22 @@ class SaleController extends Controller
         $oldStatus = $sale->status;
         $newStatus = SaleStatus::from($request->status);
 
-        $sale->update([
-            'status' => $newStatus,
-        ]);
-
-        match ($newStatus) {
-            SaleStatus::CONFIRMED => $sale->update(['confirmed_at' => now()]),
-            SaleStatus::SHIPPED => $sale->update(['shipped_at' => now()]),
-            SaleStatus::DELIVERED => $sale->update(['delivered_at' => now()]),
-            SaleStatus::CANCELLED => $sale->update([
-                'cancelled_at' => now(),
-                'cancellation_reason' => $request->comment
-            ]),
-            default => null,
-        };
-
-        SaleStatusHistory::create([
-            'sale_id' => $sale->id,
-            'status' => $newStatus,
-            'comment' => $request->comment ?? "Status changed from {$oldStatus->label()} to {$newStatus->label()}",
-            'updated_by' => Auth::id(),
-        ]);
+        $sale->updateStatus($newStatus, $request->comment, (string) Auth::id());
 
         toast_success('Sale status updated successfully!');
-        return back();
-    }
-
-    public function updateTracking(Request $request, $id)
-    {
-        $request->validate([
-            'tracking_number' => 'required|string|max:100',
-            'courier' => 'required|string|max:100',
-        ]);
-
-        $sale = Sale::findOrFail($id);
-        $sale->update([
-            'tracking_number' => $request->tracking_number,
-            'courier' => $request->courier,
-        ]);
-
-        SaleStatusHistory::create([
-            'sale_id' => $sale->id,
-            'status' => $sale->status,
-            'comment' => "Tracking info added: {$request->courier} - {$request->tracking_number}",
-            'updated_by' => Auth::id(),
-        ]);
-
-        toast_success('Tracking information updated successfully!');
         return back();
     }
 
     public function updateNotes(Request $request, $id)
     {
         $request->validate([
-            'admin_notes' => 'required|string|max:1000',
+            'notes' => 'required|string|max:1000',
         ]);
 
         $sale = Sale::findOrFail($id);
-        $sale->update(['admin_notes' => $request->admin_notes]);
+        $sale->update(['notes' => $request->notes]);
 
-        toast_success('Admin notes updated successfully!');
+        toast_success('Sale notes updated successfully!');
         return back();
     }
 
@@ -170,8 +126,10 @@ class SaleController extends Controller
 
     public function invoice($orderNumber)
     {
-        $sale = Sale::where('order_number', $orderNumber)->with('customer', 'items')->first();
+        $sale = Sale::with(['customer', 'employee', 'items.product', 'statusHistories'])
+            ->where('invoice_number', $orderNumber)
+            ->firstOrFail();
 
-        return view('admin.sales.invoice', compact('sale'));
+        return view('admin.sales.show', compact('sale'));
     }
 }

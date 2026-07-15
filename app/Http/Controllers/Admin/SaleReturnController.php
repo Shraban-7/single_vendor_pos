@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Sale; // Note: If your app uses 'Order' instead of 'Sale', rename this and related models
+use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
@@ -19,54 +19,82 @@ class SaleReturnController extends Controller
 {
     public function index(Request $request)
     {
-        $userId = Auth::id();
+        $returns = $this->buildReturnQuery($request)
+            ->has('items')
+            ->latest('created_at')
+            ->paginate(15);
 
-        $query = SaleReturn::with(['sale', 'customer', 'items.product', 'exchangeItems.product'])
-            ->whereHas('sale', fn($q) => $q->where('user_id', $userId));
+        $sales = Sale::select('id', 'invoice_number', 'customer_id')
+            ->with('customer:id,name')
+            ->latest()
+            ->take(100)
+            ->get();
 
-        if ($request->has('search')) {
-            $search = $request->input('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('return_number', 'like', "%{$search}%")
-                  ->orWhere('reason_notes', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->has('sale_id')) {
-            $query->where('sale_id', $request->input('sale_id'));
-        }
-
-        if ($request->has('return_type')) {
-            $query->where('return_type', $request->input('return_type'));
-        }
-
-        if ($request->has('from_date')) {
-            $query->whereDate('return_date', '>=', $request->input('from_date'));
-        }
-
-        if ($request->has('to_date')) {
-            $query->whereDate('return_date', '<=', $request->input('to_date'));
-        }
-
-        $returns = $query->latest('return_date')->paginate(15);
-        $sales = Sale::where('user_id', $userId)->select('id', 'order_number as sale_number', 'customer_id')->with('customer:id,name')->get();
-        $customers = Customer::where('user_id', $userId)->select('id', 'name')->get();
+        $customers = Customer::select('id', 'name', 'phone')->get();
 
         return view('admin.sale-returns.index', compact('returns', 'sales', 'customers'));
     }
 
-    public function create()
+    public function exchanges(Request $request)
     {
-        $userId = Auth::id();
-        // Fetch recent sales eligible for return
-        $sales = Sale::where('user_id', $userId)
-            ->whereIn('status', ['delivered', 'completed'])
-            ->with(['items.product', 'customer'])
+        $exchanges = $this->buildReturnQuery($request)
+            ->has('exchangeItems')
+            ->latest('created_at')
+            ->paginate(15);
+
+        $sales = Sale::select('id', 'invoice_number', 'customer_id')
+            ->with('customer:id,name')
             ->latest()
-            ->take(50)
+            ->take(100)
             ->get();
 
-        return view('admin.sale-returns.create', compact('sales'));
+        $customers = Customer::select('id', 'name', 'phone')->get();
+
+        return view('admin.sale-exchanges.index', compact('exchanges', 'sales', 'customers'));
+    }
+
+    private function buildReturnQuery(Request $request)
+    {
+        $query = SaleReturn::with(['sale', 'customer', 'employee', 'items.product', 'exchangeItems.product'])
+            ->withCount(['items', 'exchangeItems']);
+
+        if ($request->has('search') && $request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('returned_id', 'like', "%{$search}%")
+                    ->orWhere('order_number', 'like', "%{$search}%")
+                    ->orWhere('remarks', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn($cq) => $cq->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($request->has('sale_id') && $request->filled('sale_id')) {
+            $query->where('sale_id', $request->input('sale_id'));
+        }
+
+        if ($request->has('refund_method') && $request->filled('refund_method')) {
+            $query->where('refund_method', $request->input('refund_method'));
+        }
+
+        if ($request->has('from_date') && $request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->input('from_date'));
+        }
+
+        if ($request->has('to_date') && $request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->input('to_date'));
+        }
+
+        return $query;
+    }
+
+    public function show($id)
+    {
+        $saleReturn = SaleReturn::with(['sale', 'customer', 'employee', 'items.product', 'exchangeItems.product'])
+            ->withCount('items')
+            ->findOrFail($id);
+
+        return view('admin.sale-returns.show', compact('saleReturn'));
     }
 
     public function store(Request $request)
@@ -74,12 +102,13 @@ class SaleReturnController extends Controller
         $validated = $request->validate([
             'sale_id' => 'required|exists:sales,id',
             'return_date' => 'required|date',
-            'return_type' => 'required|string|in:full,partial',
-            'reason' => 'required|string',
-            'reason_notes' => 'nullable|string',
-            'refund_method' => 'nullable|string|in:cash,bank,mobile_banking,store_credit',
+            'return_type' => 'required|in:partial,full',
+            'reason' => 'required|string|max:255',
+            'refund_method' => 'required|string|in:cash,bank,mobile_banking,store_credit',
             'refund_amount' => 'nullable|numeric|min:0',
             'exchange_value' => 'nullable|numeric|min:0',
+            'remarks' => 'nullable|string|max:1000',
+            'employee_id' => 'nullable|exists:users,id',
             'items' => 'required|array|min:1',
             'items.*.sale_item_id' => 'required|exists:sale_items,id',
             'items.*.product_id' => 'required|exists:products,id',
@@ -91,44 +120,32 @@ class SaleReturnController extends Controller
             'exchange_items.*.unit_price' => 'required_with:exchange_items|numeric|min:0',
         ]);
 
-        $sale = Sale::where('user_id', Auth::id())->findOrFail($validated['sale_id']);
+        $sale = Sale::findOrFail($validated['sale_id']);
 
-        $existingReturn = SaleReturn::where('sale_id', $sale->id)->where('return_type', 'full')->first();
-        if ($existingReturn) {
-            return back()->withInput()->with('error', 'This sale has already been fully returned.');
+        if ($validated['return_type'] === 'full') {
+            $existingFull = SaleReturn::where('sale_id', $sale->id)->where('return_type', 'full')->exists();
+            if ($existingFull) {
+                return back()->withInput()->with('error', 'This sale has already been fully returned.');
+            }
         }
 
-        $returnType = $validated['return_type'];
-        $itemsData = $validated['items'];
-
-        if ($returnType === 'full' && empty($itemsData)) {
-            $itemsData = $sale->items()->get()->map(fn($item) => [
-                'sale_item_id' => $item->id,
-                'product_id' => $item->product_id,
-                'quantity' => max(0, $item->quantity - $item->quantity_returned),
-                'stock_replaced' => true,
-            ])->toArray();
-        }
-
-        if (empty($itemsData)) {
-            return back()->withInput()->with('error', 'Return items are required.');
-        }
+        $returnItemsData = $validated['items'];
 
         $saleItems = $sale->items()->get()->keyBy('id');
         $validatedItems = [];
         $totalRefundAmount = 0;
 
-        foreach ($itemsData as $item) {
+        foreach ($returnItemsData as $item) {
             $saleItem = $saleItems->get($item['sale_item_id']);
             if (!$saleItem) {
-                return back()->withInput()->with('error', "Sale item not found in this sale.");
+                return back()->withInput()->with('error', 'Sale item not found in this sale.');
             }
 
-            $availableQty = $saleItem->quantity - $saleItem->quantity_returned;
+            $availableQty = (float) $saleItem->quantity - (float) $saleItem->quantity_returned;
             $returnQty = (float) $item['quantity'];
 
             if ($returnQty > $availableQty) {
-                return back()->withInput()->with('error', "Return quantity for {$saleItem->product_name} exceeds available quantity ({$availableQty}).");
+                return back()->withInput()->with('error', "Return quantity for {$saleItem->product_name} exceeds available ({$availableQty}).");
             }
 
             $product = Product::find($item['product_id']);
@@ -140,10 +157,11 @@ class SaleReturnController extends Controller
                 'saleItem' => $saleItem,
                 'product' => $product,
                 'name' => $saleItem->product_name,
+                'variantName' => $saleItem->variant_name ?? null,
                 'quantity' => $returnQty,
-                'unit_price' => $unitPrice,
+                'unitPrice' => $unitPrice,
                 'subtotal' => $itemSubtotal,
-                'stock_replaced' => (bool) $item['stock_replaced'],
+                'stockReplaced' => (bool) $item['stock_replaced'],
             ];
         }
 
@@ -151,14 +169,13 @@ class SaleReturnController extends Controller
         $validatedExchangeItems = [];
         $exchangeSubtotal = 0;
 
-        foreach ($exchangeItemsData as $item) {
-            $product = Product::find($item['product_id']);
-            $quantity = (float) $item['quantity'];
-            $unitPrice = (float) $item['unit_price'];
+        foreach ($exchangeItemsData as $ex) {
+            $product = Product::find($ex['product_id']);
+            $quantity = (float) $ex['quantity'];
+            $unitPrice = (float) $ex['unit_price'];
 
-            $availableStock = (float) $product->stock_quantity;
-            if ($quantity > $availableStock) {
-                return back()->withInput()->with('error', "Insufficient stock for {$product->name}. Available: {$availableStock}, requested: {$quantity}");
+            if ($quantity > (float) $product->stock_quantity) {
+                return back()->withInput()->with('error', "Insufficient stock for {$product->name}. Available: {$product->stock_quantity}, requested: {$quantity}");
             }
 
             $itemSubtotal = $quantity * $unitPrice;
@@ -168,17 +185,16 @@ class SaleReturnController extends Controller
                 'product' => $product,
                 'name' => $product->name,
                 'quantity' => $quantity,
-                'unit_price' => $unitPrice,
-                'cost_price' => (float) $product->cost_price,
+                'unitPrice' => $unitPrice,
+                'costPrice' => (float) $product->cost_price,
                 'subtotal' => $itemSubtotal,
             ];
         }
 
-        DB::transaction(function () use ($request, $sale, $returnType, $validatedItems, $validatedExchangeItems, $totalRefundAmount, $exchangeSubtotal) {
+        DB::transaction(function () use ($request, $sale, $validatedItems, $validatedExchangeItems, $totalRefundAmount, $exchangeSubtotal) {
             $returnItemsToInsert = [];
             $stockMovements = [];
 
-            // 1. Process Returned Items (Stock In)
             foreach ($validatedItems as $v) {
                 $saleItem = $v['saleItem'];
                 $product = $v['product'];
@@ -186,7 +202,7 @@ class SaleReturnController extends Controller
 
                 $saleItem->increment('quantity_returned', $returnQty);
 
-                if ($v['stock_replaced']) {
+                if ($v['stockReplaced']) {
                     $beforeQty = (float) $product->stock_quantity;
                     $afterQty = $beforeQty + $returnQty;
 
@@ -196,8 +212,7 @@ class SaleReturnController extends Controller
                     $stockMovements[] = [
                         'user_id' => Auth::id(),
                         'product_id' => $product->id,
-                        'product_variant_id' => null,
-                        'type' => 'in',
+                        'type' => \App\Enums\StockMovementType::RETURN->value,
                         'reference_type' => 'sale_return',
                         'reference_id' => 0,
                         'quantity' => $returnQty,
@@ -212,14 +227,14 @@ class SaleReturnController extends Controller
 
                 $returnItemsToInsert[] = [
                     'sale_return_id' => 0,
-                    'sale_item_id' => $saleItem->id,
                     'product_id' => $product->id,
                     'product_variant_id' => null,
-                    'name' => $v['name'],
+                    'sku' => $product->sku ?? null,
+                    'product_name' => $v['name'],
+                    'variant_name' => $v['variantName'],
                     'quantity' => $returnQty,
-                    'unit_price' => $v['unit_price'],
-                    'subtotal' => $v['subtotal'],
-                    'stock_replaced' => $v['stock_replaced'] ? 1 : 0,
+                    'unit_price' => $v['unitPrice'],
+                    'is_exchanged' => 0,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -230,16 +245,17 @@ class SaleReturnController extends Controller
 
             $saleReturn = SaleReturn::create([
                 'sale_id' => $sale->id,
+                'returned_id' => $this->generateReturnNumber(),
                 'customer_id' => $sale->customer_id,
-                'return_number' => $this->generateReturnNumber(),
-                'return_date' => $request->return_date,
-                'return_type' => $returnType,
-                'transaction_type' => 'return',
+                'order_number' => $sale->invoice_number,
+                'return_type' => $request->return_type,
                 'reason' => $request->reason,
-                'reason_notes' => $request->reason_notes,
+                'remarks' => $request->remarks,
                 'refund_method' => $request->refund_method,
                 'refund_amount' => $refundAmount,
-                'exchange_value' => $exchangeValue,
+                'employee_id' => $request->employee_id ?? Auth::id(),
+                'created_at' => $request->return_date,
+                'updated_at' => now(),
             ]);
 
             foreach ($returnItemsToInsert as &$returnItem) {
@@ -254,7 +270,6 @@ class SaleReturnController extends Controller
                 StockMovement::insert($stockMovements);
             }
 
-            // 2. Process Exchange Items (Stock Out)
             $exchangeItemsToInsert = [];
             $exchangeStockMovements = [];
 
@@ -271,12 +286,11 @@ class SaleReturnController extends Controller
                 $exchangeStockMovements[] = [
                     'user_id' => Auth::id(),
                     'product_id' => $product->id,
-                    'product_variant_id' => null,
-                    'type' => 'out',
+                    'type' => \App\Enums\StockMovementType::RETURN->value,
                     'reference_type' => 'sale_return_exchange',
                     'reference_id' => $saleReturn->id,
                     'quantity' => $quantity,
-                    'unit_cost' => $v['cost_price'],
+                    'unit_cost' => $v['costPrice'],
                     'before_quantity' => $beforeQty,
                     'after_quantity' => $afterQty,
                     'notes' => "Exchange out: {$quantity} {$v['name']}",
@@ -289,8 +303,8 @@ class SaleReturnController extends Controller
                     'product_id' => $product->id,
                     'name' => $v['name'],
                     'quantity' => $quantity,
-                    'unit_price' => $v['unit_price'],
-                    'cost_price' => $v['cost_price'],
+                    'unit_price' => $v['unitPrice'],
+                    'cost_price' => $v['costPrice'],
                     'exchange_value' => 0,
                     'subtotal' => $v['subtotal'],
                     'total' => $v['subtotal'],
@@ -309,22 +323,32 @@ class SaleReturnController extends Controller
             $this->recalculateSaleReturnStatus($sale);
         });
 
-        return redirect()->route('admin.sale-returns.index')->with('success', 'Sale return processed successfully!');
+        return redirect()->route('admin.saleReturns.index')->with('success', 'Sale return processed successfully!');
     }
 
-    public function show($id)
+    public function searchProducts(Request $request)
     {
-        $saleReturn = SaleReturn::with(['sale', 'customer', 'items.product', 'exchangeItems.product'])
-            ->whereHas('sale', fn($q) => $q->where('user_id', Auth::id()))
-            ->findOrFail($id);
+        $term = $request->get('term', '');
+        $products = Product::where('is_active', true)
+            ->where(function ($q) use ($term) {
+                $q->where('name', 'like', "%{$term}%")
+                    ->orWhere('sku', 'like', "%{$term}%");
+            })
+            ->take(20)
+            ->get(['id', 'name', 'sku', 'selling_price', 'stock_quantity']);
 
-        return view('admin.sale-returns.show', compact('saleReturn'));
+        return response()->json($products->map(fn($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'sku' => $p->sku,
+            'price' => $p->selling_price,
+            'stock' => $p->stock_quantity,
+        ]));
     }
 
     public function destroy($id)
     {
         $saleReturn = SaleReturn::with(['items', 'exchangeItems', 'sale'])
-            ->whereHas('sale', fn($q) => $q->where('user_id', Auth::id()))
             ->findOrFail($id);
 
         DB::transaction(function () use ($saleReturn) {
@@ -332,14 +356,13 @@ class SaleReturnController extends Controller
             $productIds = $saleReturn->items->pluck('product_id')->unique();
             $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
 
-            // Revert Return Stock
             foreach ($saleReturn->items as $returnItem) {
-                $saleItem = SaleItem::find($returnItem->sale_item_id);
+                $saleItem = SaleItem::find($returnItem->sale_item_id ?? null);
                 if ($saleItem) {
                     $saleItem->decrement('quantity_returned', $returnItem->quantity);
                 }
 
-                if ($returnItem->stock_replaced) {
+                if ($returnItem->is_exchanged == 0) {
                     $product = $products->get($returnItem->product_id);
                     if ($product) {
                         $product->increment('stock_out', $returnItem->quantity);
@@ -348,7 +371,6 @@ class SaleReturnController extends Controller
                 }
             }
 
-            // Revert Exchange Stock
             $exchangeProductIds = $saleReturn->exchangeItems->pluck('product_id')->unique();
             $exchangeProducts = Product::whereIn('id', $exchangeProductIds)->get()->keyBy('id');
 
@@ -373,7 +395,22 @@ class SaleReturnController extends Controller
             }
         });
 
-        return redirect()->route('admin.sale-returns.index')->with('success', 'Sale return deleted successfully!');
+        return redirect()->route('admin.saleReturns.index')->with('success', 'Sale return deleted successfully!');
+    }
+
+    private function generateReturnNumber(): string
+    {
+        $prefix = 'RMA-';
+        $lastReturn = SaleReturn::orderBy('id', 'desc')->first();
+
+        if ($lastReturn && str_starts_with((string) $lastReturn->returned_id, $prefix)) {
+            $lastNumber = (int) substr((string) $lastReturn->returned_id, strlen($prefix));
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        return $prefix . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
     }
 
     private function recalculateSaleReturnStatus($sale)
@@ -391,20 +428,5 @@ class SaleReturnController extends Controller
         } else {
             $sale->updateQuietly(['has_return' => true, 'return_status' => 'partial', 'returned_amount' => $totalReturnedAmount]);
         }
-    }
-
-    private function generateReturnNumber(): string
-    {
-        $prefix = 'RMA-';
-        $lastReturn = SaleReturn::orderBy('id', 'desc')->first();
-
-        if ($lastReturn && str_starts_with($lastReturn->return_number, $prefix)) {
-            $lastNumber = (int) substr($lastReturn->return_number, strlen($prefix));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-
-        return $prefix . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
     }
 }

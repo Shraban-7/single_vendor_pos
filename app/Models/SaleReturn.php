@@ -16,6 +16,11 @@ class SaleReturn extends Model
         return $this->hasMany(SaleReturnItem::class);
     }
 
+    public function exchangeItems()
+    {
+        return $this->hasMany(ExchangeItem::class, 'sale_return_id');
+    }
+
     public function sale()
     {
         return $this->belongsTo(Sale::class, 'sale_id');
@@ -24,6 +29,21 @@ class SaleReturn extends Model
     public function employee()
     {
         return $this->belongsTo(User::class,'employee_id');
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    public function getReturnNumberAttribute()
+    {
+        return $this->returned_id;
+    }
+
+    public function getExchangeValueAttribute()
+    {
+        return $this->exchangeItems->sum('subtotal');
     }
 
 }
