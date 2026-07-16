@@ -298,44 +298,48 @@
     <div id="toastContainer" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 flex flex-col gap-2.5"></div>
 
     <!-- LEFT PANEL — Branding (hidden on mobile) -->
-    <aside class="hidden lg:flex w-[48%] h-full relative overflow-hidden grid-pattern flex-col justify-between p-8 xl:p-10 2xl:p-12">
+    <aside class="hidden lg:flex w-[40%] xl:w-[42%] h-full relative overflow-hidden grid-pattern flex-col justify-between p-8 xl:p-12 2xl:p-16">
         <div id="particleField" class="absolute inset-0 pointer-events-none"></div>
 
         <div class="side-content relative z-10">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-accent flex items-center justify-center shadow-lg shadow-accent/20">
-                    <i data-lucide="scan-barcode" class="w-5 h-5 text-bg"></i>
-                </div>
-                <span class="font-display text-2xl font-bold text-fg tracking-tight">LaraPOS</span>
+                @if (!empty($settings['site_logo']))
+                    <img src="{{ storage_url($settings['site_logo']) }}" alt="logo"
+                         class="w-10 h-10 rounded-xl object-cover ring-2 ring-white/10">
+                @else
+                    <div class="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/20">
+                        <span class="text-bg text-lg font-extrabold font-display">{{ substr($siteName ?: 'L', 0, 1) }}</span>
+                    </div>
+                @endif
+                <span class="font-display text-2xl font-bold text-fg tracking-tight">{{ $siteName ?: 'LaraPOS' }}</span>
             </div>
         </div>
 
-        <div class="side-content relative z-10 max-w-md">
+        <div class="side-content relative z-10 max-w-sm xl:max-w-md">
             <h1 class="font-display text-4xl xl:text-5xl 2xl:text-6xl font-bold text-fg leading-[1.1] mb-5">
                 Run your store<br>
                 <span class="text-accent">smarter</span>, not harder.
             </h1>
-            <p class="text-muted text-base xl:text-lg leading-relaxed mb-8">
-                Lightning-fast transactions, real-time inventory, and powerful analytics — all in one system built for
-                modern retail.
+            <p class="text-muted text-sm xl:text-base leading-relaxed mb-8">
+                {{ $settings['site_tagline'] ?? 'Lightning-fast transactions, real-time inventory, and powerful analytics — all in one system built for modern retail.' }}
             </p>
 
-            <div class="flex flex-wrap gap-2.5">
-                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3.5 py-1.5">
+            <div class="flex flex-wrap gap-2">
+                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
                     <i data-lucide="zap" class="w-4 h-4 text-accent"></i>
-                    <span class="text-fg text-sm font-medium">Fast Checkout</span>
+                    <span class="text-fg text-xs font-medium">Fast Checkout</span>
                 </div>
-                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3.5 py-1.5">
+                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
                     <i data-lucide="package" class="w-4 h-4 text-accent"></i>
-                    <span class="text-fg text-sm font-medium">Inventory Sync</span>
+                    <span class="text-fg text-xs font-medium">Inventory Sync</span>
                 </div>
-                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3.5 py-1.5">
+                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
                     <i data-lucide="bar-chart-3" class="w-4 h-4 text-accent"></i>
-                    <span class="text-fg text-sm font-medium">Live Analytics</span>
+                    <span class="text-fg text-xs font-medium">Live Analytics</span>
                 </div>
-                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3.5 py-1.5">
+                <div class="flex items-center gap-2 bg-card/70 backdrop-blur-sm border border-border rounded-full px-3 py-1.5">
                     <i data-lucide="shield-check" class="w-4 h-4 text-accent"></i>
-                    <span class="text-fg text-sm font-medium">Secure Payments</span>
+                    <span class="text-fg text-xs font-medium">Secure Payments</span>
                 </div>
             </div>
         </div>
@@ -348,15 +352,20 @@
     </aside>
 
     <!-- RIGHT PANEL — Login Form -->
-    <main class="w-full lg:w-[52%] h-full flex items-center justify-center p-4 sm:p-6 lg:p-6 xl:p-8 relative z-10 overflow-y-auto">
-        <div class="login-card w-full max-w-[400px] py-4">
+    <main class="w-full lg:w-[60%] xl:w-[58%] h-full flex items-center justify-center p-4 sm:p-6 lg:p-6 xl:p-8 2xl:p-10 relative z-10 overflow-y-auto">
+        <div class="login-card w-full max-w-[380px] xl:max-w-[340px] py-4">
 
             <!-- Mobile logo -->
             <div class="flex lg:hidden items-center gap-2.5 mb-6">
-                <div class="w-9 h-9 rounded-lg bg-accent flex items-center justify-center">
-                    <i data-lucide="scan-barcode" class="w-4 h-4 text-bg"></i>
-                </div>
-                <span class="font-display text-xl font-bold text-fg tracking-tight">LaraPOS</span>
+                @if (!empty($settings['site_logo']))
+                    <img src="{{ storage_url($settings['site_logo']) }}" alt="logo"
+                         class="w-9 h-9 rounded-xl object-cover ring-2 ring-white/10">
+                @else
+                    <div class="w-9 h-9 rounded-xl bg-accent flex items-center justify-center">
+                        <span class="text-bg text-base font-extrabold font-display">{{ substr($siteName ?: 'L', 0, 1) }}</span>
+                    </div>
+                @endif
+                <span class="font-display text-xl font-bold text-fg tracking-tight">{{ $siteName ?: 'LaraPOS' }}</span>
             </div>
 
             <!-- Header -->
@@ -433,7 +442,7 @@
 
             <!-- Footer -->
             <p class="text-center text-muted/50 text-xs mt-5 lg:mt-6">
-                LaraPOS v3.2.1 &middot; Licensed to Meridian Retail Group
+                LaraPOS v3.2.1 &middot; Licensed to Laravel Retail Group
             </p>
         </div>
     </main>

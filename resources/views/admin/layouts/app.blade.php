@@ -26,15 +26,18 @@
     @stack('styles')
 </head>
 
-<body class="min-h-screen bg-slate-50">
+<body class="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-indigo-50/40">
     <div class="flex h-screen overflow-hidden">
         @include('admin.layouts.sidebar')
 
-        <div id="mainContent" class="flex flex-col flex-1 overflow-hidden transition-all duration-300">
+        <div id="mainContent" class="relative flex flex-col flex-1 overflow-hidden transition-all duration-300">
+            {{-- top accent line --}}
+            <div class="absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r from-indigo-500 via-violet-500 to-fuchsia-500 z-30"></div>
+
             @include('admin.layouts.header')
 
             <main class="flex-1 overflow-y-auto">
-                <div class="p-6">
+                <div class="p-6 max-w-[1600px] mx-auto w-full">
                     @yield('content')
                 </div>
             </main>
