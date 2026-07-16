@@ -31,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
 
         //Paginator::useBootstrap();
         Paginator::useTailwind();
+        Paginator::defaultView('vendor.pagination.tailwind');
+        Paginator::defaultSimpleView('vendor.pagination.simple-tailwind');
 
         \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
             'product' => \App\Models\Product::class,
