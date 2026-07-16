@@ -335,7 +335,6 @@
         </div>
 
         {{-- Employee Information --}}
-        @if ($sale->is_pos == 1)
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
             <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 pb-2 mb-3 flex items-center gap-1.5">
                 <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -349,7 +348,6 @@
             <p class="text-xs text-slate-500">No employee.</p>
             @endif
         </div>
-        @endif
 
         {{-- Admin Notes --}}
         <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">

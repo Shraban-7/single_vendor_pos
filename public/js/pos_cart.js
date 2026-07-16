@@ -77,7 +77,6 @@ class PosCartManager {
                     product_id: productId,
                     product_variant_id: variantId,
                     quantity: quantity,
-                    is_pos: 1,
                     invoice_number: this.invoiceNumber
                 }),
             });
